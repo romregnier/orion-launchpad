@@ -3,14 +3,14 @@
     "id": "manga-reader",
     "url": "https://sorrento-mermaids-590ffd59.surge.sh",
     "title": "Manga Reader",
-    "description": "Reader manga Mangas.io-style — Sorrento Mermaids. Modes de lecture, réactions corgi, commentaires.",
-    "image": "https://opengraph.githubassets.com/1/romregnier/manga-reader",
+    "description": "Reader manga Mangas.io-style — modes de lecture, réactions corgi, commentaires, zoom, RTL/LTR.",
+    "image": "https://api.microlink.io/?url=https://sorrento-mermaids-590ffd59.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
     "favicon": "https://sorrento-mermaids-590ffd59.surge.sh/icon.png",
     "addedBy": "Orion",
     "addedAt": 1740607200000,
     "position": {
-      "x": 80,
-      "y": 80
+      "x": 60,
+      "y": 60
     },
     "color": "#E11F7B",
     "tags": [
@@ -24,13 +24,14 @@
     "id": "launchpad",
     "url": "https://orion-launchpad.surge.sh",
     "title": "Launchpad",
-    "description": "Répertoire visuel de projets — canvas collaboratif pour agents et humains.",
-    "image": "https://opengraph.githubassets.com/1/romregnier/orion-launchpad",
+    "description": "Répertoire visuel de projets — canvas infini collaboratif pour agents et humains.",
+    "image": "https://api.microlink.io/?url=https://orion-launchpad.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
+    "favicon": "https://www.google.com/s2/favicons?domain=orion-launchpad.surge.sh&sz=64",
     "addedBy": "Orion",
     "addedAt": 1740607200000,
     "position": {
-      "x": 380,
-      "y": 80
+      "x": 360,
+      "y": 60
     },
     "color": "#7C3AED",
     "tags": [
