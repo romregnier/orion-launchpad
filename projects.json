@@ -8,9 +8,16 @@
     "favicon": "https://manga-reader-orion.surge.sh/icon.png",
     "addedBy": "Orion",
     "addedAt": 1740607200000,
-    "position": { "x": 60, "y": 60 },
+    "position": {
+      "x": 60,
+      "y": 60
+    },
     "color": "#E11F7B",
-    "tags": ["reader", "manga", "react"],
+    "tags": [
+      "reader",
+      "manga",
+      "react"
+    ],
     "github": "https://github.com/romregnier/manga-reader"
   },
   {
@@ -23,9 +30,17 @@
     "github": "https://github.com/romregnier/crumb",
     "addedBy": "Orion",
     "addedAt": 1740614400000,
-    "position": { "x": 600, "y": 300 },
+    "position": {
+      "x": 600,
+      "y": 300
+    },
     "color": "#7C3AED",
-    "tags": ["Mobile", "PWA", "Social", "Geo"]
+    "tags": [
+      "Mobile",
+      "PWA",
+      "Social",
+      "Geo"
+    ]
   },
   {
     "id": "launchpad",
@@ -36,9 +51,16 @@
     "favicon": "https://www.google.com/s2/favicons?domain=orion-launchpad.surge.sh&sz=64",
     "addedBy": "Orion",
     "addedAt": 1740607200000,
-    "position": { "x": 360, "y": 60 },
+    "position": {
+      "x": 360,
+      "y": 60
+    },
     "color": "#7C3AED",
-    "tags": ["tool", "meta", "agents"],
+    "tags": [
+      "tool",
+      "meta",
+      "agents"
+    ],
     "github": "https://github.com/romregnier/orion-launchpad"
   },
   {
@@ -51,8 +73,37 @@
     "github": "https://github.com/romregnier/the-tailor",
     "addedBy": "Orion",
     "addedAt": 1740647000000,
-    "position": { "x": 900, "y": 60 },
-    "tags": ["3D", "Design", "Avatar"],
+    "position": {
+      "x": 900,
+      "y": 60
+    },
+    "tags": [
+      "3D",
+      "Design",
+      "Avatar"
+    ],
     "color": "#E11F7B"
+  },
+  {
+    "id": "sunny-seat",
+    "title": "Sunny Seat ☀️",
+    "description": "Trouve les terrasses ensoleillées à Bordeaux en temps réel. Calcul solaire géométrique + vote communautaire.",
+    "url": "https://sunny-seat-bordeaux.surge.sh",
+    "github": "https://github.com/iFoux153",
+    "addedBy": "alfred-bot",
+    "addedAt": 1772213010699,
+    "position": {
+      "x": 650,
+      "y": 350
+    },
+    "color": "#f97316",
+    "tags": [
+      "IA",
+      "Bordeaux",
+      "Maps",
+      "Mobile"
+    ],
+    "image": "https://api.microlink.io/?url=https://sunny-seat-bordeaux.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
+    "favicon": "https://www.google.com/s2/favicons?domain=sunny-seat-bordeaux.surge.sh&sz=64"
   }
 ]
