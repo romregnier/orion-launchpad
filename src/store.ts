@@ -218,7 +218,17 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       setGroupFilter: (groupId) => set({ activeGroup: groupId }),
 
       setBoardName: (name) => set({ boardName: name }),
-      setPrivate: (v) => set({ isPrivate: v }),
+      setPrivate: (v) => {
+        // When enabling private mode, auto-login the first admin so the current session isn't kicked
+        if (v && !get().currentUser) {
+          const admin = get().members.find(m => m.role === 'admin')
+          if (admin) {
+            set({ isPrivate: v, currentUser: { username: admin.username, role: admin.role } })
+            return
+          }
+        }
+        set({ isPrivate: v })
+      },
       addMember: (username, passwordHash, role) => set((state) => ({
         members: [...state.members, { id: `member-${Date.now()}`, username, passwordHash, role, createdAt: Date.now() }]
       })),

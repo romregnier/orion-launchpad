@@ -13,7 +13,7 @@ interface Props {
 
 export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, projectCount }: Props) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 500
-  const { showSettings, setShowSettings } = useLaunchpadStore()
+  const { showSettings, setShowSettings, boardName } = useLaunchpadStore()
 
   return (
     <div
@@ -41,7 +41,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: '1px solid rgba(255,255,255,0.08)' }}>
           <span style={{ fontSize: 18 }}>🌟</span>
           <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>Launchpad</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>{boardName}</span>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 6 }}>{projectCount} projet{projectCount !== 1 ? 's' : ''}</span>
           </div>
         </div>
@@ -53,12 +53,12 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       )}
 
       {/* Zoom controls */}
-      <button onClick={onZoomOut} title="Zoom out" style={btnStyle(isMobile)}>
+      <button onClick={onZoomOut} title="Zoom arrière" style={btnStyle(isMobile)}>
         <ZoomOut size={isMobile ? 13 : 15} />
       </button>
       <button
         onClick={onReset}
-        title="Reset view"
+        title="Réinitialiser le zoom"
         style={{
           ...btnStyle(isMobile),
           fontFamily: 'monospace',
@@ -70,7 +70,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       >
         {Math.round(scale * 100)}%
       </button>
-      <button onClick={onZoomIn} title="Zoom in" style={btnStyle(isMobile)}>
+      <button onClick={onZoomIn} title="Zoom avant" style={btnStyle(isMobile)}>
         <ZoomIn size={isMobile ? 13 : 15} />
       </button>
 

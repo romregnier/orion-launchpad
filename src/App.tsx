@@ -29,26 +29,7 @@ const MAX_SCALE = 2.5
 const SCALE_STEP = 0.15 // used for toolbar buttons only
 
 export default function App() {
-  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, setBoardName, isPrivate, currentUser, logout } = useLaunchpadStore()
-
-  // Board name editing state
-  const [editingBoardName, setEditingBoardName] = useState(false)
-  const [boardNameDraft, setBoardNameDraft] = useState(boardName)
-  const [boardNameHover, setBoardNameHover] = useState(false)
-  const boardNameInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (editingBoardName && boardNameInputRef.current) {
-      boardNameInputRef.current.focus()
-      boardNameInputRef.current.select()
-    }
-  }, [editingBoardName])
-
-  const saveBoardName = () => {
-    if (boardNameDraft.trim()) setBoardName(boardNameDraft.trim())
-    else setBoardNameDraft(boardName)
-    setEditingBoardName(false)
-  }
+  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
 
   // Auth gate — after all hooks
   if (isPrivate && !currentUser) return <LoginScreen />
@@ -284,45 +265,14 @@ export default function App() {
         projectCount={projects.length}
       />
 
-      {/* Board name — centered fixed title */}
-      <div
-        style={{
-          position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 35, display: 'flex', alignItems: 'center', gap: 6,
-          userSelect: 'none',
-        }}
-        onMouseEnter={() => setBoardNameHover(true)}
-        onMouseLeave={() => setBoardNameHover(false)}
-      >
-        {editingBoardName ? (
-          <input
-            ref={boardNameInputRef}
-            value={boardNameDraft}
-            onChange={e => setBoardNameDraft(e.target.value)}
-            onBlur={saveBoardName}
-            onKeyDown={e => { if (e.key === 'Enter') saveBoardName(); if (e.key === 'Escape') { setBoardNameDraft(boardName); setEditingBoardName(false) } }}
-            style={{
-              background: 'transparent', border: 'none', outline: 'none',
-              fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)',
-              fontFamily: 'inherit', textAlign: 'center',
-              borderBottom: '1px solid rgba(255,255,255,0.3)',
-            }}
-          />
-        ) : (
-          <span
-            onDoubleClick={() => { setBoardNameDraft(boardName); setEditingBoardName(true) }}
-            style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)', cursor: 'default' }}
-          >
-            {boardName}
-          </span>
-        )}
-        {boardNameHover && !editingBoardName && (
-          <span
-            onClick={() => { setBoardNameDraft(boardName); setEditingBoardName(true) }}
-            style={{ fontSize: 12, cursor: 'pointer', opacity: 0.4 }}
-            title="Renommer"
-          >✏️</span>
-        )}
+      {/* Board name — centered fixed title (read-only, edit in Settings) */}
+      <div style={{
+        position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 35, userSelect: 'none', pointerEvents: 'none',
+      }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+          {boardName}
+        </span>
       </div>
 
       {/* User pill — top right */}
