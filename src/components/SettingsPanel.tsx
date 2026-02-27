@@ -276,7 +276,7 @@ export function SettingsPanel() {
                         <select
                           value={newRole}
                           onChange={e => setNewRole(e.target.value as 'admin' | 'member')}
-                          style={{ ...inputStyle, cursor: 'pointer' }}
+                          style={{ ...inputStyle, cursor: 'pointer', colorScheme: 'dark', appearance: 'auto' }}
                         >
                           <option value="member">Membre</option>
                           <option value="admin">Admin</option>
