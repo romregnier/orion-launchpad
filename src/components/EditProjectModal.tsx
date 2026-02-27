@@ -184,7 +184,7 @@ export function EditProjectModal({ project, open, onClose }: Props) {
               <select
                 value={groupId ?? ''}
                 onChange={e => setGroupId(e.target.value || undefined)}
-                style={{ ...inputStyle, cursor: 'pointer' }}
+                style={{ ...inputStyle, cursor: 'pointer', colorScheme: 'dark' }}
               >
                 <option value="">Aucun groupe</option>
                 {groups.map(g => (

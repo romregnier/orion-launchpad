@@ -43,6 +43,22 @@ export interface CanvasState {
   scale: number
 }
 
+export interface AvatarConfig {
+  bodyShape?: string
+  color?: { h: number; s: number; l: number }
+  eyes?: string
+  eyeColor?: string
+  blush?: string
+  mouth?: string
+  armor?: string
+  headgear?: string
+  earPiece?: string
+  animation?: string
+  skinPattern?: string
+  ambiance?: string
+  bodyScale?: number
+}
+
 export interface CanvasAgent {
   id: string
   owner: string
@@ -53,4 +69,5 @@ export interface CanvasAgent {
   is_system?: boolean
   position: { x: number; y: number }
   working_on_project?: string | null
+  tailor_config?: AvatarConfig | null
 }
