@@ -7,9 +7,10 @@ interface CanvasAgentAvatarProps {
   agent: CanvasAgent
   canvasScale: number
   onChat?: (agent: CanvasAgent) => void
+  onEdit?: (agent: CanvasAgent) => void
 }
 
-export function CanvasAgentAvatar({ agent, canvasScale, onChat }: CanvasAgentAvatarProps) {
+export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: CanvasAgentAvatarProps) {
   const { updateAgentPosition, removeCanvasAgent, currentUser } = useLaunchpadStore()
   const [hovered, setHovered] = useState(false)
   const isDragging = useRef(false)
@@ -99,35 +100,20 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat }: CanvasAgentAva
           {ownerInitial}
         </div>
 
-        {/* Delete button */}
-        {hovered && isOwner && (
-          <button
-            onMouseDown={e => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation()
-              removeCanvasAgent(agent.id)
-            }}
-            style={{
-              position: 'absolute',
-              top: -6,
-              right: -6,
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: '#EF4444',
-              border: '2px solid #0B090D',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 10,
-              color: '#fff',
-              cursor: 'pointer',
-              lineHeight: 1,
-              padding: 0,
-            }}
-          >
-            ×
-          </button>
+        {/* Edit + Delete — owner only, non-system agents */}
+        {hovered && isOwner && !agent.is_system && (
+          <>
+            <button
+              onMouseDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onEdit?.(agent) }}
+              style={{ position: 'absolute', top: -6, left: -6, width: 18, height: 18, borderRadius: '50%', background: '#6366F1', border: '2px solid #0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', cursor: 'pointer', padding: 0 }}
+            >✏️</button>
+            <button
+              onMouseDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); removeCanvasAgent(agent.id) }}
+              style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: '#EF4444', border: '2px solid #0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff', cursor: 'pointer', lineHeight: 1, padding: 0 }}
+            >×</button>
+          </>
         )}
       </div>
 

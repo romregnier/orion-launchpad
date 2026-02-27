@@ -96,7 +96,8 @@ interface LaunchpadStore {
   getAllCanvasObjects: () => CanvasObject[]
   pushOverlapping: (draggedId: string, dragX: number, dragY: number) => void
   canvasAgents: CanvasAgent[]
-  addCanvasAgent: (name: string, tailorUrl?: string) => Promise<void>
+  addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string) => Promise<void>
+  updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token'>>) => Promise<void>
   removeCanvasAgent: (id: string) => Promise<void>
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
   subscribeToAgents: () => () => void
@@ -335,21 +336,33 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       getAllCanvasObjects: () => getAllCanvasObjectsFromState(get()),
 
-      addCanvasAgent: async (name, tailorUrl) => {
+      addCanvasAgent: async (name, tailorUrl, botToken) => {
         const owner = get().currentUser?.username ?? 'anon'
         const { data, error } = await supabase
           .from('canvas_agents')
-          .insert({ name, tailor_url: tailorUrl ?? null, owner, position_x: 200, position_y: 200 })
+          .insert({ name, tailor_url: tailorUrl ?? null, bot_token: botToken ?? null, owner, position_x: 200, position_y: 200 })
           .select()
           .single()
         if (error || !data) return
-        const row = data as { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number }
+        const row = data as { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string }
         const agent: CanvasAgent = {
           id: row.id, owner: row.owner, name: row.name,
           tailorUrl: row.tailor_url ?? undefined,
+          bot_token: row.bot_token ?? undefined,
           position: { x: row.position_x, y: row.position_y },
         }
         set(state => ({ canvasAgents: [...state.canvasAgents, agent] }))
+      },
+
+      updateCanvasAgent: async (id, updates) => {
+        const dbUpdates: Record<string, string | null> = {}
+        if (updates.name !== undefined) dbUpdates.name = updates.name
+        if (updates.tailorUrl !== undefined) dbUpdates.tailor_url = updates.tailorUrl ?? null
+        if (updates.bot_token !== undefined) dbUpdates.bot_token = updates.bot_token ?? null
+        await supabase.from('canvas_agents').update(dbUpdates).eq('id', id)
+        set(state => ({
+          canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, ...updates } : a)
+        }))
       },
 
       removeCanvasAgent: async (id) => {

@@ -16,6 +16,7 @@ import { BuildStatusWidget } from './components/BuildStatusWidget'
 import { PresenceBar } from './components/PresenceBar'
 import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
 import { AgentChatPanel } from './components/AgentChatPanel'
+import { BotModal } from './components/BotModal'
 import type { CanvasAgent } from './types'
 
 class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
@@ -36,7 +37,7 @@ const SCALE_STEP = 0.15
 
 // ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, addCanvasAgent, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [showTailorModal, setShowTailorModal] = useState(false)
@@ -45,9 +46,9 @@ function LaunchpadCanvas() {
   const [isPanning, setIsPanning] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showAddList, setShowAddList] = useState(false)
-  const [showAddAgent, setShowAddAgent] = useState(false)
-  const [agentNameInput, setAgentNameInput] = useState('')
   const [chatAgent, setChatAgent] = useState<CanvasAgent | null>(null)
+  const [showBotModal, setShowBotModal] = useState(false)
+  const [editingAgent, setEditingAgent] = useState<CanvasAgent | null>(null)
   const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
@@ -168,7 +169,11 @@ function LaunchpadCanvas() {
         ))}
         <IdeaWidget canvasScale={scale} index={visibleProjects.length} />
         {canvasAgents.map(agent => (
-          <CanvasAgentAvatar key={agent.id} agent={agent} canvasScale={scale} onChat={setChatAgent} />
+          <CanvasAgentAvatar
+            key={agent.id} agent={agent} canvasScale={scale}
+            onChat={setChatAgent}
+            onEdit={a => { setEditingAgent(a); setShowBotModal(true) }}
+          />
         ))}
         {remoteLoaded && projects.length === 0 && (
           <div style={{ position: 'absolute', left: 400, top: 260, transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
@@ -188,7 +193,7 @@ function LaunchpadCanvas() {
         </motion.div>
       )}
 
-      <Toolbar scale={scale} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} onRefresh={() => fetchRemote()} onAdd={() => setShowAdd(true)} onAddList={() => setShowAddList(true)} onAddAgent={() => { setAgentNameInput(''); setShowAddAgent(true) }} projectCount={projects.length} />
+      <Toolbar scale={scale} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} onRefresh={() => fetchRemote()} onAdd={() => setShowAdd(true)} onAddList={() => setShowAddList(true)} onAddAgent={() => { setEditingAgent(null); setShowBotModal(true) }} projectCount={projects.length} />
 
       <div style={{ position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 35, userSelect: 'none', pointerEvents: 'none' }}>
         <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{boardName}</span>
@@ -268,28 +273,12 @@ function LaunchpadCanvas() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showAddAgent && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddAgent(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 490 }} />
-            <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ type: 'spring', stiffness: 350, damping: 28 }} style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 500, background: '#1A171C', borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', padding: 24, width: 320, boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 16 }}>＋ Ajouter un agent</h3>
-              <input autoFocus value={agentNameInput} onChange={e => setAgentNameInput(e.target.value)}
-                onKeyDown={async e => {
-                  if (e.key === 'Enter' && agentNameInput.trim()) { await addCanvasAgent(agentNameInput.trim()); setShowAddAgent(false) }
-                  if (e.key === 'Escape') setShowAddAgent(false)
-                }}
-                placeholder="Nom de l'agent (ex: Nova, Forge…)"
-                style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: '#fff', outline: 'none', boxSizing: 'border-box' }}
-              />
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button onClick={() => setShowAddAgent(false)} style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Annuler</button>
-                <button onClick={async () => { if (agentNameInput.trim()) { await addCanvasAgent(agentNameInput.trim()); setShowAddAgent(false) } }} style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'linear-gradient(135deg, #F59E0B, #d97706)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Ajouter</button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Bot modal — add/edit */}
+      <BotModal
+        open={showBotModal}
+        onClose={() => { setShowBotModal(false); setEditingAgent(null) }}
+        editAgent={editingAgent}
+      />
     </div>
   )
 }
