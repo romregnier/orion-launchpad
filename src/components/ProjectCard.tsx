@@ -158,9 +158,16 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
               style={{
                 position: 'absolute',
                 bottom: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
+                left: 0,
+                right: 0,
                 marginBottom: 8,
+                display: 'flex',
+                justifyContent: 'center',
+                zIndex: 10,
+                pointerEvents: 'none',
+              }}
+            >
+            <div data-no-drag style={{
                 display: 'flex',
                 gap: 4,
                 padding: '6px 8px',
@@ -169,10 +176,9 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 border: '1px solid rgba(255,255,255,0.12)',
                 backdropFilter: 'blur(16px)',
                 boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-                zIndex: 10,
                 whiteSpace: 'nowrap',
-              }}
-            >
+                pointerEvents: 'auto',
+              }}>
               {project.github && (
                 <a href={project.github} target="_blank" rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
@@ -241,6 +247,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                   >Non</button>
                 </div>
               )}
+            </div>
             </motion.div>
           )}
         </AnimatePresence>

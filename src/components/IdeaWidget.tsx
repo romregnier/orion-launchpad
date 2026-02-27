@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lightbulb, ThumbsUp, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Lightbulb, ThumbsUp, Plus, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 
 const SESSION_ID = (() => {
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function IdeaWidget({ canvasScale, index = 0 }: Props) {
-  const { ideas, addIdea, voteIdea, ideaWidgetPosition, setIdeaWidgetPosition } = useLaunchpadStore()
+  const { ideas, addIdea, voteIdea, deleteIdea, ideaWidgetPosition, setIdeaWidgetPosition } = useLaunchpadStore()
   const [collapsed, setCollapsed] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [newIdea, setNewIdea] = useState('')
@@ -159,6 +159,7 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
               {/* Ideas list */}
               <div
                 data-no-drag=""
+                onWheel={(e) => e.stopPropagation()}
                 style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}
               >
                 {sorted.map((idea, i) => {
@@ -182,6 +183,21 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
                           par {idea.author}
                         </span>
                       </div>
+                      <button
+                        data-no-drag=""
+                        onClick={(e) => { e.stopPropagation(); deleteIdea(idea.id) }}
+                        title="Supprimer"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: 18, height: 18, borderRadius: 4, border: 'none', cursor: 'pointer',
+                          background: 'transparent', flexShrink: 0, opacity: 0,
+                          transition: 'opacity 0.15s',
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.15)' }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                      >
+                        <X size={9} style={{ color: 'rgba(239,68,68,0.7)' }} />
+                      </button>
                       <button
                         data-no-drag=""
                         onClick={(e) => { e.stopPropagation(); voteIdea(idea.id, SESSION_ID) }}

@@ -114,6 +114,7 @@ export function SettingsPanel() {
               overflowY: 'auto',
               display: 'flex', flexDirection: 'column',
             }}
+            onWheel={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div style={{

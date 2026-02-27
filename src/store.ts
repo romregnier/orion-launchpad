@@ -56,6 +56,7 @@ interface LaunchpadStore {
   updateProject: (id: string, updates: Partial<Project>) => void
   fetchRemote: () => Promise<void>
   addIdea: (text: string, author: string) => void
+  deleteIdea: (id: string) => void
   voteIdea: (id: string, sessionId: string) => void
   setFilter: (tag: string | null) => void
   setIdeaWidgetPosition: (x: number, y: number) => void
@@ -138,11 +139,26 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         }),
 
       updatePosition: (id, x, y) =>
-        set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === id ? { ...p, position: { x, y } } : p
-          ),
-        })),
+        set((state) => {
+          const CARD_W = 260, CARD_H = 220, PAD = 16
+          // Nudge until no overlap with any other card
+          let nx = x, ny = y
+          let attempts = 0
+          const others = state.projects.filter(p => p.id !== id)
+          const overlaps = (cx: number, cy: number) =>
+            others.some(p =>
+              cx < p.position.x + CARD_W + PAD &&
+              cx + CARD_W + PAD > p.position.x &&
+              cy < p.position.y + CARD_H + PAD &&
+              cy + CARD_H + PAD > p.position.y
+            )
+          while (overlaps(nx, ny) && attempts < 12) {
+            nx += CARD_W + PAD
+            if (attempts % 3 === 2) { nx = x; ny += CARD_H + PAD }
+            attempts++
+          }
+          return { projects: state.projects.map((p) => p.id === id ? { ...p, position: { x: nx, y: ny } } : p) }
+        }),
 
       updateProject: (id, updates) =>
         set((state) => ({
@@ -198,6 +214,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           }),
         })),
 
+      deleteIdea: (id) => set((state) => ({ ideas: state.ideas.filter(i => i.id !== id) })),
       setFilter: (tag) => set({ activeFilter: tag }),
       setIdeaWidgetPosition: (x, y) => set({ ideaWidgetPosition: { x, y } }),
 
