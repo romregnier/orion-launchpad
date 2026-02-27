@@ -21,6 +21,18 @@
     "github": "https://github.com/romregnier/manga-reader"
   },
   {
+    "id": "crumb",
+    "url": "https://crumb-app.surge.sh",
+    "title": "Crumb",
+    "description": "Moments shared through space & time — capsules temporelles géolocalisées 🌍",
+    "github": "https://github.com/romregnier/crumb",
+    "addedBy": "Orion",
+    "addedAt": 1740614400000,
+    "position": { "x": 600, "y": 300 },
+    "color": "#FF6B35",
+    "tags": ["Mobile", "PWA", "Social", "Geo"]
+  },
+  {
     "id": "launchpad",
     "url": "https://orion-launchpad.surge.sh",
     "title": "Launchpad",
