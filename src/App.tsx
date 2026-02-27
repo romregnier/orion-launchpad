@@ -16,7 +16,6 @@ import { BuildStatusWidget } from './components/BuildStatusWidget'
 import { PresenceBar } from './components/PresenceBar'
 import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
 
-// Error boundary to prevent Three.js crashes from killing the app
 class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback?: ReactNode }) {
     super(props)
@@ -31,13 +30,13 @@ class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNod
 
 const MIN_SCALE = 0.2
 const MAX_SCALE = 2.5
-const SCALE_STEP = 0.15 // used for toolbar buttons only
+const SCALE_STEP = 0.15
 
-export default function App() {
+// ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
+function LaunchpadCanvas() {
   const { projects, lists, canvasAgents, subscribeToAgents, addCanvasAgent, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
-  // All hooks MUST be declared before any conditional return (React rules of hooks)
   const [showTailorModal, setShowTailorModal] = useState(false)
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -50,54 +49,36 @@ export default function App() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
 
-  // Center canvas and fetch remote projects on mount
   useEffect(() => {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
     fetchRemote()
   }, [fetchRemote])
 
-  // Subscribe to canvas agents realtime
   useEffect(() => {
     const unsub = subscribeToAgents()
     return unsub
   }, [subscribeToAgents])
 
-  // Auth gate — MUST be after all hooks
-  if (isPrivate && !currentUser) return <LoginScreen />
-
-  // Collect all unique tags from all projects
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
-
-  // Filtered projects
   const visibleProjects = projects.filter(p => {
     const groupMatch = !activeGroup || p.groupId === activeGroup
     const tagMatch = !activeFilter || (p.tags ?? []).includes(activeFilter)
     return groupMatch && tagMatch
   })
 
-  // Touch pan + pinch-to-zoom
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      touchState.current = {
-        touches: Array.from(e.touches),
-        lastDist: 0,
-        lastMid: { x: e.touches[0].clientX, y: e.touches[0].clientY },
-      }
+      touchState.current = { touches: Array.from(e.touches), lastDist: 0, lastMid: { x: e.touches[0].clientX, y: e.touches[0].clientY } }
     } else if (e.touches.length === 2) {
       const dx = e.touches[1].clientX - e.touches[0].clientX
       const dy = e.touches[1].clientY - e.touches[0].clientY
-      touchState.current = {
-        touches: Array.from(e.touches),
-        lastDist: Math.hypot(dx, dy),
-        lastMid: { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 },
-      }
+      touchState.current = { touches: Array.from(e.touches), lastDist: Math.hypot(dx, dy), lastMid: { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 } }
     }
   }, [])
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     e.preventDefault()
     if (!touchState.current) return
-
     if (e.touches.length === 1) {
       const prev = touchState.current.lastMid
       const cur = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -110,7 +91,6 @@ export default function App() {
       const mid = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 }
       const prevDist = touchState.current.lastDist
       const prevMid = touchState.current.lastMid
-
       if (prevDist > 0) {
         const pinchRatio = dist / prevDist
         const rect = canvasRef.current?.getBoundingClientRect()
@@ -119,10 +99,7 @@ export default function App() {
           const my = mid.y - rect.top
           setScale(s => {
             const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, s * pinchRatio))
-            setOffset(o => ({
-              x: o.x - mx * (newScale / s - 1) + (mid.x - prevMid.x),
-              y: o.y - my * (newScale / s - 1) + (mid.y - prevMid.y),
-            }))
+            setOffset(o => ({ x: o.x - mx * (newScale / s - 1) + (mid.x - prevMid.x), y: o.y - my * (newScale / s - 1) + (mid.y - prevMid.y) }))
             return newScale
           })
         }
@@ -132,35 +109,20 @@ export default function App() {
     }
   }, [])
 
-  const onTouchEnd = useCallback(() => {
-    touchState.current = null
-  }, [])
+  const onTouchEnd = useCallback(() => { touchState.current = null }, [])
 
-  // Pan: left click on empty canvas, or middle mouse button
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0 && e.button !== 1) return
-    // Only pan when clicking directly on the canvas (not on a card or UI element)
     if ((e.target as HTMLElement).closest('[data-no-drag], .project-card, button, a, input, textarea')) return
     e.preventDefault()
     setIsPanning(true)
     panStart.current = { mouseX: e.clientX, mouseY: e.clientY, offsetX: offset.x, offsetY: offset.y }
-
-    const onMove = (ev: MouseEvent) => {
-      setOffset({
-        x: panStart.current.offsetX + (ev.clientX - panStart.current.mouseX),
-        y: panStart.current.offsetY + (ev.clientY - panStart.current.mouseY),
-      })
-    }
-    const onUp = () => {
-      setIsPanning(false)
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
+    const onMove = (ev: MouseEvent) => { setOffset({ x: panStart.current.offsetX + (ev.clientX - panStart.current.mouseX), y: panStart.current.offsetY + (ev.clientY - panStart.current.mouseY) }) }
+    const onUp = () => { setIsPanning(false); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [offset])
 
-  // Scroll to zoom (cursor-centered)
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     const delta = -e.deltaY * 0.001
@@ -170,26 +132,15 @@ export default function App() {
     const mouseY = e.clientY - rect.top
     setScale((s) => {
       const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, s + delta))
-      setOffset(o => ({
-        x: o.x - mouseX * (newScale / s - 1),
-        y: o.y - mouseY * (newScale / s - 1),
-      }))
+      setOffset(o => ({ x: o.x - mouseX * (newScale / s - 1), y: o.y - mouseY * (newScale / s - 1) }))
       return newScale
     })
   }, [])
 
   const zoomIn = () => setScale((s) => Math.min(MAX_SCALE, +(s + SCALE_STEP).toFixed(2)))
   const zoomOut = () => setScale((s) => Math.max(MIN_SCALE, +(s - SCALE_STEP).toFixed(2)))
-  const resetView = () => {
-    setScale(1)
-    setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
-  }
-
-  // Default position for new card: visible center of viewport
-  const newCardPosition = {
-    x: (window.innerWidth / 2 - offset.x) / scale - 130,
-    y: (window.innerHeight / 2 - offset.y) / scale - 120,
-  }
+  const resetView = () => { setScale(1); setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 }) }
+  const newCardPosition = { x: (window.innerWidth / 2 - offset.x) / scale - 130, y: (window.innerHeight / 2 - offset.y) / scale - 120 }
 
   return (
     <div
@@ -200,76 +151,24 @@ export default function App() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Dot-grid background */}
-      <div
-        className="canvas-bg"
-        style={{
-          position: 'absolute', inset: 0,
-          backgroundPosition: `${((offset.x % (32 * scale)) + 32 * scale) % (32 * scale)}px ${((offset.y % (32 * scale)) + 32 * scale) % (32 * scale)}px`,
-          backgroundSize: `${32 * scale}px ${32 * scale}px`,
-        }}
-      />
+      <div className="canvas-bg" style={{ position: 'absolute', inset: 0, backgroundPosition: `${((offset.x % (32 * scale)) + 32 * scale) % (32 * scale)}px ${((offset.y % (32 * scale)) + 32 * scale) % (32 * scale)}px`, backgroundSize: `${32 * scale}px ${32 * scale}px` }} />
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(225,31,123,0.05) 0%, transparent 70%)' }} />
 
-      {/* Ambient glow */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(225,31,123,0.05) 0%, transparent 70%)',
-      }} />
-
-      {/* Canvas transform layer */}
-      <div
-        ref={canvasRef}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-          transformOrigin: '0 0',
-          cursor: isPanning ? 'grabbing' : 'grab',
-        }}
-      >
+      <div ref={canvasRef} style={{ position: 'absolute', inset: 0, transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`, transformOrigin: '0 0', cursor: isPanning ? 'grabbing' : 'grab' }}>
         <AnimatePresence>
           {visibleProjects.map((project, index) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              canvasScale={scale}
-              index={index}
-            />
+            <ProjectCard key={project.id} project={project} canvasScale={scale} index={index} />
           ))}
         </AnimatePresence>
-
-        {/* List widgets */}
         {lists.map((list) => (
-          <ListWidgetCard
-            key={list.id}
-            list={list}
-            canvasScale={scale}
-            sessionId={sessionId}
-          />
+          <ListWidgetCard key={list.id} list={list} canvasScale={scale} sessionId={sessionId} />
         ))}
-
-        {/* IdeaWidget — fixed position on canvas */}
-        <IdeaWidget
-          canvasScale={scale}
-          index={visibleProjects.length}
-        />
-
-        {/* Canvas agents */}
+        <IdeaWidget canvasScale={scale} index={visibleProjects.length} />
         {canvasAgents.map(agent => (
-          <CanvasAgentAvatar
-            key={agent.id}
-            agent={agent}
-            canvasScale={scale}
-          />
+          <CanvasAgentAvatar key={agent.id} agent={agent} canvasScale={scale} />
         ))}
-
-        {/* Empty state */}
         {remoteLoaded && projects.length === 0 && (
-          <div style={{
-            position: 'absolute', left: 400, top: 260,
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center', pointerEvents: 'none',
-          }}>
+          <div style={{ position: 'absolute', left: 400, top: 260, transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>🌟</div>
             <p style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.25)', marginBottom: 6 }}>Launchpad vide</p>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.15)' }}>Cliquez sur + Ajouter pour démarrer</p>
@@ -277,14 +176,8 @@ export default function App() {
         )}
       </div>
 
-      {/* Loading state */}
       {!remoteLoaded && (
-        <motion.div
-          className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
+        <motion.div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🌟</div>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Chargement des projets…</p>
@@ -292,303 +185,92 @@ export default function App() {
         </motion.div>
       )}
 
-      {/* Toolbar */}
-      <Toolbar
-        scale={scale}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
-        onReset={resetView}
-        onRefresh={() => fetchRemote()}
-        onAdd={() => setShowAdd(true)}
-        onAddList={() => setShowAddList(true)}
-        onAddAgent={() => { setAgentNameInput(''); setShowAddAgent(true) }}
-        projectCount={projects.length}
-      />
+      <Toolbar scale={scale} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} onRefresh={() => fetchRemote()} onAdd={() => setShowAdd(true)} onAddList={() => setShowAddList(true)} onAddAgent={() => { setAgentNameInput(''); setShowAddAgent(true) }} projectCount={projects.length} />
 
-      {/* Board name — centered fixed title (read-only, edit in Settings) */}
-      <div style={{
-        position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 35, userSelect: 'none', pointerEvents: 'none',
-      }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
-          {boardName}
-        </span>
+      <div style={{ position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 35, userSelect: 'none', pointerEvents: 'none' }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{boardName}</span>
       </div>
 
-      {/* User pill — top right */}
       {isPrivate && currentUser && (
-        <div style={{
-          position: 'fixed', top: 14, right: 14, zIndex: 40,
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '6px 12px', borderRadius: 999,
-          background: 'rgba(22,18,26,0.9)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(16px)',
-        }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
-            👤 {currentUser.username}
-          </span>
+        <div style={{ position: 'fixed', top: 14, right: 14, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(22,18,26,0.9)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>👤 {currentUser.username}</span>
           <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)' }} />
-          <button
-            onClick={logout}
-            style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}
-          >
-            Déconnexion
-          </button>
+          <button onClick={logout} style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>Déconnexion</button>
         </div>
       )}
 
-      {/* Group filter bar */}
-      <div style={{
-        position: 'fixed', top: 46, left: '50%', transform: 'translateX(-50%)',
-        background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999,
-        zIndex: 40,
-      }}>
+      <div style={{ position: 'fixed', top: 46, left: '50%', transform: 'translateX(-50%)', background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999, zIndex: 40 }}>
         <GroupBar />
       </div>
 
-      {/* Tag filter pills */}
       {allTags.length > 0 && (
-        <div style={{
-          position: 'fixed', top: 92, left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap',
-          padding: '6px 10px',
-          background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999,
-          zIndex: 40,
-        }}>
-          <button
-            onClick={() => setFilter(null)}
-            style={{
-              padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
-              border: 'none', cursor: 'pointer', transition: 'all 0.15s', letterSpacing: '0.03em',
-              background: !activeFilter ? '#E11F7B' : 'rgba(255,255,255,0.07)',
-              color: !activeFilter ? '#fff' : 'rgba(255,255,255,0.4)',
-            }}
-          >
-            Tous
-          </button>
+        <div style={{ position: 'fixed', top: 92, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', padding: '6px 10px', background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999, zIndex: 40 }}>
+          <button onClick={() => setFilter(null)} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700, border: 'none', cursor: 'pointer', background: !activeFilter ? '#E11F7B' : 'rgba(255,255,255,0.07)', color: !activeFilter ? '#fff' : 'rgba(255,255,255,0.4)' }}>Tous</button>
           {allTags.map((tag) => {
             const active = activeFilter === tag
-            let hash = 0
-            for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffffffff
+            let hash = 0; for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffffffff
             const colors = ['#E11F7B','#7C3AED','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4']
             const c = colors[Math.abs(hash) % colors.length]
-            return (
-              <button key={tag} onClick={() => setFilter(active ? null : tag)}
-                style={{
-                  padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
-                  border: `1px solid ${active ? c : `${c}44`}`,
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  background: active ? `${c}22` : 'transparent',
-                  color: active ? c : 'rgba(255,255,255,0.4)',
-                }}
-              >
-                {tag}
-              </button>
-            )
+            return <button key={tag} onClick={() => setFilter(active ? null : tag)} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700, border: `1px solid ${active ? c : `${c}44`}`, cursor: 'pointer', background: active ? `${c}22` : 'transparent', color: active ? c : 'rgba(255,255,255,0.4)' }}>{tag}</button>
           })}
         </div>
       )}
 
-      {/* Add list modal */}
-      <AddListModal
-        open={showAddList}
-        onClose={() => setShowAddList(false)}
-      />
+      <AddListModal open={showAddList} onClose={() => setShowAddList(false)} />
+      <AddProjectModal open={showAdd} onClose={() => setShowAdd(false)} defaultPosition={newCardPosition} />
 
-      {/* Add modal */}
-      <AddProjectModal
-        open={showAdd}
-        onClose={() => setShowAdd(false)}
-        defaultPosition={newCardPosition}
-      />
-
-      {/* Orion avatar — bottom left */}
-      <div style={{
-        position: 'fixed',
-        bottom: 100,
-        left: 20,
-        zIndex: 45,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 6,
-      }}>
+      <div style={{ position: 'fixed', bottom: 100, left: 20, zIndex: 45, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
         <ErrorBoundary fallback={<div style={{ fontSize: 32 }}>🌟</div>}>
           <OrionAvatar3D size={80} />
         </ErrorBoundary>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowTailorModal(true)}
-          style={{
-            background: 'rgba(22,18,26,0.9)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 8,
-            padding: '4px 10px',
-            fontSize: 10,
-            color: 'rgba(255,255,255,0.5)',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}
-        >
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTailorModal(true)} style={{ background: 'rgba(22,18,26,0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '4px 10px', fontSize: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', gap: 4 }}>
           ✂️ Personnaliser
         </motion.button>
       </div>
 
-      {/* The Tailor modal */}
       <AnimatePresence>
         {showTailorModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowTailorModal(false)}
-              style={{
-                position: 'fixed', inset: 0,
-                background: 'rgba(0,0,0,0.8)',
-                backdropFilter: 'blur(8px)',
-                zIndex: 490,
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              style={{
-                position: 'fixed',
-                top: 0, left: 0, right: 0, bottom: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                zIndex: 500,
-                pointerEvents: 'none',
-              }}
-            >
-            <div style={{
-                width: 'min(900px, calc(100vw - 32px))',
-                height: 'min(620px, calc(100vh - 80px))',
-                background: '#0B090D',
-                borderRadius: 20,
-                border: '1px solid rgba(255,255,255,0.1)',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                pointerEvents: 'all',
-              }}
-            >
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 20px',
-                borderBottom: '1px solid rgba(255,255,255,0.07)',
-                background: 'rgba(22,18,26,0.95)',
-                flexShrink: 0,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>✂️</span>
-                  <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>The Tailor</span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Personnalise ton avatar Orion</span>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTailorModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 490 }} />
+            <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ type: 'spring', stiffness: 350, damping: 28 }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, pointerEvents: 'none' }}>
+              <div style={{ width: 'min(900px, calc(100vw - 32px))', height: 'min(620px, calc(100vh - 80px))', background: '#0B090D', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', display: 'flex', flexDirection: 'column', pointerEvents: 'all' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(22,18,26,0.95)', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>✂️</span>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>The Tailor</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Personnalise ton avatar Orion</span>
+                  </div>
+                  <button onClick={() => setShowTailorModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1 }}>×</button>
                 </div>
-                <button
-                  onClick={() => setShowTailorModal(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1 }}
-                >×</button>
+                <iframe src="https://the-tailor.surge.sh" style={{ flex: 1, border: 'none', width: '100%' }} title="The Tailor" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" />
               </div>
-              <iframe
-                src="https://the-tailor.surge.sh"
-                style={{ flex: 1, border: 'none', width: '100%' }}
-                title="The Tailor"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
-              />
-            </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Chat Panel */}
       <ChatPanel />
-
-      {/* Settings Panel */}
       <SettingsPanel />
-
-      {/* Presence bar — top right */}
       <PresenceBar currentUser={currentUser} />
-
-      {/* Build status widget — bottom right */}
       <BuildStatusWidget />
 
-      {/* Add Agent modal */}
       <AnimatePresence>
         {showAddAgent && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowAddAgent(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 490 }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              style={{
-                position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-                zIndex: 500, background: '#1A171C', borderRadius: 16,
-                border: '1px solid rgba(255,255,255,0.1)',
-                padding: 24, width: 320, boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-              }}
-            >
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 16 }}>
-                ＋ Ajouter un agent
-              </h3>
-              <input
-                autoFocus
-                value={agentNameInput}
-                onChange={e => setAgentNameInput(e.target.value)}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddAgent(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 490 }} />
+            <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ type: 'spring', stiffness: 350, damping: 28 }} style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 500, background: '#1A171C', borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', padding: 24, width: 320, boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 16 }}>＋ Ajouter un agent</h3>
+              <input autoFocus value={agentNameInput} onChange={e => setAgentNameInput(e.target.value)}
                 onKeyDown={async e => {
-                  if (e.key === 'Enter' && agentNameInput.trim()) {
-                    await addCanvasAgent(agentNameInput.trim())
-                    setShowAddAgent(false)
-                  }
+                  if (e.key === 'Enter' && agentNameInput.trim()) { await addCanvasAgent(agentNameInput.trim()); setShowAddAgent(false) }
                   if (e.key === 'Escape') setShowAddAgent(false)
                 }}
                 placeholder="Nom de l'agent (ex: Nova, Forge…)"
-                style={{
-                  width: '100%', background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
-                  padding: '10px 12px', fontSize: 14, color: '#fff',
-                  outline: 'none', boxSizing: 'border-box',
-                }}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 12px', fontSize: 14, color: '#fff', outline: 'none', boxSizing: 'border-box' }}
               />
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button
-                  onClick={() => setShowAddAgent(false)}
-                  style={{
-                    flex: 1, padding: '10px 0', borderRadius: 8,
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                  }}
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={async () => {
-                    if (agentNameInput.trim()) {
-                      await addCanvasAgent(agentNameInput.trim())
-                      setShowAddAgent(false)
-                    }
-                  }}
-                  style={{
-                    flex: 1, padding: '10px 0', borderRadius: 8,
-                    background: 'linear-gradient(135deg, #F59E0B, #d97706)',
-                    border: 'none', color: '#fff', cursor: 'pointer',
-                    fontSize: 13, fontWeight: 600,
-                  }}
-                >
-                  Ajouter
-                </button>
+                <button onClick={() => setShowAddAgent(false)} style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Annuler</button>
+                <button onClick={async () => { if (agentNameInput.trim()) { await addCanvasAgent(agentNameInput.trim()); setShowAddAgent(false) } }} style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'linear-gradient(135deg, #F59E0B, #d97706)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Ajouter</button>
               </div>
             </motion.div>
           </>
@@ -596,4 +278,17 @@ export default function App() {
       </AnimatePresence>
     </div>
   )
+}
+
+// ── App root — auth routing uniquement ────────────────────────────────────────
+export default function App() {
+  const { isPrivate, currentUser, fetchRemote } = useLaunchpadStore()
+
+  // Charger isPrivate depuis Supabase au démarrage
+  useEffect(() => {
+    fetchRemote()
+  }, [fetchRemote])
+
+  if (isPrivate && !currentUser) return <LoginScreen />
+  return <LaunchpadCanvas />
 }
