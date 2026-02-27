@@ -69,5 +69,7 @@ export interface CanvasAgent {
   is_system?: boolean
   position: { x: number; y: number }
   working_on_project?: string | null
+  home_x?: number | null
+  home_y?: number | null
   tailor_config?: AvatarConfig | null
 }

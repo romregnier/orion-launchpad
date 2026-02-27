@@ -110,6 +110,7 @@ interface LaunchpadStore {
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
   subscribeToAgents: () => () => void
   setAgentWorkingOn: (agentId: string, projectId: string | null) => Promise<void>
+  returnAgentHome: (agentId: string) => Promise<void>
   lists: ListWidget[]
   addList: (title: string, type: ListType) => void
   removeList: (id: string) => void
@@ -366,7 +367,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       subscribeToAgents: () => {
-        type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean; working_on_project?: string | null; tailor_config?: import('./types').AvatarConfig | null }
+        type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean; working_on_project?: string | null; home_x?: number | null; home_y?: number | null; tailor_config?: import('./types').AvatarConfig | null }
         const rowToAgent = (row: AgentRow): CanvasAgent => ({
           id: row.id, owner: row.owner, name: row.name,
           tailorUrl: row.tailor_url ?? undefined,
@@ -375,6 +376,8 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           is_system: row.is_system ?? false,
           position: { x: row.position_x, y: row.position_y },
           working_on_project: row.working_on_project ?? null,
+          home_x: row.home_x ?? null,
+          home_y: row.home_y ?? null,
           tailor_config: row.tailor_config ?? null,
         })
 
@@ -401,12 +404,34 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       setAgentWorkingOn: async (agentId, projectId) => {
-        set(state => ({
-          canvasAgents: state.canvasAgents.map(a =>
+        const state = get()
+        const agent = state.canvasAgents.find(a => a.id === agentId)
+        // Sauvegarder la home position avant de se déplacer (si pas déjà sauvegardée)
+        const homeUpdate: Record<string, unknown> = { working_on_project: projectId }
+        if (projectId && agent && !agent.home_x) {
+          homeUpdate.home_x = agent.position.x
+          homeUpdate.home_y = agent.position.y
+        }
+        set(s => ({
+          canvasAgents: s.canvasAgents.map(a =>
             a.id === agentId ? { ...a, working_on_project: projectId } : a
           ),
         }))
-        await supabase.from('canvas_agents').update({ working_on_project: projectId }).eq('id', agentId)
+        await supabase.from('canvas_agents').update(homeUpdate).eq('id', agentId)
+      },
+
+      // Retour à la home position après fin de tâche
+      returnAgentHome: async (agentId) => {
+        const agent = get().canvasAgents.find(a => a.id === agentId)
+        if (!agent) return
+        const homeX = agent.home_x ?? agent.position.x
+        const homeY = agent.home_y ?? agent.position.y
+        set(s => ({
+          canvasAgents: s.canvasAgents.map(a =>
+            a.id === agentId ? { ...a, working_on_project: null, position: { x: homeX, y: homeY } } : a
+          ),
+        }))
+        await supabase.from('canvas_agents').update({ working_on_project: null }).eq('id', agentId)
       },
 
       addList: (title, type) => set((state) => {
