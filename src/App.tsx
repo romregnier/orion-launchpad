@@ -43,6 +43,7 @@ export default function App() {
     const tagMatch = !activeFilter || (p.tags ?? []).includes(activeFilter)
     return groupMatch && tagMatch
   })
+  const [showTailorModal, setShowTailorModal] = useState(false)
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
@@ -361,12 +362,101 @@ export default function App() {
         defaultPosition={newCardPosition}
       />
 
-      {/* Orion 3D Avatar — wrapped in error boundary in case WebGL is unavailable */}
-      <ErrorBoundary fallback={
-        <div style={{ position: 'fixed', bottom: 24, left: 24, width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg,#E11F7B,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, zIndex: 200, boxShadow: '0 0 20px rgba(225,31,123,0.4)' }}>🌟</div>
-      }>
-        <OrionAvatar3D />
-      </ErrorBoundary>
+      {/* Orion avatar — bottom left */}
+      <div style={{
+        position: 'fixed',
+        bottom: 100,
+        left: 20,
+        zIndex: 45,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 6,
+      }}>
+        <ErrorBoundary fallback={<div style={{ fontSize: 32 }}>🌟</div>}>
+          <OrionAvatar3D size={80} />
+        </ErrorBoundary>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowTailorModal(true)}
+          style={{
+            background: 'rgba(22,18,26,0.9)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 8,
+            padding: '4px 10px',
+            fontSize: 10,
+            color: 'rgba(255,255,255,0.5)',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          ✂️ Personnaliser
+        </motion.button>
+      </div>
+
+      {/* The Tailor modal */}
+      <AnimatePresence>
+        {showTailorModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowTailorModal(false)}
+              style={{
+                position: 'fixed', inset: 0,
+                background: 'rgba(0,0,0,0.8)',
+                backdropFilter: 'blur(8px)',
+                zIndex: 490,
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              style={{
+                position: 'fixed',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 'min(900px, calc(100vw - 32px))',
+                height: 'min(620px, calc(100vh - 80px))',
+                background: '#0B090D',
+                borderRadius: 20,
+                border: '1px solid rgba(255,255,255,0.1)',
+                overflow: 'hidden',
+                zIndex: 500,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '14px 20px',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                background: 'rgba(22,18,26,0.95)',
+                flexShrink: 0,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>✂️</span>
+                  <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>The Tailor</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Personnalise ton avatar Orion</span>
+                </div>
+                <button
+                  onClick={() => setShowTailorModal(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1 }}
+                >×</button>
+              </div>
+              <iframe
+                src="https://the-tailor.surge.sh"
+                style={{ flex: 1, border: 'none', width: '100%' }}
+                title="The Tailor"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Chat Panel */}
       <ChatPanel />

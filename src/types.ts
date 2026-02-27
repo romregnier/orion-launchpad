@@ -14,6 +14,29 @@ export interface Project {
   groupId?: string // assigned group
 }
 
+export type ListType = 'brainstorm' | 'checklist' | 'ranking' | 'notes'
+
+export interface ListItem {
+  id: string
+  text: string
+  createdBy: string
+  createdAt: number
+  checked?: boolean
+  votes?: number
+  votedBy?: string[]
+  order?: number
+}
+
+export interface ListWidget {
+  id: string
+  title: string
+  type: ListType
+  createdBy: string
+  createdAt: number
+  position: { x: number; y: number }
+  items: ListItem[]
+}
+
 export interface CanvasState {
   offsetX: number
   offsetY: number

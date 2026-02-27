@@ -91,17 +91,25 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     })
   }, [project.url])
 
-  const { updatePosition } = useLaunchpadStore()
+  const { updatePosition, pushOverlapping } = useLaunchpadStore()
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
     e.stopPropagation(); e.preventDefault()
     setIsDragging(true)
     dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, cardX: project.position.x, cardY: project.position.y }
+    let rafId: number | null = null
     const onMove = (ev: MouseEvent) => {
-      const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
-      const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
-      updatePosition(project.id, dragStart.current.cardX + dx, dragStart.current.cardY + dy)
+      if (rafId !== null) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
+        const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
+        const nx = dragStart.current.cardX + dx
+        const ny = dragStart.current.cardY + dy
+        updatePosition(project.id, nx, ny)
+        pushOverlapping(project.id, nx, ny)
+      })
     }
     const onUp = () => { setIsDragging(false); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
     window.addEventListener('mousemove', onMove)
@@ -263,7 +271,10 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
           initial={{ opacity: 0, scale: 0.92, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.88, y: -8 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 26, delay: index * 0.08 }}
+          transition={isDragging
+            ? { type: 'spring', stiffness: 380, damping: 26, delay: index * 0.08 }
+            : { type: 'spring', stiffness: 300, damping: 30 }
+          }
           style={{
             borderRadius: 16,
             background: 'rgba(26,22,30,0.97)',

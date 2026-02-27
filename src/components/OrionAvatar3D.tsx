@@ -96,7 +96,11 @@ function OrionSphere({ hovered, config }: { hovered: boolean; config: Partial<Av
   )
 }
 
-export function OrionAvatar3D() {
+interface OrionAvatar3DProps {
+  size?: number
+}
+
+export function OrionAvatar3D({ size = 120 }: OrionAvatar3DProps) {
   const [hovered, setHovered] = useState(false)
   const [config, setConfig] = useState<Partial<AvatarConfig> | null>(null)
 
@@ -112,13 +116,10 @@ export function OrionAvatar3D() {
   return (
     <div
       style={{
-        position: 'fixed',
-        bottom: typeof window !== 'undefined' && window.innerWidth < 500 ? 80 : 24,
-        left: 16,
-        width: typeof window !== 'undefined' && window.innerWidth < 500 ? 64 : 120,
-        height: typeof window !== 'undefined' && window.innerWidth < 500 ? 64 : 120,
-        zIndex: 200,
+        width: size,
+        height: size,
         cursor: 'pointer',
+        position: 'relative',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -141,13 +142,14 @@ export function OrionAvatar3D() {
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
           backdropFilter: 'blur(8px)',
+          zIndex: 10,
         }}>
           Orion 🌟
         </div>
       )}
       <Canvas
         camera={{ position: [0, 0, 2.2], fov: 45 }}
-        style={{ borderRadius: '50%', background: 'transparent' }}
+        style={{ borderRadius: '50%', background: 'transparent', width: '100%', height: '100%' }}
         gl={{ alpha: true, antialias: true }}
       >
         <ambientLight intensity={0.4} />

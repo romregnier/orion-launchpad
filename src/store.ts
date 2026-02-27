@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Project } from './types'
+import type { Project, ListWidget, ListType } from './types'
 import { sha256 } from './utils/hash'
 
 export interface Group {
@@ -73,6 +73,7 @@ interface LaunchpadStore {
   logout: () => void
   setShowSettings: (v: boolean) => void
   clearProjects: () => void
+  pushOverlapping: (draggedId: string, dragX: number, dragY: number) => void
 }
 
 export const useLaunchpadStore = create<LaunchpadStore>()(
@@ -281,6 +282,30 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       logout: () => set({ currentUser: null }),
       setShowSettings: (v) => set({ showSettings: v }),
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),
+
+      pushOverlapping: (draggedId, dragX, dragY) => set((state) => {
+        const CARD_W = 260, CARD_H = 220, PAD = 20
+        const newProjects = state.projects.map(p => {
+          if (p.id === draggedId) return p
+          const overlapX = dragX < p.position.x + CARD_W + PAD && dragX + CARD_W + PAD > p.position.x
+          const overlapY = dragY < p.position.y + CARD_H + PAD && dragY + CARD_H + PAD > p.position.y
+          if (!overlapX || !overlapY) return p
+          const cx = dragX + CARD_W / 2
+          const cy = dragY + CARD_H / 2
+          const px = p.position.x + CARD_W / 2
+          const py = p.position.y + CARD_H / 2
+          const dx = px - cx
+          const dy = py - cy
+          if (Math.abs(dx) >= Math.abs(dy)) {
+            const nx = dx > 0 ? dragX + CARD_W + PAD : dragX - CARD_W - PAD
+            return { ...p, position: { x: nx, y: p.position.y } }
+          } else {
+            const ny = dy > 0 ? dragY + CARD_H + PAD : dragY - CARD_H - PAD
+            return { ...p, position: { x: p.position.x, y: ny } }
+          }
+        })
+        return { projects: newProjects }
+      }),
     }),
     {
       name: 'orion-launchpad',
