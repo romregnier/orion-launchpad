@@ -119,9 +119,11 @@ export default function App() {
     touchState.current = null
   }, [])
 
-  // Pan: middle mouse button or Alt+drag
+  // Pan: left click on empty canvas, or middle mouse button
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 1 && !e.altKey) return
+    if (e.button !== 0 && e.button !== 1) return
+    // Only pan when clicking directly on the canvas (not on a card or UI element)
+    if ((e.target as HTMLElement).closest('[data-no-drag], .project-card, button, a, input, textarea')) return
     e.preventDefault()
     setIsPanning(true)
     panStart.current = { mouseX: e.clientX, mouseY: e.clientY, offsetX: offset.x, offsetY: offset.y }
@@ -205,7 +207,7 @@ export default function App() {
           inset: 0,
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
           transformOrigin: '0 0',
-          cursor: isPanning ? 'grabbing' : 'default',
+          cursor: isPanning ? 'grabbing' : 'grab',
         }}
       >
         <AnimatePresence>

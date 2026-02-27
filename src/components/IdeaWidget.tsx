@@ -43,6 +43,7 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
     e.preventDefault()
+    e.stopPropagation()
     setIsDragging(true)
     dragStart.current = {
       mouseX: e.clientX, mouseY: e.clientY,
