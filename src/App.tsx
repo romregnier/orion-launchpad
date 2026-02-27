@@ -438,17 +438,22 @@ export default function App() {
               transition={{ type: 'spring', stiffness: 350, damping: 28 }}
               style={{
                 position: 'fixed',
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
+                top: 0, left: 0, right: 0, bottom: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 500,
+                pointerEvents: 'none',
+              }}
+            >
+            <div style={{
                 width: 'min(900px, calc(100vw - 32px))',
                 height: 'min(620px, calc(100vh - 80px))',
                 background: '#0B090D',
                 borderRadius: 20,
                 border: '1px solid rgba(255,255,255,0.1)',
                 overflow: 'hidden',
-                zIndex: 500,
                 display: 'flex',
                 flexDirection: 'column',
+                pointerEvents: 'all',
               }}
             >
               <div style={{
@@ -474,6 +479,7 @@ export default function App() {
                 title="The Tailor"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
               />
+            </div>
             </motion.div>
           </>
         )}

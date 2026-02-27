@@ -107,6 +107,16 @@ export function OrionAvatar3D({ size = 120 }: OrionAvatar3DProps) {
   useEffect(() => {
     const saved = getAgentAvatar('orion')
     if (saved) setConfig(saved)
+
+    // Live update quand The Tailor sauvegarde dans localStorage
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'tailor_avatar_orion') {
+        const updated = getAgentAvatar('orion')
+        setConfig(updated)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [])
 
   const lightColor = config?.color
