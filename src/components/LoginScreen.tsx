@@ -18,6 +18,8 @@ export function LoginScreen() {
     setLoading(false)
     if (!ok) {
       setError(true)
+    } else {
+      window.location.reload()
     }
   }, [username, password, login])
 

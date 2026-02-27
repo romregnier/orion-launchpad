@@ -1,8 +1,9 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare, Pencil } from 'lucide-react'
+import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare, Pencil, RefreshCw } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
+import { fetchMeta } from '../utils/fetchMeta'
 import { CommentsPanel } from './CommentsPanel'
 import { GroupContextMenu } from './GroupContextMenu'
 import { EditProjectModal } from './EditProjectModal'
@@ -24,8 +25,23 @@ function tagColor(tag: string): string {
 }
 
 export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
-  const { removeProject, groups } = useLaunchpadStore()
+  const { removeProject, groups, updateProject } = useLaunchpadStore()
   const group = groups.find(g => g.id === project.groupId)
+
+  // Auto-fetch missing image/favicon on mount
+  useEffect(() => {
+    if (project.image && project.favicon) return
+    let cancelled = false
+    fetchMeta(project.url).then((meta) => {
+      if (cancelled) return
+      const updates: Partial<Project> = {}
+      if (!project.image && meta.image) updates.image = meta.image
+      if (!project.favicon && meta.favicon) updates.favicon = meta.favicon
+      if (!project.color && meta.color) updates.color = meta.color
+      if (Object.keys(updates).length > 0) updateProject(project.id, updates)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [project.id, project.url, project.image, project.favicon, project.color, updateProject])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [showActions, setShowActions] = useState(false)
@@ -34,6 +50,23 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   const [showComments, setShowComments] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefreshPreview = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (refreshing) return
+    setRefreshing(true)
+    setImgError(false)
+    try {
+      const meta = await fetchMeta(project.url)
+      const updates: Partial<Project> = {}
+      if (meta.image) updates.image = meta.image
+      if (meta.favicon) updates.favicon = meta.favicon
+      if (meta.color) updates.color = meta.color
+      updateProject(project.id, updates)
+    } catch {}
+    setRefreshing(false)
+  }, [project.id, project.url, updateProject, refreshing])
   const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
   const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
 
@@ -156,6 +189,9 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
               </a>
               <button onClick={handleCopy} title="Copier le lien" style={{ ...actionBtn, color: copied ? '#10B981' : 'rgba(255,255,255,0.6)' }}>
                 {copied ? <Check size={13} /> : <Copy size={13} />}
+              </button>
+              <button onClick={handleRefreshPreview} title="Rafraîchir la preview" style={{ ...actionBtn, color: refreshing ? '#7C3AED' : 'rgba(255,255,255,0.6)' }}>
+                <RefreshCw size={13} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : {}} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowEdit(true) }}

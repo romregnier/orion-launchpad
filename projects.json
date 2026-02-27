@@ -4,20 +4,13 @@
     "url": "https://manga-reader-orion.surge.sh",
     "title": "Manga Reader",
     "description": "Reader manga Mangas.io-style — modes de lecture, réactions corgi, commentaires, zoom, RTL/LTR.",
-    "image": "https://api.microlink.io/?url=https://sorrento-mermaids-590ffd59.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
-    "favicon": "https://sorrento-mermaids-590ffd59.surge.sh/icon.png",
+    "image": "https://api.microlink.io/?url=https://manga-reader-orion.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
+    "favicon": "https://manga-reader-orion.surge.sh/icon.png",
     "addedBy": "Orion",
     "addedAt": 1740607200000,
-    "position": {
-      "x": 60,
-      "y": 60
-    },
+    "position": { "x": 60, "y": 60 },
     "color": "#E11F7B",
-    "tags": [
-      "reader",
-      "manga",
-      "react"
-    ],
+    "tags": ["reader", "manga", "react"],
     "github": "https://github.com/romregnier/manga-reader"
   },
   {
@@ -25,20 +18,14 @@
     "url": "https://crumb-app.surge.sh",
     "title": "Crumb",
     "description": "Moments shared through space & time — capsules temporelles géolocalisées 🌍",
+    "image": "https://api.microlink.io/?url=https://crumb-app.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
+    "favicon": "https://www.google.com/s2/favicons?domain=crumb-app.surge.sh&sz=64",
     "github": "https://github.com/romregnier/crumb",
     "addedBy": "Orion",
     "addedAt": 1740614400000,
-    "position": {
-      "x": 600,
-      "y": 300
-    },
-    "color": "#FF6B35",
-    "tags": [
-      "Mobile",
-      "PWA",
-      "Social",
-      "Geo"
-    ]
+    "position": { "x": 600, "y": 300 },
+    "color": "#7C3AED",
+    "tags": ["Mobile", "PWA", "Social", "Geo"]
   },
   {
     "id": "launchpad",
@@ -49,16 +36,9 @@
     "favicon": "https://www.google.com/s2/favicons?domain=orion-launchpad.surge.sh&sz=64",
     "addedBy": "Orion",
     "addedAt": 1740607200000,
-    "position": {
-      "x": 360,
-      "y": 60
-    },
+    "position": { "x": 360, "y": 60 },
     "color": "#7C3AED",
-    "tags": [
-      "tool",
-      "meta",
-      "agents"
-    ],
+    "tags": ["tool", "meta", "agents"],
     "github": "https://github.com/romregnier/orion-launchpad"
   },
   {
@@ -66,6 +46,8 @@
     "title": "The Tailor",
     "description": "Crée et personnalise ton avatar 3D",
     "url": "https://the-tailor.surge.sh",
+    "image": "https://api.microlink.io/?url=https://the-tailor.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
+    "favicon": "https://www.google.com/s2/favicons?domain=the-tailor.surge.sh&sz=64",
     "github": "https://github.com/romregnier/the-tailor",
     "addedBy": "Orion",
     "addedAt": 1740647000000,

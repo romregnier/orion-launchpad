@@ -1,25 +1,78 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { MeshDistortMaterial, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 
-function OrionSphere({ hovered }: { hovered: boolean }) {
+// Minimal AvatarConfig mirror (subset used here)
+export interface AvatarColor {
+  h: number
+  s: number
+  l: number
+}
+
+export interface AvatarConfig {
+  bodyType?: string
+  color?: AvatarColor
+  eyes?: string
+  accessory?: string
+  ambiance?: string
+  bodyScale?: number
+  animation?: string
+  skinPattern?: string
+  mouth?: string
+}
+
+export function getAgentAvatar(name: string): Partial<AvatarConfig> | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(`tailor_avatar_${name.toLowerCase()}`)
+    if (!raw) return null
+    return JSON.parse(raw) as Partial<AvatarConfig>
+  } catch {
+    return null
+  }
+}
+
+function OrionSphere({ hovered, config }: { hovered: boolean; config: Partial<AvatarConfig> | null }) {
   const meshRef = useRef<THREE.Mesh>(null)
+
+  const mainColor = config?.color
+    ? `hsl(${config.color.h}, ${config.color.s}%, ${config.color.l}%)`
+    : '#E11F7B'
+  const animation = config?.animation ?? 'rotate'
 
   useFrame((state) => {
     if (!meshRef.current) return
-    meshRef.current.rotation.y += 0.008
-    meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.15
+
+    switch (animation) {
+      case 'bounce':
+        meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 0.1
+        break
+      case 'float':
+        meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.8) * 0.07
+        meshRef.current.rotation.y += 0.001
+        break
+      case 'wiggle':
+        meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 3) * 0.15
+        break
+      default: // rotate
+        meshRef.current.rotation.y += 0.008
+        meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.15
+    }
+
     const targetScale = hovered ? 1.15 : 1
     meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08)
   })
+
+  const emissiveColor = config?.skinPattern === 'glow' ? mainColor : '#7C3AED'
+  const emissiveIntensity = config?.skinPattern === 'glow' ? 0.6 : 0.3
 
   return (
     <>
       {/* Halo glow */}
       <mesh scale={1.35}>
         <sphereGeometry args={[0.55, 32, 32]} />
-        <meshBasicMaterial color="#E11F7B" transparent opacity={0.08} side={THREE.BackSide} />
+        <meshBasicMaterial color={mainColor} transparent opacity={0.08} side={THREE.BackSide} />
       </mesh>
       {/* Outer glow */}
       <mesh scale={1.15}>
@@ -30,13 +83,13 @@ function OrionSphere({ hovered }: { hovered: boolean }) {
       <mesh ref={meshRef}>
         <sphereGeometry args={[0.55, 64, 64]} />
         <MeshDistortMaterial
-          color="#E11F7B"
+          color={mainColor}
           distort={0.4}
           speed={2}
           roughness={0.1}
           metalness={0.3}
-          emissive="#7C3AED"
-          emissiveIntensity={0.3}
+          emissive={emissiveColor}
+          emissiveIntensity={emissiveIntensity}
         />
       </mesh>
     </>
@@ -45,6 +98,16 @@ function OrionSphere({ hovered }: { hovered: boolean }) {
 
 export function OrionAvatar3D() {
   const [hovered, setHovered] = useState(false)
+  const [config, setConfig] = useState<Partial<AvatarConfig> | null>(null)
+
+  useEffect(() => {
+    const saved = getAgentAvatar('orion')
+    if (saved) setConfig(saved)
+  }, [])
+
+  const lightColor = config?.color
+    ? `hsl(${config.color.h}, ${config.color.s}%, ${config.color.l}%)`
+    : '#E11F7B'
 
   return (
     <div
@@ -88,10 +151,10 @@ export function OrionAvatar3D() {
         gl={{ alpha: true, antialias: true }}
       >
         <ambientLight intensity={0.4} />
-        <pointLight position={[2, 2, 2]} intensity={2} color="#E11F7B" />
+        <pointLight position={[2, 2, 2]} intensity={2} color={lightColor} />
         <pointLight position={[-2, -1, 1]} intensity={1} color="#7C3AED" />
         <Stars radius={4} depth={2} count={200} factor={0.4} fade speed={1} />
-        <OrionSphere hovered={hovered} />
+        <OrionSphere hovered={hovered} config={config} />
       </Canvas>
     </div>
   )
