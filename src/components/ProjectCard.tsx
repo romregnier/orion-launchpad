@@ -29,8 +29,12 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   const group = groups.find(g => g.id === project.groupId)
 
   // Auto-fetch missing image/favicon on mount
+  // Auto-fetch missing meta — run only once per project id, not on every render
+  const fetchedRef = useRef(false)
   useEffect(() => {
+    if (fetchedRef.current) return
     if (project.image && project.favicon) return
+    fetchedRef.current = true
     let cancelled = false
     fetchMeta(project.url).then((meta) => {
       if (cancelled) return
@@ -41,7 +45,9 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
       if (Object.keys(updates).length > 0) updateProject(project.id, updates)
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [project.id, project.url, project.image, project.favicon, project.color, updateProject])
+  // Only re-run if the project id changes (new card) — not on every prop update
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [showActions, setShowActions] = useState(false)
