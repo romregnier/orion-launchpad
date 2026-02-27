@@ -242,17 +242,17 @@ export function OrionAvatar3D({ size = 120, avatarConfig }: { size?: number; ava
   const [config, setConfig] = useState<AvatarConfig>(() => avatarConfig ? { ...DEFAULT_CONFIG, ...(avatarConfig as Partial<AvatarConfig>) } : getOrionConfig())
   const [hovered, setHovered] = useState(false)
 
+  // Mise à jour quand le prop avatarConfig change (ex: après save depuis The Tailor)
   useEffect(() => {
-    // postMessage depuis The Tailor (cross-origin)
+    if (avatarConfig) setConfig({ ...DEFAULT_CONFIG, ...(avatarConfig as Partial<AvatarConfig>) })
+  }, [avatarConfig])
+
+  useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.data?.type === 'tailor_avatar_update' && e.data?.agent === 'orion') {
-        try {
-          const cfg = JSON.parse(e.data.config)
-          setConfig({ ...DEFAULT_CONFIG, ...cfg })
-        } catch {}
+        try { setConfig({ ...DEFAULT_CONFIG, ...JSON.parse(e.data.config) }) } catch {}
       }
     }
-    // storage event (même origine, autre onglet)
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'tailor_avatar_orion') setConfig(getOrionConfig())
     }

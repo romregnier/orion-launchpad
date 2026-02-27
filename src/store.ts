@@ -77,6 +77,8 @@ interface LaunchpadStore {
   removeProject: (id: string) => void
   restoreProject: (id: string) => void
   updatePosition: (id: string, x: number, y: number) => void
+  syncPositionToDb: (id: string, x: number, y: number, type?: string) => void
+  subscribeToPositions: () => (() => void)
   updateProject: (id: string, updates: Partial<Project>) => void
   fetchRemote: () => Promise<void>
   addIdea: (text: string, author: string) => void
@@ -103,7 +105,7 @@ interface LaunchpadStore {
   pushOverlapping: (draggedId: string, dragX: number, dragY: number) => void
   canvasAgents: CanvasAgent[]
   addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string) => Promise<void>
-  updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token'>>) => Promise<void>
+  updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config'>>) => Promise<void>
   removeCanvasAgent: (id: string) => Promise<void>
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
   subscribeToAgents: () => () => void
@@ -186,10 +188,17 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         }),
 
       // Direct position set — anti-overlap handled by pushOverlapping() on drop
-      updatePosition: (id, x, y) =>
+      updatePosition: (id, x, y) => {
         set((state) => ({
           projects: state.projects.map((p) => p.id === id ? { ...p, position: { x, y } } : p),
-        })),
+        }))
+      },
+
+      // Sync position to Supabase (called on drop only, not during drag)
+      syncPositionToDb: (id, x, y, type = 'project') => {
+        const username = useLaunchpadStore.getState().currentUser?.username ?? 'anon'
+        supabase.from('card_positions').upsert({ id, type, position_x: x, position_y: y, updated_by: username, updated_at: new Date().toISOString() })
+      },
 
       updateProject: (id, updates) =>
         set((state) => ({
@@ -332,10 +341,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       updateCanvasAgent: async (id, updates) => {
-        const dbUpdates: Record<string, string | null> = {}
+        const dbUpdates: Record<string, unknown> = {}
         if (updates.name !== undefined) dbUpdates.name = updates.name
         if (updates.tailorUrl !== undefined) dbUpdates.tailor_url = updates.tailorUrl ?? null
         if (updates.bot_token !== undefined) dbUpdates.bot_token = updates.bot_token ?? null
+        if (updates.tailor_config !== undefined) dbUpdates.tailor_config = updates.tailor_config ?? null
         await supabase.from('canvas_agents').update(dbUpdates).eq('id', id)
         set(state => ({
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, ...updates } : a)
@@ -482,6 +492,60 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           return { ...l, items }
         }),
       })),
+
+      // Souscription aux positions temps réel — à appeler au montage de l'app
+      subscribeToPositions: () => {
+        // Charger les positions depuis Supabase au démarrage
+        supabase.from('card_positions').select('*').then(({ data }) => {
+          if (!data) return
+          set(state => {
+            const myUser = state.currentUser?.username ?? 'anon'
+            let projects = state.projects
+            let lists = state.lists
+            let ideaPos = state.ideaWidgetPosition
+            for (const row of data) {
+              // Ne pas écraser une position qu'on vient de déposer nous-mêmes
+              if (row.updated_by === myUser) continue
+              if (row.type === 'project') {
+                projects = projects.map(p => p.id === row.id ? { ...p, position: { x: row.position_x, y: row.position_y } } : p)
+              } else if (row.type === 'list') {
+                lists = lists.map(l => l.id === row.id ? { ...l, position: { x: row.position_x, y: row.position_y } } : l)
+              } else if (row.id === 'idea-widget') {
+                ideaPos = { x: row.position_x, y: row.position_y }
+              }
+            }
+            return { projects, lists, ideaWidgetPosition: ideaPos }
+          })
+        })
+
+        // Écoute les changements en temps réel
+        const channel = supabase.channel('card_positions_rt')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'card_positions' }, ({ new: row }) => {
+            const myUser = useLaunchpadStore.getState().currentUser?.username ?? 'anon'
+            if (row.updated_by === myUser) return
+            if (row.type === 'project') {
+              set(s => ({ projects: s.projects.map(p => p.id === row.id ? { ...p, position: { x: row.position_x, y: row.position_y } } : p) }))
+            } else if (row.type === 'list') {
+              set(s => ({ lists: s.lists.map(l => l.id === row.id ? { ...l, position: { x: row.position_x, y: row.position_y } } : l) }))
+            } else if (row.id === 'idea-widget') {
+              set({ ideaWidgetPosition: { x: row.position_x, y: row.position_y } })
+            }
+          })
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'card_positions' }, ({ new: row }) => {
+            const myUser = useLaunchpadStore.getState().currentUser?.username ?? 'anon'
+            if (row.updated_by === myUser) return
+            if (row.type === 'project') {
+              set(s => ({ projects: s.projects.map(p => p.id === row.id ? { ...p, position: { x: row.position_x, y: row.position_y } } : p) }))
+            } else if (row.type === 'list') {
+              set(s => ({ lists: s.lists.map(l => l.id === row.id ? { ...l, position: { x: row.position_x, y: row.position_y } } : l) }))
+            } else if (row.id === 'idea-widget') {
+              set({ ideaWidgetPosition: { x: row.position_x, y: row.position_y } })
+            }
+          })
+          .subscribe()
+
+        return () => { supabase.removeChannel(channel) }
+      },
 
       updateListPosition: (id, x, y) => set((state) => ({
         lists: state.lists.map(l => l.id === id ? { ...l, position: { x, y } } : l),

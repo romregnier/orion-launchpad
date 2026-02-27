@@ -48,70 +48,77 @@ export function WorkProgressBar() {
   }, [])
 
   const current = activeTasks[0] ?? null
-  const visible = !!current
+  const [collapsed, setCollapsed] = useState(false)
 
+  // Toujours visible — affiche l'état vide si aucune tâche
   return (
+    <div
+      className="work-progress-bar-wrapper"
+      style={{ position: 'fixed', bottom: 80, left: 16, zIndex: 34 }}
+    >
+      {/* Tête du widget (toujours visible) */}
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(14,12,16,0.92)', backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: collapsed ? 10 : '10px 10px 0 0',
+          padding: '6px 12px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)',
+          fontSize: 11, fontWeight: 700,
+        }}
+      >
+        <span style={{ color: current ? '#E11F7B' : 'rgba(255,255,255,0.3)', fontSize: 9 }}>●</span>
+        {current ? `⚡ ${current.agent_key ?? 'Agent'} · en cours` : '〇 Aucune tâche active'}
+        <span style={{ marginLeft: 4, opacity: 0.4, fontSize: 9 }}>{collapsed ? '▲' : '▼'}</span>
+      </button>
+
     <AnimatePresence>
-      {visible && current && (
+      {!collapsed && (
         <motion.div
-          initial={{ y: -36, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -36, opacity: 0 }}
+          initial={{ opacity: 0, scaleY: 0.8 }}
+          animate={{ opacity: 1, scaleY: 1 }}
+          exit={{ opacity: 0, scaleY: 0.8 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
           className="work-progress-bar"
           style={{
-            position: 'fixed',
-            top: 52,
-            left: 0,
-            right: 0,
-            zIndex: 34,
-            height: 36,
-            background: 'rgba(14,12,16,0.95)',
-            backdropFilter: 'blur(8px)',
-            borderBottom: '1px solid rgba(225,31,123,0.3)',
+            background: 'rgba(14,12,16,0.92)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderTop: 'none',
+            borderRadius: '0 0 10px 10px',
+            width: 280,
+            padding: '10px 12px',
             display: 'flex',
-            alignItems: 'center',
-            paddingInline: 16,
-            gap: 10,
-            overflow: 'hidden',
+            flexDirection: 'column',
+            gap: 6,
           }}
         >
-          {/* Agent icon */}
-          <span style={{ fontSize: 14, flexShrink: 0 }}>
-            {current.agent_key ? current.agent_key.slice(0, 2).toUpperCase() : '⚡'}
-          </span>
+          {current ? (
+            <>
+              {/* Ligne 1 : agent + titre */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#E11F7B', whiteSpace: 'nowrap' }}>
+                  {current.agent_key ?? 'Agent'}
+                </span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  · {current.title}
+                </span>
+              </div>
 
-          {/* Agent key + title */}
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#E11F7B', flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {current.agent_key ?? 'Agent'}
-          </span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
-            · {current.title}
-          </span>
-
-          {/* Step label */}
-          {current.step_label && (
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {current.step_label}
-            </span>
+              {/* Ligne 2 : étape courante */}
+              {current.step_label && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{current.step_label}</span>
+              )}
+            </>
+          ) : (
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Aucune tâche en cours</span>
           )}
 
-          {/* Spacer */}
-          <div style={{ flex: 1 }} />
-
-          {/* Multiple tasks badge */}
+          {/* File d'attente */}
           {activeTasks.length > 1 && (
-            <span style={{
-              fontSize: 9, fontWeight: 700,
-              background: 'rgba(225,31,123,0.2)',
-              border: '1px solid rgba(225,31,123,0.4)',
-              borderRadius: 4,
-              padding: '1px 5px',
-              color: '#E11F7B',
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-            }}>
-              {activeTasks.length} tâches actives
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)' }}>
+              + {activeTasks.length - 1} en attente
             </span>
           )}
 
@@ -120,21 +127,16 @@ export function WorkProgressBar() {
             <div className="work-progress-bar__track" style={{ width: 80, height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
               <div
                 className="work-progress-bar__fill"
-                style={{
-                  height: '100%',
-                  width: `${current.progress ?? 0}%`,
-                  background: '#E11F7B',
-                  borderRadius: 2,
-                  transition: 'width 0.4s ease',
-                }}
+                style={{ height: '100%', width: `${current?.progress ?? 0}%`, background: '#E11F7B', borderRadius: 2, transition: 'width 0.4s ease' }}
               />
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', minWidth: 28, textAlign: 'right' }}>
-              {current.progress ?? 0}%
+              {current?.progress ?? 0}%
             </span>
           </div>
         </motion.div>
       )}
     </AnimatePresence>
+    </div>
   )
 }

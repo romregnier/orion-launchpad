@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { Select } from './Select'
-import type { CanvasAgent } from '../types'
+import type { CanvasAgent, AvatarConfig } from '../types'
 
 interface Props {
   open: boolean
@@ -15,8 +15,10 @@ export function BotModal({ open, onClose, editAgent }: Props) {
   const [name, setName] = useState('')
   const [botToken, setBotToken] = useState('')
   const [tailorUrl, setTailorUrl] = useState('')
+  const [tailorConfigCapture, setTailorConfigCapture] = useState<AvatarConfig | null>(null)
   const [showTailor, setShowTailor] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [configSaved, setConfigSaved] = useState(false)
   const [workingOn, setWorkingOn] = useState<string | null>(null)
   const tailorRef = useRef<HTMLIFrameElement>(null)
 
@@ -28,23 +30,31 @@ export function BotModal({ open, onClose, editAgent }: Props) {
       setName(editAgent.name)
       setBotToken(editAgent.bot_token ?? '')
       setTailorUrl(editAgent.tailorUrl ?? '')
+      setTailorConfigCapture(editAgent.tailor_config ?? null)
       setWorkingOn(editAgent.working_on_project ?? null)
     } else {
       setName('')
       setBotToken('')
       setTailorUrl('')
+      setTailorConfigCapture(null)
       setWorkingOn(null)
     }
     setShowTailor(false)
+    setConfigSaved(false)
   }, [editAgent, open])
 
-  // Capture du config Tailor via postMessage
+  // Capture de la config Tailor via postMessage (deux formats supportés)
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      if (e.origin !== 'https://the-tailor.surge.sh') return
+      // Format 1 : config JSON complète envoyée par le bouton "Sauvegarder" de The Tailor
+      if (e.data?.type === 'tailor-save' && e.data?.config) {
+        setTailorConfigCapture(e.data.config as AvatarConfig)
+        setConfigSaved(true)
+        setTimeout(() => setConfigSaved(false), 3000)
+      }
+      // Format 2 : ancienne URL (rétro-compat)
       if (e.data?.type === 'tailor-config' && e.data?.configUrl) {
         setTailorUrl(e.data.configUrl)
-        setShowTailor(false)
       }
     }
     window.addEventListener('message', handler)
@@ -59,6 +69,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
         name: name.trim(),
         bot_token: botToken.trim() || undefined,
         tailorUrl: tailorUrl || undefined,
+        tailor_config: tailorConfigCapture ?? editAgent.tailor_config,
       })
       await setAgentWorkingOn(editAgent.id, workingOn)
     } else {
@@ -68,10 +79,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
     onClose()
   }
 
-  // Pas de &embed=1 — on veut l'UI complète (panels + canvas) dans le fullscreen modal
-  const tailorSrc = tailorUrl
-    ? `https://the-tailor.surge.sh?config=${encodeURIComponent(tailorUrl)}`
-    : 'https://the-tailor.surge.sh'
+  const tailorSrc = 'https://the-tailor.surge.sh'
 
   return (
     <AnimatePresence>
@@ -235,8 +243,10 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                     {showTailor && <span style={{ fontSize: 10 }}>←</span>}
                   </button>
 
-                  {tailorUrl && !showTailor && (
-                    <p style={{ fontSize: 10, color: '#10B981', textAlign: 'center', marginBottom: 8 }}>✓ Avatar configuré</p>
+                  {(tailorConfigCapture || configSaved) && !showTailor && (
+                    <p style={{ fontSize: 10, color: configSaved ? '#E11F7B' : '#10B981', textAlign: 'center', marginBottom: 8, transition: 'color 0.3s' }}>
+                      {configSaved ? '✓ Config capturée ! Clique "Enregistrer" pour sauvegarder' : '✓ Avatar configuré'}
+                    </p>
                   )}
 
                   {/* Actions */}

@@ -101,7 +101,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     })
   }, [project.url])
 
-  const { updatePosition, pushOverlapping, swapTarget } = useLaunchpadStore()
+  const { updatePosition, syncPositionToDb, pushOverlapping, swapTarget } = useLaunchpadStore()
   const isSwapTarget = swapTarget === project.id
   const pushSpring = { type: 'spring' as const, stiffness: 300, damping: 30 }
 
@@ -126,6 +126,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
       setIsDragging(false)
       const { x, y } = useLaunchpadStore.getState().projects.find(p => p.id === project.id)?.position ?? { x: 0, y: 0 }
       pushOverlapping(project.id, x, y)
+      syncPositionToDb(project.id, x, y, 'project')
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }

@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
-  const { removeList, addListItem, removeListItem, toggleListItem, voteListItem, moveListItem, updateListPosition, pushOverlapping, swapTarget } = useLaunchpadStore()
+  const { removeList, addListItem, removeListItem, toggleListItem, voteListItem, moveListItem, updateListPosition, syncPositionToDb, pushOverlapping, swapTarget } = useLaunchpadStore()
   const config = TYPE_CONFIG[list.type]
   const [collapsed, setCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -55,6 +55,7 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
       setIsDragging(false)
       const pos = useLaunchpadStore.getState().lists.find(l => l.id === list.id)?.position ?? list.position
       pushOverlapping(list.id, pos.x, pos.y)
+      syncPositionToDb(list.id, pos.x, pos.y, 'list')
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
