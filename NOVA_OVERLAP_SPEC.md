@@ -390,8 +390,12 @@ getEffectivePositions(): Map<string, { x: number; y: number }>
 
 1. **Grille de snapping :** Le Launchpad a-t-il une grille ? Si oui, les positions après push/swap doivent-elles se snapper à la grille ?
 2. **Hauteur variable des widgets :** Les `ListWidgetCard` et `IdeaWidget` ont une hauteur variable. Le store doit-il exposer la hauteur réelle (DOM) ou une hauteur estimée ?
-3. **Undo/Redo :** Le drop après un swap doit-il être undoable en une seule action ?
+3. **Undo/Redo :** Le drop après un swap doit-il être undoable en une seule action ? *(Swap est un comportement natif, non opt-in — mais la question d'undoability reste ouverte.)*
 4. **Canvas scrollable :** Si le canvas est plus grand que le viewport, faut-il auto-scroller pendant le drag quand l'objet approche du bord ?
+
+## 9. Décisions Validées
+
+- **Swap élastique :** Comportement natif du système anti-overlap. Pas de flag, pas de toggle — s'active automatiquement dès que le seuil de 40% est atteint pendant un drag. Décidé par Romain, 2026-02-27.
 
 ---
 

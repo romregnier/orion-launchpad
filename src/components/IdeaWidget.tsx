@@ -15,7 +15,12 @@ interface Props {
 }
 
 export function IdeaWidget({ canvasScale, index = 0 }: Props) {
-  const { ideas, addIdea, voteIdea, deleteIdea, ideaWidgetPosition, setIdeaWidgetPosition, projects } = useLaunchpadStore()
+  const { ideas, addIdea, voteIdea, deleteIdea, ideaWidgetPosition, setIdeaWidgetPosition, projects, pushOverlapping, swapTarget, pushLevels } = useLaunchpadStore()
+  const isSwapTarget = swapTarget === 'idea-widget'
+  const pushLevel = pushLevels['idea-widget'] ?? 0
+  const pushSpring = pushLevel >= 2
+    ? { type: 'spring' as const, stiffness: 240, damping: 32, delay: pushLevel * 0.03 }
+    : { type: 'spring' as const, stiffness: 300, damping: 30 }
 
   // On mount: nudge away from any overlapping project card
   useEffect(() => {
@@ -49,10 +54,18 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
       mouseX: e.clientX, mouseY: e.clientY,
       cardX: ideaWidgetPosition.x, cardY: ideaWidgetPosition.y,
     }
+    let rafId: number | null = null
     const onMove = (ev: MouseEvent) => {
-      const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
-      const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
-      setIdeaWidgetPosition(dragStart.current.cardX + dx, dragStart.current.cardY + dy)
+      if (rafId !== null) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
+        const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
+        const nx = dragStart.current.cardX + dx
+        const ny = dragStart.current.cardY + dy
+        setIdeaWidgetPosition(nx, ny)
+        pushOverlapping('idea-widget', nx, ny)
+      })
     }
     const onUp = () => {
       setIsDragging(false)
@@ -61,7 +74,7 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [canvasScale, ideaWidgetPosition, setIdeaWidgetPosition])
+  }, [canvasScale, ideaWidgetPosition, setIdeaWidgetPosition, pushOverlapping])
 
   // ── Touch drag ──────────────────────────────────────────────────────────────
   const onTouchStart = useCallback((e: React.TouchEvent) => {
@@ -76,7 +89,10 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
       const t = ev.touches[0]
       const dx = (t.clientX - dragStart.current.mouseX) / canvasScale
       const dy = (t.clientY - dragStart.current.mouseY) / canvasScale
-      setIdeaWidgetPosition(dragStart.current.cardX + dx, dragStart.current.cardY + dy)
+      const nx = dragStart.current.cardX + dx
+      const ny = dragStart.current.cardY + dy
+      setIdeaWidgetPosition(nx, ny)
+      pushOverlapping('idea-widget', nx, ny)
     }
     const onEnd = () => {
       setIsDragging(false)
@@ -85,7 +101,7 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
     }
     window.addEventListener('touchmove', onMove, { passive: true })
     window.addEventListener('touchend', onEnd)
-  }, [canvasScale, ideaWidgetPosition, setIdeaWidgetPosition])
+  }, [canvasScale, ideaWidgetPosition, setIdeaWidgetPosition, pushOverlapping])
 
   const submit = () => {
     if (!newIdea.trim()) return
@@ -96,32 +112,42 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
   }
 
   return (
-    <div
+    <motion.div
       style={{
         position: 'absolute',
-        left: ideaWidgetPosition.x,
-        top: ideaWidgetPosition.y,
         width: 280,
         zIndex: isDragging ? 50 : 2,
         cursor: isDragging ? 'grabbing' : 'grab',
+        x: ideaWidgetPosition.x,
+        y: ideaWidgetPosition.y,
       }}
+      animate={{ x: ideaWidgetPosition.x, y: ideaWidgetPosition.y }}
+      transition={isDragging ? { duration: 0 } : isSwapTarget ? { type: 'spring', stiffness: 260, damping: 24 } : pushSpring}
+      initial={false}
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: 1, scale: isDragging ? 1.03 : 1, y: 0 }}
+        animate={{ opacity: pushLevel > 0 && !isDragging ? 0.85 : 1, scale: isDragging ? 1.04 : 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 350, damping: 28, delay: isDragging ? 0 : index * 0.08 }}
         style={{
           borderRadius: 16,
           background: 'rgba(26,22,30,0.97)',
-          border: `1px solid ${isDragging ? 'rgba(255,193,7,0.35)' : 'rgba(255,215,0,0.15)'}`,
+          border: isSwapTarget
+            ? '1px solid #E11F7B'
+            : pushLevel >= 1
+            ? `1px solid rgba(225,31,123,${pushLevel === 1 ? '0.35' : '0.15'})`
+            : `1px solid ${isDragging ? 'rgba(255,193,7,0.35)' : 'rgba(255,215,0,0.15)'}`,
           backdropFilter: 'blur(24px)',
           boxShadow: isDragging
-            ? '0 24px 56px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,193,7,0.2)'
+            ? '0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,193,7,0.2)'
+            : isSwapTarget
+            ? '0 0 0 2px #E11F7B, 0 0 16px rgba(225,31,123,0.30)'
             : '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.08)',
           overflow: 'hidden',
           userSelect: 'none',
+          transition: 'box-shadow 0.12s ease-out, border-color 0.12s ease-out',
         }}
       >
         {/* Header — drag handle */}
@@ -297,6 +323,6 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
           )}
         </AnimatePresence>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }

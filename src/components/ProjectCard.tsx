@@ -91,7 +91,12 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     })
   }, [project.url])
 
-  const { updatePosition, pushOverlapping } = useLaunchpadStore()
+  const { updatePosition, pushOverlapping, swapTarget, pushLevels } = useLaunchpadStore()
+  const isSwapTarget = swapTarget === project.id
+  const pushLevel = pushLevels[project.id] ?? 0
+  const pushSpring = pushLevel >= 2
+    ? { type: 'spring' as const, stiffness: 240, damping: 32, delay: pushLevel * 0.03 }
+    : { type: 'spring' as const, stiffness: 300, damping: 30 }
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
@@ -114,7 +119,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     const onUp = () => { setIsDragging(false); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [project.id, project.position.x, project.position.y, canvasScale, updatePosition])
+  }, [project.id, project.position.x, project.position.y, canvasScale, updatePosition, pushOverlapping])
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
@@ -144,21 +149,24 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
 
   return (
     <>
-      <div
+      <motion.div
         style={{
           position: 'absolute',
-          left: project.position.x,
-          top: project.position.y,
           width: 260,
           zIndex: isDragging ? 1000 : showActions ? 100 : 1,
           cursor: isDragging ? 'grabbing' : 'grab',
+          x: project.position.x,
+          y: project.position.y,
         }}
+        animate={{ x: project.position.x, y: project.position.y }}
+        transition={isDragging ? { duration: 0 } : isSwapTarget ? { type: 'spring', stiffness: 260, damping: 24 } : pushSpring}
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
         onDoubleClick={onDoubleClick}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => { if (!showDeleteConfirm) setShowActions(false) }}
         onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY }) }}
+        initial={false}
       >
         {/* ── Floating action bar ABOVE the card ── */}
         <AnimatePresence>
@@ -269,7 +277,11 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
         {/* ── Card body ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          animate={{
+            opacity: pushLevel > 0 && !isDragging ? 0.85 : 1,
+            scale: isDragging ? 1.04 : 1,
+            y: 0,
+          }}
           exit={{ opacity: 0, scale: 0.88, y: -8 }}
           transition={isDragging
             ? { type: 'spring', stiffness: 380, damping: 26, delay: index * 0.08 }
@@ -278,15 +290,23 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
           style={{
             borderRadius: 16,
             background: 'rgba(26,22,30,0.97)',
-            border: `1px solid ${showActions ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
+            border: isSwapTarget
+              ? '1px solid #E11F7B'
+              : pushLevel === 1
+              ? '1px solid rgba(225,31,123,0.35)'
+              : pushLevel >= 2
+              ? '1px solid rgba(225,31,123,0.15)'
+              : `1px solid ${showActions ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
             backdropFilter: 'blur(24px)',
             boxShadow: isDragging
-              ? `0 24px 60px rgba(0,0,0,0.7), 0 0 0 2px ${accent}55`
+              ? `0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(225,31,123,0.20)`
+              : isSwapTarget
+              ? '0 0 0 2px #E11F7B, 0 0 16px rgba(225,31,123,0.30)'
               : showActions
               ? `0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px ${accent}22`
               : '0 4px 20px rgba(0,0,0,0.4)',
             overflow: 'hidden',
-            transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+            transition: 'box-shadow 0.12s ease-out, border-color 0.12s ease-out',
           }}
         >
           {/* Accent top bar */}
@@ -369,7 +389,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
             )}
           </div>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* EditProjectModal */}
       <EditProjectModal

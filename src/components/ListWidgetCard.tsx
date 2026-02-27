@@ -18,12 +18,18 @@ interface Props {
 }
 
 export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
-  const { removeList, addListItem, removeListItem, toggleListItem, voteListItem, moveListItem, updateListPosition } = useLaunchpadStore()
+  const { removeList, addListItem, removeListItem, toggleListItem, voteListItem, moveListItem, updateListPosition, pushOverlapping, swapTarget, pushLevels } = useLaunchpadStore()
   const config = TYPE_CONFIG[list.type]
   const [collapsed, setCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [newText, setNewText] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const isSwapTarget = swapTarget === list.id
+  const pushLevel = pushLevels[list.id] ?? 0
+  const pushSpring = pushLevel >= 2
+    ? { type: 'spring' as const, stiffness: 240, damping: 32, delay: pushLevel * 0.03 }
+    : { type: 'spring' as const, stiffness: 300, damping: 30 }
 
   const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
 
@@ -36,10 +42,18 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
       mouseX: e.clientX, mouseY: e.clientY,
       cardX: list.position.x, cardY: list.position.y,
     }
+    let rafId: number | null = null
     const onMove = (ev: MouseEvent) => {
-      const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
-      const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
-      updateListPosition(list.id, dragStart.current.cardX + dx, dragStart.current.cardY + dy)
+      if (rafId !== null) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
+        const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
+        const nx = dragStart.current.cardX + dx
+        const ny = dragStart.current.cardY + dy
+        updateListPosition(list.id, nx, ny)
+        pushOverlapping(list.id, nx, ny)
+      })
     }
     const onUp = () => {
       setIsDragging(false)
@@ -48,7 +62,7 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [canvasScale, list.position, list.id, updateListPosition])
+  }, [canvasScale, list.position, list.id, updateListPosition, pushOverlapping])
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
@@ -62,7 +76,10 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
       const t = ev.touches[0]
       const dx = (t.clientX - dragStart.current.mouseX) / canvasScale
       const dy = (t.clientY - dragStart.current.mouseY) / canvasScale
-      updateListPosition(list.id, dragStart.current.cardX + dx, dragStart.current.cardY + dy)
+      const nx = dragStart.current.cardX + dx
+      const ny = dragStart.current.cardY + dy
+      updateListPosition(list.id, nx, ny)
+      pushOverlapping(list.id, nx, ny)
     }
     const onEnd = () => {
       setIsDragging(false)
@@ -71,7 +88,7 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
     }
     window.addEventListener('touchmove', onMove, { passive: true })
     window.addEventListener('touchend', onEnd)
-  }, [canvasScale, list.position, list.id, updateListPosition])
+  }, [canvasScale, list.position, list.id, updateListPosition, pushOverlapping])
 
   const submit = () => {
     if (!newText.trim()) return
@@ -80,32 +97,42 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
   }
 
   return (
-    <div
+    <motion.div
       style={{
         position: 'absolute',
-        left: list.position.x,
-        top: list.position.y,
         width: 280,
         zIndex: isDragging ? 50 : 2,
         cursor: isDragging ? 'grabbing' : 'grab',
+        x: list.position.x,
+        y: list.position.y,
       }}
+      animate={{ x: list.position.x, y: list.position.y }}
+      transition={isDragging ? { duration: 0 } : isSwapTarget ? { type: 'spring', stiffness: 260, damping: 24 } : pushSpring}
+      initial={false}
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: 1, scale: isDragging ? 1.03 : 1, y: 0 }}
+        animate={{ opacity: pushLevel > 0 && !isDragging ? 0.85 : 1, scale: isDragging ? 1.04 : 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 350, damping: 28 }}
         style={{
           borderRadius: 16,
           background: 'rgba(26,22,30,0.97)',
-          border: `1px solid ${isDragging ? config.color + '55' : config.color + '22'}`,
+          border: isSwapTarget
+            ? '1px solid #E11F7B'
+            : pushLevel >= 1
+            ? `1px solid rgba(225,31,123,${pushLevel === 1 ? '0.35' : '0.15'})`
+            : `1px solid ${isDragging ? config.color + '55' : config.color + '22'}`,
           backdropFilter: 'blur(24px)',
           boxShadow: isDragging
-            ? `0 24px 56px rgba(0,0,0,0.7), 0 0 0 1px ${config.color}33`
+            ? `0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px ${config.color}33`
+            : isSwapTarget
+            ? '0 0 0 2px #E11F7B, 0 0 16px rgba(225,31,123,0.30)'
             : `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${config.color}11`,
           overflow: 'hidden',
           userSelect: 'none',
+          transition: 'box-shadow 0.12s ease-out, border-color 0.12s ease-out',
         }}
       >
         {/* Header */}
@@ -302,6 +329,6 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
           )}
         </AnimatePresence>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }

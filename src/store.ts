@@ -3,6 +3,23 @@ import { persist } from 'zustand/middleware'
 import type { Project, ListWidget, ListType } from './types'
 import { sha256 } from './utils/hash'
 
+export interface CanvasObject {
+  id: string
+  type: 'project' | 'list' | 'idea'
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function getAllCanvasObjectsFromState(state: { projects: Project[]; lists: ListWidget[]; ideaWidgetPosition: { x: number; y: number } }): CanvasObject[] {
+  const objects: CanvasObject[] = []
+  state.projects.forEach(p => objects.push({ id: p.id, type: 'project', x: p.position.x, y: p.position.y, width: 280, height: 180 }))
+  state.lists.forEach(l => objects.push({ id: l.id, type: 'list', x: l.position.x, y: l.position.y, width: 260, height: 200 }))
+  objects.push({ id: 'idea-widget', type: 'idea', x: state.ideaWidgetPosition.x, y: state.ideaWidgetPosition.y, width: 240, height: 160 })
+  return objects
+}
+
 export interface Group {
   id: string
   name: string
@@ -73,6 +90,10 @@ interface LaunchpadStore {
   logout: () => void
   setShowSettings: (v: boolean) => void
   clearProjects: () => void
+  swapTarget: string | null
+  pushLevels: Record<string, number>
+  setSwapTarget: (id: string | null) => void
+  getAllCanvasObjects: () => CanvasObject[]
   pushOverlapping: (draggedId: string, dragX: number, dragY: number) => void
   lists: ListWidget[]
   addList: (title: string, type: ListType) => void
@@ -92,6 +113,8 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       deletedProjects: [],
       deletedIds: [],
       remoteLoaded: false,
+      swapTarget: null,
+      pushLevels: {},
       ideaWidgetPosition: { x: -300, y: 60 },
       ideas: [
         { id: 'idea-1', text: 'Un dashboard analytics pour nos apps 📊', author: 'Orion', votes: 3, votedBy: [], createdAt: new Date().toISOString() },
@@ -293,6 +316,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       setShowSettings: (v) => set({ showSettings: v }),
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),
 
+      setSwapTarget: (id) => set({ swapTarget: id }),
+
+      getAllCanvasObjects: () => getAllCanvasObjectsFromState(get()),
+
       addList: (title, type) => set((state) => {
         const SESSION_ID = localStorage.getItem('launchpad_session') ?? 'unknown'
         const CARD_W = 280, CARD_H = 220, PAD = 16
@@ -397,29 +424,139 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         return { lists: state.lists.map(l => l.id === id ? { ...l, position: { x: nx, y: ny } } : l) }
       }),
 
-      pushOverlapping: (draggedId, dragX, dragY) => set((state) => {
-        const CARD_W = 260, CARD_H = 220, PAD = 20
+      pushOverlapping: (draggedId, dragX, dragY) => {
+        const state = get()
+        const PADDING = 16
+        const MAX_ITERATIONS = 20
+        const CANVAS_W = 6000, CANVAS_H = 4000
+        const CANVAS_PAD = 8
+        const SWAP_THRESHOLD = 0.4
+
+        const objects = getAllCanvasObjectsFromState(state)
+
+        // Build mutable positions map (dragged gets new position)
+        const positions = new Map<string, { x: number; y: number }>()
+        for (const obj of objects) {
+          positions.set(obj.id, { x: obj.x, y: obj.y })
+        }
+        positions.set(draggedId, { x: dragX, y: dragY })
+
+        const getObj = (id: string) => objects.find(o => o.id === id)
+        const draggedObj = getObj(draggedId)
+        if (!draggedObj) return
+
+        // Swap detection — find nearest centre within threshold
+        let swapTargetId: string | null = null
+        const dp = positions.get(draggedId)!
+        const dCX = dp.x + draggedObj.width / 2
+        const dCY = dp.y + draggedObj.height / 2
+        let minDist = Infinity
+
+        for (const obj of objects) {
+          if (obj.id === draggedId) continue
+          const p = positions.get(obj.id)!
+          const tCX = p.x + obj.width / 2
+          const tCY = p.y + obj.height / 2
+          const dist = Math.sqrt((dCX - tCX) ** 2 + (dCY - tCY) ** 2)
+          const threshold = Math.min(draggedObj.width, obj.width) * SWAP_THRESHOLD
+          if (dist < threshold && dist < minDist) {
+            minDist = dist
+            swapTargetId = obj.id
+          }
+        }
+
+        const pushLevels: Record<string, number> = {}
+
+        if (!swapTargetId) {
+          // BFS cascade push — skip dragged object
+          const queue: string[] = [draggedId]
+          const visited = new Set<string>([draggedId])
+          const levelMap = new Map<string, number>([[draggedId, 0]])
+          let iterations = 0
+
+          while (queue.length > 0 && iterations < MAX_ITERATIONS) {
+            const sourceId = queue.shift()!
+            const source = getObj(sourceId)
+            if (!source) { iterations++; continue }
+            const sPos = positions.get(sourceId)!
+            const sLevel = levelMap.get(sourceId) ?? 0
+
+            for (const target of objects) {
+              if (visited.has(target.id)) continue
+              const tPos = positions.get(target.id)!
+
+              // AABB overlap with padding
+              const sLeft = sPos.x, sRight = sPos.x + source.width
+              const sTop = sPos.y, sBottom = sPos.y + source.height
+              const tLeft = tPos.x, tRight = tPos.x + target.width
+              const tTop = tPos.y, tBottom = tPos.y + target.height
+
+              const overlapX = sLeft < tRight + PADDING && sRight + PADDING > tLeft
+              const overlapY = sTop < tBottom + PADDING && sBottom + PADDING > tTop
+              if (!overlapX || !overlapY) continue
+
+              // Centre-to-centre direction
+              const sCX = sPos.x + source.width / 2
+              const sCY = sPos.y + source.height / 2
+              const tCX = tPos.x + target.width / 2
+              const tCY = tPos.y + target.height / 2
+              const dx = tCX - sCX
+              const dy = tCY - sCY
+
+              // Overlap depths on each axis
+              const overlapAmtXRight = sRight + PADDING - tLeft
+              const overlapAmtXLeft = tRight + PADDING - sLeft
+              const overlapAmtYDown = sBottom + PADDING - tTop
+              const overlapAmtYUp = tBottom + PADDING - sTop
+
+              let newX = tPos.x
+              let newY = tPos.y
+
+              // Choose axis of least resistance
+              const pushAmtX = dx >= 0 ? overlapAmtXRight : overlapAmtXLeft
+              const pushAmtY = dy >= 0 ? overlapAmtYDown : overlapAmtYUp
+
+              if (pushAmtX <= pushAmtY) {
+                newX = dx >= 0 ? tPos.x + overlapAmtXRight : tPos.x - overlapAmtXLeft
+              } else {
+                newY = dy >= 0 ? tPos.y + overlapAmtYDown : tPos.y - overlapAmtYUp
+              }
+
+              // Clamp to canvas bounds
+              newX = Math.max(CANVAS_PAD, Math.min(newX, CANVAS_W - target.width - CANVAS_PAD))
+              newY = Math.max(CANVAS_PAD, Math.min(newY, CANVAS_H - target.height - CANVAS_PAD))
+
+              positions.set(target.id, { x: newX, y: newY })
+              visited.add(target.id)
+              queue.push(target.id)
+              levelMap.set(target.id, sLevel + 1)
+              pushLevels[target.id] = sLevel + 1
+            }
+            iterations++
+          }
+        }
+
+        // Apply positions — dragged keeps its own position (handled by updatePosition/updateListPosition/setIdeaWidgetPosition)
         const newProjects = state.projects.map(p => {
           if (p.id === draggedId) return p
-          const overlapX = dragX < p.position.x + CARD_W + PAD && dragX + CARD_W + PAD > p.position.x
-          const overlapY = dragY < p.position.y + CARD_H + PAD && dragY + CARD_H + PAD > p.position.y
-          if (!overlapX || !overlapY) return p
-          const cx = dragX + CARD_W / 2
-          const cy = dragY + CARD_H / 2
-          const px = p.position.x + CARD_W / 2
-          const py = p.position.y + CARD_H / 2
-          const dx = px - cx
-          const dy = py - cy
-          if (Math.abs(dx) >= Math.abs(dy)) {
-            const nx = dx > 0 ? dragX + CARD_W + PAD : dragX - CARD_W - PAD
-            return { ...p, position: { x: nx, y: p.position.y } }
-          } else {
-            const ny = dy > 0 ? dragY + CARD_H + PAD : dragY - CARD_H - PAD
-            return { ...p, position: { x: p.position.x, y: ny } }
-          }
+          const pos = positions.get(p.id)
+          return pos ? { ...p, position: pos } : p
         })
-        return { projects: newProjects }
-      }),
+        const newLists = state.lists.map(l => {
+          if (l.id === draggedId) return l
+          const pos = positions.get(l.id)
+          return pos ? { ...l, position: pos } : l
+        })
+        const ideaPos = draggedId === 'idea-widget' ? undefined : positions.get('idea-widget')
+
+        set({
+          projects: newProjects,
+          lists: newLists,
+          ideaWidgetPosition: ideaPos ?? state.ideaWidgetPosition,
+          swapTarget: swapTargetId,
+          pushLevels,
+        })
+      },
     }),
     {
       name: 'orion-launchpad',
