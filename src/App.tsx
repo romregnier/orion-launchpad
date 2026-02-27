@@ -50,18 +50,6 @@ export default function App() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
 
-  // Auth gate — safe after all hook declarations
-  if (isPrivate && !currentUser) return <LoginScreen />
-
-  // Collect all unique tags from all projects
-  const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
-
-  // Filtered projects
-  const visibleProjects = projects.filter(p => {
-    const groupMatch = !activeGroup || p.groupId === activeGroup
-    const tagMatch = !activeFilter || (p.tags ?? []).includes(activeFilter)
-    return groupMatch && tagMatch
-  })
   // Center canvas and fetch remote projects on mount
   useEffect(() => {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
@@ -73,6 +61,19 @@ export default function App() {
     const unsub = subscribeToAgents()
     return unsub
   }, [subscribeToAgents])
+
+  // Auth gate — MUST be after all hooks
+  if (isPrivate && !currentUser) return <LoginScreen />
+
+  // Collect all unique tags from all projects
+  const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
+
+  // Filtered projects
+  const visibleProjects = projects.filter(p => {
+    const groupMatch = !activeGroup || p.groupId === activeGroup
+    const tagMatch = !activeFilter || (p.tags ?? []).includes(activeFilter)
+    return groupMatch && tagMatch
+  })
 
   // Touch pan + pinch-to-zoom
   const onTouchStart = useCallback((e: React.TouchEvent) => {
