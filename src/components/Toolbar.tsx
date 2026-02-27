@@ -8,10 +8,11 @@ interface Props {
   onReset: () => void
   onRefresh: () => void
   onAdd: () => void
+  onAddList: () => void
   projectCount: number
 }
 
-export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, projectCount }: Props) {
+export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, projectCount }: Props) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 500
   const { showSettings, setShowSettings, boardName } = useLaunchpadStore()
 
@@ -91,6 +92,22 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       </button>
 
       <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)', marginInline: isMobile ? 2 : 4 }} />
+
+      {/* Add list button */}
+      <button
+        onClick={onAddList}
+        title="Nouvelle liste"
+        style={{
+          display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6,
+          height: isMobile ? 30 : 34, paddingInline: isMobile ? 10 : 14,
+          borderRadius: 10, background: 'rgba(139,92,246,0.2)',
+          color: '#8B5CF6', fontSize: isMobile ? 12 : 13, fontWeight: 600,
+          cursor: 'pointer', border: '1px solid rgba(139,92,246,0.3)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        📋{!isMobile && ' Liste'}
+      </button>
 
       {/* Add button */}
       <button

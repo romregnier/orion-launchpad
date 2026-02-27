@@ -74,6 +74,15 @@ interface LaunchpadStore {
   setShowSettings: (v: boolean) => void
   clearProjects: () => void
   pushOverlapping: (draggedId: string, dragX: number, dragY: number) => void
+  lists: ListWidget[]
+  addList: (title: string, type: ListType) => void
+  removeList: (id: string) => void
+  addListItem: (listId: string, text: string, sessionId: string) => void
+  removeListItem: (listId: string, itemId: string) => void
+  toggleListItem: (listId: string, itemId: string) => void
+  voteListItem: (listId: string, itemId: string, sessionId: string) => void
+  moveListItem: (listId: string, itemId: string, direction: 'up' | 'down') => void
+  updateListPosition: (id: string, x: number, y: number) => void
 }
 
 export const useLaunchpadStore = create<LaunchpadStore>()(
@@ -110,6 +119,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         }
       ],
       showSettings: false,
+      lists: [],
 
       addProject: (project) =>
         set((state) => ({
@@ -283,6 +293,110 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       setShowSettings: (v) => set({ showSettings: v }),
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),
 
+      addList: (title, type) => set((state) => {
+        const SESSION_ID = localStorage.getItem('launchpad_session') ?? 'unknown'
+        const CARD_W = 280, CARD_H = 220, PAD = 16
+        let x = 60, y = 400
+        let attempts = 0
+        const overlaps = (cx: number, cy: number) =>
+          [...state.projects, ...state.lists].some(p =>
+            cx < p.position.x + CARD_W + PAD &&
+            cx + CARD_W + PAD > p.position.x &&
+            cy < p.position.y + CARD_H + PAD &&
+            cy + CARD_H + PAD > p.position.y
+          )
+        while (overlaps(x, y) && attempts < 20) {
+          x += CARD_W + PAD
+          if (attempts % 4 === 3) { x = 60; y += CARD_H + PAD }
+          attempts++
+        }
+        const newList: ListWidget = {
+          id: `list-${Date.now()}`,
+          title, type,
+          createdBy: SESSION_ID,
+          createdAt: Date.now(),
+          position: { x, y },
+          items: [],
+        }
+        return { lists: [...state.lists, newList] }
+      }),
+
+      removeList: (id) => set((state) => ({ lists: state.lists.filter(l => l.id !== id) })),
+
+      addListItem: (listId, text, sessionId) => set((state) => ({
+        lists: state.lists.map(l => l.id !== listId ? l : {
+          ...l,
+          items: [...l.items, {
+            id: `item-${Date.now()}`,
+            text, createdBy: sessionId,
+            createdAt: Date.now(),
+            votes: l.type === 'brainstorm' ? 0 : undefined,
+            votedBy: l.type === 'brainstorm' ? [] : undefined,
+            checked: l.type === 'checklist' ? false : undefined,
+            order: l.type === 'ranking' ? l.items.length : undefined,
+          }],
+        }),
+      })),
+
+      removeListItem: (listId, itemId) => set((state) => ({
+        lists: state.lists.map(l => l.id !== listId ? l : {
+          ...l, items: l.items.filter(i => i.id !== itemId),
+        }),
+      })),
+
+      toggleListItem: (listId, itemId) => set((state) => ({
+        lists: state.lists.map(l => l.id !== listId ? l : {
+          ...l, items: l.items.map(i => i.id !== itemId ? i : { ...i, checked: !i.checked }),
+        }),
+      })),
+
+      voteListItem: (listId, itemId, sessionId) => set((state) => ({
+        lists: state.lists.map(l => l.id !== listId ? l : {
+          ...l, items: l.items.map(i => {
+            if (i.id !== itemId) return i
+            const hasVoted = (i.votedBy ?? []).includes(sessionId)
+            return {
+              ...i,
+              votes: hasVoted ? (i.votes ?? 1) - 1 : (i.votes ?? 0) + 1,
+              votedBy: hasVoted ? (i.votedBy ?? []).filter(s => s !== sessionId) : [...(i.votedBy ?? []), sessionId],
+            }
+          }),
+        }),
+      })),
+
+      moveListItem: (listId, itemId, direction) => set((state) => ({
+        lists: state.lists.map(l => {
+          if (l.id !== listId) return l
+          const items = [...l.items]
+          const idx = items.findIndex(i => i.id === itemId)
+          if (idx === -1) return l
+          const newIdx = direction === 'up' ? idx - 1 : idx + 1
+          if (newIdx < 0 || newIdx >= items.length) return l
+          ;[items[idx], items[newIdx]] = [items[newIdx], items[idx]]
+          return { ...l, items }
+        }),
+      })),
+
+      updateListPosition: (id, x, y) => set((state) => {
+        const CARD_W = 280, CARD_H = 220, PAD = 16
+        let nx = x, ny = y
+        let attempts = 0
+        const others = [...state.projects, ...state.lists.filter(l => l.id !== id)]
+        const overlaps = (cx: number, cy: number) =>
+          others.some(p =>
+            cx < p.position.x + CARD_W + PAD &&
+            cx + CARD_W + PAD > p.position.x &&
+            cy < p.position.y + CARD_H + PAD &&
+            cy + CARD_H + PAD > p.position.y
+          )
+        while (overlaps(nx, ny) && attempts < 12) {
+          nx += CARD_W + PAD
+          if (attempts % 3 === 2) { nx = x; ny += CARD_H + PAD }
+          attempts++
+        }
+        return { lists: state.lists.map(l => l.id === id ? { ...l, position: { x: nx, y: ny } } : l) }
+      }),
+
       pushOverlapping: (draggedId, dragX, dragY) => set((state) => {
         const CARD_W = 260, CARD_H = 220, PAD = 20
         const newProjects = state.projects.map(p => {
@@ -320,6 +434,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         isPrivate: state.isPrivate,
         members: state.members,
         currentUser: state.currentUser,
+        lists: state.lists,
       }),
     }
   )

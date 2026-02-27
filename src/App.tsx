@@ -7,6 +7,8 @@ import { Toolbar } from './components/Toolbar'
 import { OrionAvatar3D } from './components/OrionAvatar3D'
 import { ChatPanel } from './components/ChatPanel'
 import { IdeaWidget } from './components/IdeaWidget'
+import { ListWidgetCard } from './components/ListWidgetCard'
+import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { LoginScreen } from './components/LoginScreen'
@@ -29,7 +31,8 @@ const MAX_SCALE = 2.5
 const SCALE_STEP = 0.15 // used for toolbar buttons only
 
 export default function App() {
-  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   // Auth gate — after all hooks
   if (isPrivate && !currentUser) return <LoginScreen />
@@ -48,6 +51,7 @@ export default function App() {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [showAddList, setShowAddList] = useState(false)
   const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
 
@@ -222,6 +226,16 @@ export default function App() {
           ))}
         </AnimatePresence>
 
+        {/* List widgets */}
+        {lists.map((list) => (
+          <ListWidgetCard
+            key={list.id}
+            list={list}
+            canvasScale={scale}
+            sessionId={sessionId}
+          />
+        ))}
+
         {/* IdeaWidget — fixed position on canvas */}
         <IdeaWidget
           canvasScale={scale}
@@ -265,6 +279,7 @@ export default function App() {
         onReset={resetView}
         onRefresh={() => fetchRemote()}
         onAdd={() => setShowAdd(true)}
+        onAddList={() => setShowAddList(true)}
         projectCount={projects.length}
       />
 
@@ -354,6 +369,12 @@ export default function App() {
           })}
         </div>
       )}
+
+      {/* Add list modal */}
+      <AddListModal
+        open={showAddList}
+        onClose={() => setShowAddList(false)}
+      />
 
       {/* Add modal */}
       <AddProjectModal
