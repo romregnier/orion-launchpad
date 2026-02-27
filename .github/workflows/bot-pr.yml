@@ -1,0 +1,110 @@
+name: Bot PR — Validate & Auto-merge
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'projects.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate projects.json
+        id: validate
+        run: |
+          node -e "
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('projects.json', 'utf8'));
+
+          if (!Array.isArray(data)) throw new Error('projects.json must be an array');
+
+          const REQUIRED = ['id', 'title', 'url'];
+          const ids = new Set();
+
+          for (const p of data) {
+            for (const field of REQUIRED) {
+              if (!p[field]) throw new Error('Missing field: ' + field + ' in project: ' + JSON.stringify(p));
+            }
+            if (ids.has(p.id)) throw new Error('Duplicate id: ' + p.id);
+            ids.add(p.id);
+            try { new URL(p.url) } catch { throw new Error('Invalid URL: ' + p.url) }
+            if (p.github) { try { new URL(p.github) } catch { throw new Error('Invalid github URL: ' + p.github) } }
+            if (p.color && !/^#[0-9A-Fa-f]{6}$/.test(p.color)) throw new Error('Invalid color (must be hex): ' + p.color);
+            if (p.tags && !Array.isArray(p.tags)) throw new Error('tags must be an array');
+          }
+          console.log('✅ Validation passed — ' + data.length + ' projects');
+          "
+
+      - name: Comment success on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const fs = require('fs');
+            const projects = JSON.parse(fs.readFileSync('projects.json', 'utf8'));
+            const added = projects.find(p => p.addedBy === pr.user.login || true);
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## ✅ Validation réussie\n\n**${projects.length} projets** dans le fichier — tout est valide.\n\nCette PR sera auto-mergée si l'auteur est un collaborateur approuvé. 🚀`,
+            });
+
+      - name: Comment failure on PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## ❌ Validation échouée\n\nLe fichier \`projects.json\` contient des erreurs. Vérifie le log de validation ci-dessus et corrige avant de repousser.`,
+            });
+
+      - name: Auto-merge if collaborator
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+
+            // Get collaborators list
+            const { data: collabs } = await github.rest.repos.listCollaborators({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const isCollaborator = collabs.some(c => c.login === author);
+
+            if (isCollaborator) {
+              console.log(`✅ ${author} is a collaborator — auto-merging`);
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                merge_method: 'squash',
+                commit_title: `feat: add project via ${author} 🤖`,
+              });
+            } else {
+              console.log(`⚠️ ${author} is not a collaborator — skipping auto-merge`);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `⚠️ **Auto-merge désactivé** — @romregnier doit d'abord t'ajouter comme collaborateur sur ce repo. Demande-lui !`,
+              });
+            }
