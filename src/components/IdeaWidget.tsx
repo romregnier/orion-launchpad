@@ -15,12 +15,9 @@ interface Props {
 }
 
 export function IdeaWidget({ canvasScale, index = 0 }: Props) {
-  const { ideas, addIdea, voteIdea, deleteIdea, ideaWidgetPosition, setIdeaWidgetPosition, projects, pushOverlapping, swapTarget, pushLevels } = useLaunchpadStore()
+  const { ideas, addIdea, voteIdea, deleteIdea, ideaWidgetPosition, setIdeaWidgetPosition, projects, pushOverlapping, swapTarget } = useLaunchpadStore()
   const isSwapTarget = swapTarget === 'idea-widget'
-  const pushLevel = pushLevels['idea-widget'] ?? 0
-  const pushSpring = pushLevel >= 2
-    ? { type: 'spring' as const, stiffness: 240, damping: 32, delay: pushLevel * 0.03 }
-    : { type: 'spring' as const, stiffness: 300, damping: 30 }
+  const pushSpring = { type: 'spring' as const, stiffness: 300, damping: 30 }
 
   // On mount: nudge away from any overlapping project card
   useEffect(() => {
@@ -129,15 +126,13 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: pushLevel > 0 && !isDragging ? 0.85 : 1, scale: isDragging ? 1.04 : 1, y: 0 }}
+        animate={{ opacity: 1, scale: isDragging ? 1.04 : 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 350, damping: 28, delay: isDragging ? 0 : index * 0.08 }}
         style={{
           borderRadius: 16,
           background: 'rgba(26,22,30,0.97)',
           border: isSwapTarget
             ? '1px solid #E11F7B'
-            : pushLevel >= 1
-            ? `1px solid rgba(225,31,123,${pushLevel === 1 ? '0.35' : '0.15'})`
             : `1px solid ${isDragging ? 'rgba(255,193,7,0.35)' : 'rgba(255,215,0,0.15)'}`,
           backdropFilter: 'blur(24px)',
           boxShadow: isDragging

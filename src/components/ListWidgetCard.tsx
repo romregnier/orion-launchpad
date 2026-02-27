@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
-  const { removeList, addListItem, removeListItem, toggleListItem, voteListItem, moveListItem, updateListPosition, pushOverlapping, swapTarget, pushLevels } = useLaunchpadStore()
+  const { removeList, addListItem, removeListItem, toggleListItem, voteListItem, moveListItem, updateListPosition, pushOverlapping, swapTarget } = useLaunchpadStore()
   const config = TYPE_CONFIG[list.type]
   const [collapsed, setCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -26,10 +26,7 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const isSwapTarget = swapTarget === list.id
-  const pushLevel = pushLevels[list.id] ?? 0
-  const pushSpring = pushLevel >= 2
-    ? { type: 'spring' as const, stiffness: 240, damping: 32, delay: pushLevel * 0.03 }
-    : { type: 'spring' as const, stiffness: 300, damping: 30 }
+  const pushSpring = { type: 'spring' as const, stiffness: 300, damping: 30 }
 
   const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
 
@@ -114,15 +111,13 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: pushLevel > 0 && !isDragging ? 0.85 : 1, scale: isDragging ? 1.04 : 1, y: 0 }}
+        animate={{ opacity: 1, scale: isDragging ? 1.04 : 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 350, damping: 28 }}
         style={{
           borderRadius: 16,
           background: 'rgba(26,22,30,0.97)',
           border: isSwapTarget
             ? '1px solid #E11F7B'
-            : pushLevel >= 1
-            ? `1px solid rgba(225,31,123,${pushLevel === 1 ? '0.35' : '0.15'})`
             : `1px solid ${isDragging ? config.color + '55' : config.color + '22'}`,
           backdropFilter: 'blur(24px)',
           boxShadow: isDragging

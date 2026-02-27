@@ -91,12 +91,9 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     })
   }, [project.url])
 
-  const { updatePosition, pushOverlapping, swapTarget, pushLevels } = useLaunchpadStore()
+  const { updatePosition, pushOverlapping, swapTarget } = useLaunchpadStore()
   const isSwapTarget = swapTarget === project.id
-  const pushLevel = pushLevels[project.id] ?? 0
-  const pushSpring = pushLevel >= 2
-    ? { type: 'spring' as const, stiffness: 240, damping: 32, delay: pushLevel * 0.03 }
-    : { type: 'spring' as const, stiffness: 300, damping: 30 }
+  const pushSpring = { type: 'spring' as const, stiffness: 300, damping: 30 }
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
@@ -278,7 +275,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 12 }}
           animate={{
-            opacity: pushLevel > 0 && !isDragging ? 0.85 : 1,
+            opacity: 1,
             scale: isDragging ? 1.04 : 1,
             y: 0,
           }}
@@ -292,10 +289,6 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
             background: 'rgba(26,22,30,0.97)',
             border: isSwapTarget
               ? '1px solid #E11F7B'
-              : pushLevel === 1
-              ? '1px solid rgba(225,31,123,0.35)'
-              : pushLevel >= 2
-              ? '1px solid rgba(225,31,123,0.15)'
               : `1px solid ${showActions ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
             backdropFilter: 'blur(24px)',
             boxShadow: isDragging

@@ -91,7 +91,6 @@ interface LaunchpadStore {
   setShowSettings: (v: boolean) => void
   clearProjects: () => void
   swapTarget: string | null
-  pushLevels: Record<string, number>
   setSwapTarget: (id: string | null) => void
   getAllCanvasObjects: () => CanvasObject[]
   pushOverlapping: (draggedId: string, dragX: number, dragY: number) => void
@@ -114,7 +113,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       deletedIds: [],
       remoteLoaded: false,
       swapTarget: null,
-      pushLevels: {},
       ideaWidgetPosition: { x: -300, y: 60 },
       ideas: [
         { id: 'idea-1', text: 'Un dashboard analytics pour nos apps 📊', author: 'Orion', votes: 3, votedBy: [], createdAt: new Date().toISOString() },
@@ -427,10 +425,9 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       pushOverlapping: (draggedId, dragX, dragY) => {
         const state = get()
         const PADDING = 16
-        const MAX_ITERATIONS = 20
+        const DEAD_ZONE = 12
         const CANVAS_W = 6000, CANVAS_H = 4000
         const CANVAS_PAD = 8
-        const SWAP_THRESHOLD = 0.4
 
         const objects = getAllCanvasObjectsFromState(state)
 
@@ -445,98 +442,61 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const draggedObj = getObj(draggedId)
         if (!draggedObj) return
 
-        // Swap detection — find nearest centre within threshold
-        let swapTargetId: string | null = null
-        const dp = positions.get(draggedId)!
-        const dCX = dp.x + draggedObj.width / 2
-        const dCY = dp.y + draggedObj.height / 2
-        let minDist = Infinity
+        // BFS — level 1 only (direct neighbours of the dragged card)
+        const visited = new Set<string>([draggedId])
+        const draggedPos = positions.get(draggedId)!
 
-        for (const obj of objects) {
-          if (obj.id === draggedId) continue
-          const p = positions.get(obj.id)!
-          const tCX = p.x + obj.width / 2
-          const tCY = p.y + obj.height / 2
-          const dist = Math.sqrt((dCX - tCX) ** 2 + (dCY - tCY) ** 2)
-          const threshold = Math.min(draggedObj.width, obj.width) * SWAP_THRESHOLD
-          if (dist < threshold && dist < minDist) {
-            minDist = dist
-            swapTargetId = obj.id
+        for (const target of objects) {
+          if (visited.has(target.id)) continue
+          const tPos = positions.get(target.id)!
+
+          // AABB overlap with padding
+          const sLeft = draggedPos.x, sRight = draggedPos.x + draggedObj.width
+          const sTop = draggedPos.y, sBottom = draggedPos.y + draggedObj.height
+          const tLeft = tPos.x, tRight = tPos.x + target.width
+          const tTop = tPos.y, tBottom = tPos.y + target.height
+
+          // Compute raw overlap on each axis
+          const rawOverlapX = Math.min(sRight + PADDING - tLeft, tRight + PADDING - sLeft)
+          const rawOverlapY = Math.min(sBottom + PADDING - tTop, tBottom + PADDING - sTop)
+
+          // Dead zone: only push if overlap exceeds 12px on BOTH axes
+          if (rawOverlapX <= DEAD_ZONE || rawOverlapY <= DEAD_ZONE) continue
+
+          // Centre-to-centre direction
+          const sCX = draggedPos.x + draggedObj.width / 2
+          const sCY = draggedPos.y + draggedObj.height / 2
+          const tCX = tPos.x + target.width / 2
+          const tCY = tPos.y + target.height / 2
+          const dx = tCX - sCX
+          const dy = tCY - sCY
+
+          const overlapAmtXRight = sRight + PADDING - tLeft
+          const overlapAmtXLeft = tRight + PADDING - sLeft
+          const overlapAmtYDown = sBottom + PADDING - tTop
+          const overlapAmtYUp = tBottom + PADDING - sTop
+
+          let newX = tPos.x
+          let newY = tPos.y
+
+          const pushAmtX = dx >= 0 ? overlapAmtXRight : overlapAmtXLeft
+          const pushAmtY = dy >= 0 ? overlapAmtYDown : overlapAmtYUp
+
+          if (pushAmtX <= pushAmtY) {
+            newX = dx >= 0 ? tPos.x + overlapAmtXRight : tPos.x - overlapAmtXLeft
+          } else {
+            newY = dy >= 0 ? tPos.y + overlapAmtYDown : tPos.y - overlapAmtYUp
           }
+
+          // Clamp to canvas bounds
+          newX = Math.max(CANVAS_PAD, Math.min(newX, CANVAS_W - target.width - CANVAS_PAD))
+          newY = Math.max(CANVAS_PAD, Math.min(newY, CANVAS_H - target.height - CANVAS_PAD))
+
+          positions.set(target.id, { x: newX, y: newY })
+          visited.add(target.id)
         }
 
-        const pushLevels: Record<string, number> = {}
-
-        if (!swapTargetId) {
-          // BFS cascade push — skip dragged object
-          const queue: string[] = [draggedId]
-          const visited = new Set<string>([draggedId])
-          const levelMap = new Map<string, number>([[draggedId, 0]])
-          let iterations = 0
-
-          while (queue.length > 0 && iterations < MAX_ITERATIONS) {
-            const sourceId = queue.shift()!
-            const source = getObj(sourceId)
-            if (!source) { iterations++; continue }
-            const sPos = positions.get(sourceId)!
-            const sLevel = levelMap.get(sourceId) ?? 0
-
-            for (const target of objects) {
-              if (visited.has(target.id)) continue
-              const tPos = positions.get(target.id)!
-
-              // AABB overlap with padding
-              const sLeft = sPos.x, sRight = sPos.x + source.width
-              const sTop = sPos.y, sBottom = sPos.y + source.height
-              const tLeft = tPos.x, tRight = tPos.x + target.width
-              const tTop = tPos.y, tBottom = tPos.y + target.height
-
-              const overlapX = sLeft < tRight + PADDING && sRight + PADDING > tLeft
-              const overlapY = sTop < tBottom + PADDING && sBottom + PADDING > tTop
-              if (!overlapX || !overlapY) continue
-
-              // Centre-to-centre direction
-              const sCX = sPos.x + source.width / 2
-              const sCY = sPos.y + source.height / 2
-              const tCX = tPos.x + target.width / 2
-              const tCY = tPos.y + target.height / 2
-              const dx = tCX - sCX
-              const dy = tCY - sCY
-
-              // Overlap depths on each axis
-              const overlapAmtXRight = sRight + PADDING - tLeft
-              const overlapAmtXLeft = tRight + PADDING - sLeft
-              const overlapAmtYDown = sBottom + PADDING - tTop
-              const overlapAmtYUp = tBottom + PADDING - sTop
-
-              let newX = tPos.x
-              let newY = tPos.y
-
-              // Choose axis of least resistance
-              const pushAmtX = dx >= 0 ? overlapAmtXRight : overlapAmtXLeft
-              const pushAmtY = dy >= 0 ? overlapAmtYDown : overlapAmtYUp
-
-              if (pushAmtX <= pushAmtY) {
-                newX = dx >= 0 ? tPos.x + overlapAmtXRight : tPos.x - overlapAmtXLeft
-              } else {
-                newY = dy >= 0 ? tPos.y + overlapAmtYDown : tPos.y - overlapAmtYUp
-              }
-
-              // Clamp to canvas bounds
-              newX = Math.max(CANVAS_PAD, Math.min(newX, CANVAS_W - target.width - CANVAS_PAD))
-              newY = Math.max(CANVAS_PAD, Math.min(newY, CANVAS_H - target.height - CANVAS_PAD))
-
-              positions.set(target.id, { x: newX, y: newY })
-              visited.add(target.id)
-              queue.push(target.id)
-              levelMap.set(target.id, sLevel + 1)
-              pushLevels[target.id] = sLevel + 1
-            }
-            iterations++
-          }
-        }
-
-        // Apply positions — dragged keeps its own position (handled by updatePosition/updateListPosition/setIdeaWidgetPosition)
+        // Apply positions — dragged keeps its own position
         const newProjects = state.projects.map(p => {
           if (p.id === draggedId) return p
           const pos = positions.get(p.id)
@@ -553,8 +513,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           projects: newProjects,
           lists: newLists,
           ideaWidgetPosition: ideaPos ?? state.ideaWidgetPosition,
-          swapTarget: swapTargetId,
-          pushLevels,
+          swapTarget: null,
         })
       },
     }),
