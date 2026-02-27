@@ -1,12 +1,20 @@
+/**
+ * ProjectCard
+ *
+ * Rôle : Carte de projet draggable sur le canvas, avec actions hover (aperçu, commentaires, édition…).
+ * Utilisé dans : App.tsx (canvas)
+ * Props : project, canvasScale, index?
+ */
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare, Pencil, RefreshCw } from 'lucide-react'
+import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare, Pencil, RefreshCw, Eye } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
 import { fetchMeta } from '../utils/fetchMeta'
 import { CommentsPanel } from './CommentsPanel'
 import { GroupContextMenu } from './GroupContextMenu'
 import { EditProjectModal } from './EditProjectModal'
+import { ProjectPreviewModal } from './ProjectPreviewModal'
 
 interface Props {
   project: Project
@@ -55,6 +63,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   const [imgError, setImgError] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -192,7 +201,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 pointerEvents: 'none',
               }}
             >
-            <div data-no-drag style={{
+            <div data-no-drag className="project-card__actions" style={{
                 display: 'flex',
                 gap: 4,
                 padding: '6px 8px',
@@ -230,6 +239,13 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 style={actionBtn}
               >
                 <Pencil size={13} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowPreview(true) }}
+                title="Aperçu + commentaires"
+                style={actionBtn}
+              >
+                <Eye size={13} />
               </button>
               <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 2px' }} />
               <button
@@ -279,6 +295,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
 
         {/* ── Card body ── */}
         <motion.div
+          className="project-card"
           initial={{ opacity: 0, scale: 0.92, y: 12 }}
           animate={{
             opacity: 1,
@@ -370,8 +387,8 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
           </div>
 
           {/* Body */}
-          <div style={{ padding: '10px 14px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+          <div className="project-card__body" style={{ padding: '10px 14px 12px' }}>
+            <div className="project-card__header" style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
               {project.favicon && (
                 <img src={project.favicon} alt="" style={{ width: 14, height: 14, borderRadius: 3, flexShrink: 0 }} />
               )}
@@ -401,7 +418,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
             </div>
 
             {project.tags && project.tags.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+              <div className="project-card__tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                 {project.tags.map((tag) => {
                   const c = tagColor(tag)
                   return (
@@ -421,6 +438,13 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
         project={project}
         open={showEdit}
         onClose={() => setShowEdit(false)}
+      />
+
+      {/* ProjectPreviewModal — aperçu iframe + commentaires côte à côte */}
+      <ProjectPreviewModal
+        project={project}
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
       />
 
       {/* CommentsPanel rendered via portal — outside card DOM tree */}

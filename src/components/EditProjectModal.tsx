@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
+import { Select } from './Select'
 import type { Project } from '../types'
 
 const COLOR_OPTIONS = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
@@ -181,16 +182,14 @@ export function EditProjectModal({ project, open, onClose }: Props) {
             {/* Group */}
             <div>
               <label style={labelStyle}>Groupe</label>
-              <select
+              <Select
                 value={groupId ?? ''}
-                onChange={e => setGroupId(e.target.value || undefined)}
-                style={{ ...inputStyle, cursor: 'pointer', colorScheme: 'dark' }}
-              >
-                <option value="">Aucun groupe</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>{g.emoji} {g.name}</option>
-                ))}
-              </select>
+                onChange={v => setGroupId(v || undefined)}
+                options={[
+                  { value: '', label: '— Aucun groupe —' },
+                  ...groups.map(g => ({ value: g.id, label: `${g.emoji} ${g.name}` })),
+                ]}
+              />
             </div>
 
             {/* Color */}

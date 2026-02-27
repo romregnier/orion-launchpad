@@ -238,8 +238,8 @@ function AvatarScene({ config }: { config: AvatarConfig }) {
 }
 
 // ── OrionAvatar3D ─────────────────────────────────────────────────────────────
-export function OrionAvatar3D({ size = 120 }: { size?: number }) {
-  const [config, setConfig] = useState<AvatarConfig>(getOrionConfig)
+export function OrionAvatar3D({ size = 120, avatarConfig }: { size?: number; avatarConfig?: Record<string, unknown> | null }) {
+  const [config, setConfig] = useState<AvatarConfig>(() => avatarConfig ? { ...DEFAULT_CONFIG, ...(avatarConfig as Partial<AvatarConfig>) } : getOrionConfig())
   const [hovered, setHovered] = useState(false)
 
   useEffect(() => {

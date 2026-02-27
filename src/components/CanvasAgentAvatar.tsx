@@ -112,7 +112,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
     >
       {/* Avatar */}
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
-        <OrionAvatar3D size={64} />
+        <OrionAvatar3D size={64} avatarConfig={agent.tailor_config as Record<string, unknown> | null | undefined} />
 
         {/* Owner badge */}
         <div

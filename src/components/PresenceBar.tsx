@@ -1,3 +1,10 @@
+/**
+ * PresenceBar
+ *
+ * Rôle : Barre de présence en temps réel — affiche les avatars des utilisateurs connectés via Supabase Realtime.
+ * Utilisé dans : App.tsx
+ * Props : currentUser
+ */
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -123,6 +130,7 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
             )}
             {/* Avatar circle */}
             <div
+              className="presence-bar__avatar"
               style={{
                 width: 32,
                 height: 32,

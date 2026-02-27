@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
+import { Select } from './Select'
 import type { CanvasAgent } from '../types'
 
 interface Props {
@@ -205,16 +206,14 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                   {isEdit && (
                     <div style={{ marginBottom: 20 }}>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '0.08em' }}>TRAVAILLE SUR</label>
-                      <select
+                      <Select
                         value={workingOn ?? ''}
-                        onChange={e => setWorkingOn(e.target.value || null)}
-                        style={{ ...inputStyle, colorScheme: 'dark' }}
-                      >
-                        <option value="">— Aucun projet —</option>
-                        {projects.map(p => (
-                          <option key={p.id} value={p.id}>{p.title}</option>
-                        ))}
-                      </select>
+                        onChange={v => setWorkingOn(v || null)}
+                        options={[
+                          { value: '', label: '— Aucun projet —' },
+                          ...projects.map(p => ({ value: p.id, label: p.title })),
+                        ]}
+                      />
                     </div>
                   )}
 

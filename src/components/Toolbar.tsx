@@ -1,3 +1,10 @@
+/**
+ * Toolbar
+ *
+ * Rôle : Barre d'outils flottante en bas du canvas — zoom, refresh, ajout de projets/listes/agents, settings.
+ * Utilisé dans : App.tsx
+ * Props : scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount
+ */
 import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 
@@ -19,6 +26,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
 
   return (
     <div
+      className="launchpad-toolbar"
       style={{
         position: 'fixed',
         bottom: isMobile ? 16 : 28,
@@ -55,7 +63,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       )}
 
       {/* Zoom controls */}
-      <button onClick={onZoomOut} title="Zoom arrière" style={btnStyle(isMobile)}>
+      <button className="launchpad-toolbar__btn" onClick={onZoomOut} title="Zoom arrière" style={btnStyle(isMobile)}>
         <ZoomOut size={isMobile ? 13 : 15} />
       </button>
       <button
@@ -72,7 +80,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       >
         {Math.round(scale * 100)}%
       </button>
-      <button onClick={onZoomIn} title="Zoom avant" style={btnStyle(isMobile)}>
+      <button className="launchpad-toolbar__btn" onClick={onZoomIn} title="Zoom avant" style={btnStyle(isMobile)}>
         <ZoomIn size={isMobile ? 13 : 15} />
       </button>
 

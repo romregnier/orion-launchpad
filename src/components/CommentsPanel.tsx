@@ -1,3 +1,10 @@
+/**
+ * CommentsPanel
+ *
+ * Rôle : Panneau de commentaires par projet (localStorage), drawer animé ou mode inline.
+ * Utilisé dans : ProjectCard, ProjectPreviewModal
+ * Props : projectId, projectTitle, open, onClose, inline?
+ */
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,6 +22,8 @@ interface Props {
   projectTitle: string
   open: boolean
   onClose: () => void
+  /** Si true, rendu inline (pas de portal, pas de position:fixed) */
+  inline?: boolean
 }
 
 function timeAgo(iso: string): string {
@@ -34,7 +43,7 @@ function avatarColor(str: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-export function CommentsPanel({ projectId, projectTitle, open, onClose }: Props) {
+export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }: Props) {
   const key = `comments_${projectId}`
   const [comments, setComments] = useState<Comment[]>([])
   const [text, setText] = useState('')
@@ -49,11 +58,11 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose }: Props)
   }, [open, key])
 
   useEffect(() => {
-    if (!open) return
+    if (!open || inline) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, inline])
 
   const publish = () => {
     if (!text.trim()) return
@@ -71,6 +80,94 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose }: Props)
 
   const isMobile = window.innerWidth < 500
 
+  // ── Inline mode : rendu direct sans portal ni position:fixed ─────────────
+  if (inline) {
+    return (
+      <div className="comments-panel comments-panel--inline" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#13111A' }}>
+        {/* Header */}
+        <div style={{
+          padding: '14px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(225,31,123,0.06)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>💬 Commentaires</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{projectTitle}</div>
+          </div>
+        </div>
+
+        {/* List */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {comments.length === 0 && (
+            <div style={{ textAlign: 'center', paddingTop: 40, color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+              Aucun commentaire encore.<br />Sois le premier !
+            </div>
+          )}
+          {comments.map((c) => {
+            const color = avatarColor(c.author)
+            return (
+              <div key={c.id} style={{ display: 'flex', gap: 10 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: '50%', background: color, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700, color: '#fff',
+                }}>
+                  {c.author[0]?.toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: color }}>{c.author}</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{timeAgo(c.createdAt)}</span>
+                  </div>
+                  <div style={{
+                    fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5,
+                    background: 'rgba(255,255,255,0.05)', borderRadius: '4px 12px 12px 12px',
+                    padding: '7px 11px',
+                  }}>
+                    {c.text}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Input */}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 8, flexShrink: 0 }}>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); publish() } }}
+            placeholder="Ajouter un commentaire…"
+            style={{
+              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: 12, outline: 'none',
+              fontFamily: 'inherit',
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(225,31,123,0.4)'}
+            onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+          />
+          <button
+            onClick={publish}
+            disabled={!text.trim()}
+            style={{
+              background: text.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)',
+              border: 'none', borderRadius: 10, padding: '0 14px',
+              cursor: text.trim() ? 'pointer' : 'default',
+              color: '#fff', display: 'flex', alignItems: 'center', transition: 'background 0.15s',
+            }}
+          >
+            <Send size={14} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Portal mode (comportement original) ──────────────────────────────────
   const panel = (
     <AnimatePresence>
       {open && (

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Trash2 } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import { sha256 } from '../utils/hash'
+import { Select } from './Select'
 
 const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
@@ -273,14 +274,14 @@ export function SettingsPanel() {
                             </button>
                           </div>
                         )}
-                        <select
+                        <Select
                           value={newRole}
-                          onChange={e => setNewRole(e.target.value as 'admin' | 'member')}
-                          style={{ ...inputStyle, cursor: 'pointer', colorScheme: 'dark' }}
-                        >
-                          <option value="member">Membre</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                          onChange={v => setNewRole(v as 'admin' | 'member')}
+                          options={[
+                            { value: 'member', label: 'Membre' },
+                            { value: 'admin', label: 'Admin' },
+                          ]}
+                        />
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button
                             onClick={handleAddMember}

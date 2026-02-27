@@ -1,3 +1,10 @@
+/**
+ * WorkProgressBar
+ *
+ * Rôle : Barre de progression fixe en haut, affiche les tâches build_tasks actives en temps réel (Supabase Realtime).
+ * Utilisé dans : App.tsx
+ * Props : aucune (auto-subscribe)
+ */
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -51,6 +58,7 @@ export function WorkProgressBar() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -36, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          className="work-progress-bar"
           style={{
             position: 'fixed',
             top: 52,
@@ -109,8 +117,9 @@ export function WorkProgressBar() {
 
           {/* Progress bar + percentage */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <div style={{ width: 80, height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+            <div className="work-progress-bar__track" style={{ width: 80, height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
               <div
+                className="work-progress-bar__fill"
                 style={{
                   height: '100%',
                   width: `${current.progress ?? 0}%`,

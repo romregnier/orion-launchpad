@@ -311,19 +311,22 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       getAllCanvasObjects: () => getAllCanvasObjectsFromState(get()),
 
       addCanvasAgent: async (name, tailorUrl, botToken) => {
+        const { randomAvatarConfig } = await import('./utils/randomAvatar')
         const owner = get().currentUser?.username ?? 'anon'
+        const tailorConfig = randomAvatarConfig()
         const { data, error } = await supabase
           .from('canvas_agents')
-          .insert({ name, tailor_url: tailorUrl ?? null, bot_token: botToken ?? null, owner, position_x: 200, position_y: 200 })
+          .insert({ name, tailor_url: tailorUrl ?? null, bot_token: botToken ?? null, owner, position_x: 200, position_y: 200, tailor_config: tailorConfig })
           .select()
           .single()
         if (error || !data) return
-        const row = data as { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string }
+        const row = data as { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; tailor_config?: import('./types').AvatarConfig | null }
         const agent: CanvasAgent = {
           id: row.id, owner: row.owner, name: row.name,
           tailorUrl: row.tailor_url ?? undefined,
           bot_token: row.bot_token ?? undefined,
           position: { x: row.position_x, y: row.position_y },
+          tailor_config: row.tailor_config ?? null,
         }
         set(state => ({ canvasAgents: [...state.canvasAgents, agent] }))
       },
@@ -353,7 +356,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       subscribeToAgents: () => {
-        type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean; working_on_project?: string | null }
+        type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean; working_on_project?: string | null; tailor_config?: import('./types').AvatarConfig | null }
         const rowToAgent = (row: AgentRow): CanvasAgent => ({
           id: row.id, owner: row.owner, name: row.name,
           tailorUrl: row.tailor_url ?? undefined,
@@ -362,6 +365,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           is_system: row.is_system ?? false,
           position: { x: row.position_x, y: row.position_y },
           working_on_project: row.working_on_project ?? null,
+          tailor_config: row.tailor_config ?? null,
         })
 
         supabase.from('canvas_agents').select('*').then(({ data }) => {
