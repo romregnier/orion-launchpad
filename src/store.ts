@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Project } from './types'
+import { sha256 } from './utils/hash'
 
 export interface Group {
   id: string
@@ -8,6 +9,14 @@ export interface Group {
   color: string
   emoji: string
   order: number
+}
+
+export interface Member {
+  id: string
+  username: string
+  passwordHash: string // SHA-256 hex
+  role: 'admin' | 'member'
+  createdAt: number
 }
 
 const REMOTE_PROJECTS_URL =
@@ -22,6 +31,9 @@ export interface Idea {
   createdAt: string
 }
 
+// SHA-256 of 'e2DLvDdrbkHZ2Whkimww9QVU'
+const ROMAIN_HASH = 'a2a4bcf7d4cf2f8df876e9134bc71509978782612bcdf0d341d3f112d6c28d90'
+
 interface LaunchpadStore {
   projects: Project[]
   deletedProjects: Project[]  // projets retirés du canvas (pas supprimés de GitHub)
@@ -32,6 +44,11 @@ interface LaunchpadStore {
   activeFilter: string | null
   groups: Group[]
   activeGroup: string | null
+  boardName: string
+  isPrivate: boolean
+  members: Member[]
+  currentUser: { username: string; role: 'admin' | 'member' } | null
+  showSettings: boolean
   addProject: (project: Project) => void
   removeProject: (id: string) => void
   restoreProject: (id: string) => void
@@ -47,6 +64,14 @@ interface LaunchpadStore {
   updateGroup: (id: string, updates: Partial<Omit<Group, 'id'>>) => void
   setProjectGroup: (projectId: string, groupId: string | null) => void
   setGroupFilter: (groupId: string | null) => void
+  setBoardName: (name: string) => void
+  setPrivate: (v: boolean) => void
+  addMember: (username: string, passwordHash: string, role: 'admin' | 'member') => void
+  removeMember: (id: string) => void
+  login: (username: string, password: string) => Promise<boolean>
+  logout: () => void
+  setShowSettings: (v: boolean) => void
+  clearProjects: () => void
 }
 
 export const useLaunchpadStore = create<LaunchpadStore>()(
@@ -70,6 +95,19 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         { id: 'group-archived', name: 'Archivé', color: '#6b7280', emoji: '📦', order: 3 },
       ],
       activeGroup: null,
+      boardName: 'Mon Launchpad',
+      isPrivate: false,
+      currentUser: null,
+      members: [
+        {
+          id: 'member-romain',
+          username: 'romain',
+          passwordHash: ROMAIN_HASH,
+          role: 'admin',
+          createdAt: Date.now(),
+        }
+      ],
+      showSettings: false,
 
       addProject: (project) =>
         set((state) => ({
@@ -178,6 +216,27 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         projects: state.projects.map(p => p.id === projectId ? { ...p, groupId: groupId ?? undefined } : p)
       })),
       setGroupFilter: (groupId) => set({ activeGroup: groupId }),
+
+      setBoardName: (name) => set({ boardName: name }),
+      setPrivate: (v) => set({ isPrivate: v }),
+      addMember: (username, passwordHash, role) => set((state) => ({
+        members: [...state.members, { id: `member-${Date.now()}`, username, passwordHash, role, createdAt: Date.now() }]
+      })),
+      removeMember: (id) => set((state) => ({
+        members: state.members.filter(m => m.id !== id)
+      })),
+      login: async (username, password) => {
+        const hash = await sha256(password)
+        const member = get().members.find(m => m.username === username && m.passwordHash === hash)
+        if (member) {
+          set({ currentUser: { username: member.username, role: member.role } })
+          return true
+        }
+        return false
+      },
+      logout: () => set({ currentUser: null }),
+      setShowSettings: (v) => set({ showSettings: v }),
+      clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),
     }),
     {
       name: 'orion-launchpad',
@@ -188,6 +247,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         ideas: state.ideas,
         groups: state.groups,
         activeGroup: state.activeGroup,
+        boardName: state.boardName,
+        isPrivate: state.isPrivate,
+        members: state.members,
+        currentUser: state.currentUser,
       }),
     }
   )

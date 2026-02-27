@@ -8,6 +8,8 @@ import { OrionAvatar3D } from './components/OrionAvatar3D'
 import { ChatPanel } from './components/ChatPanel'
 import { IdeaWidget } from './components/IdeaWidget'
 import { GroupBar } from './components/GroupBar'
+import { SettingsPanel } from './components/SettingsPanel'
+import { LoginScreen } from './components/LoginScreen'
 
 // Error boundary to prevent Three.js crashes from killing the app
 class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
@@ -27,7 +29,29 @@ const MAX_SCALE = 2.5
 const SCALE_STEP = 0.15 // used for toolbar buttons only
 
 export default function App() {
-  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup } = useLaunchpadStore()
+  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, setBoardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+
+  // Board name editing state
+  const [editingBoardName, setEditingBoardName] = useState(false)
+  const [boardNameDraft, setBoardNameDraft] = useState(boardName)
+  const [boardNameHover, setBoardNameHover] = useState(false)
+  const boardNameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingBoardName && boardNameInputRef.current) {
+      boardNameInputRef.current.focus()
+      boardNameInputRef.current.select()
+    }
+  }, [editingBoardName])
+
+  const saveBoardName = () => {
+    if (boardNameDraft.trim()) setBoardName(boardNameDraft.trim())
+    else setBoardNameDraft(boardName)
+    setEditingBoardName(false)
+  }
+
+  // Auth gate — after all hooks
+  if (isPrivate && !currentUser) return <LoginScreen />
 
   // Collect all unique tags from all projects
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
@@ -260,9 +284,73 @@ export default function App() {
         projectCount={projects.length}
       />
 
+      {/* Board name — centered fixed title */}
+      <div
+        style={{
+          position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 35, display: 'flex', alignItems: 'center', gap: 6,
+          userSelect: 'none',
+        }}
+        onMouseEnter={() => setBoardNameHover(true)}
+        onMouseLeave={() => setBoardNameHover(false)}
+      >
+        {editingBoardName ? (
+          <input
+            ref={boardNameInputRef}
+            value={boardNameDraft}
+            onChange={e => setBoardNameDraft(e.target.value)}
+            onBlur={saveBoardName}
+            onKeyDown={e => { if (e.key === 'Enter') saveBoardName(); if (e.key === 'Escape') { setBoardNameDraft(boardName); setEditingBoardName(false) } }}
+            style={{
+              background: 'transparent', border: 'none', outline: 'none',
+              fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)',
+              fontFamily: 'inherit', textAlign: 'center',
+              borderBottom: '1px solid rgba(255,255,255,0.3)',
+            }}
+          />
+        ) : (
+          <span
+            onDoubleClick={() => { setBoardNameDraft(boardName); setEditingBoardName(true) }}
+            style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)', cursor: 'default' }}
+          >
+            {boardName}
+          </span>
+        )}
+        {boardNameHover && !editingBoardName && (
+          <span
+            onClick={() => { setBoardNameDraft(boardName); setEditingBoardName(true) }}
+            style={{ fontSize: 12, cursor: 'pointer', opacity: 0.4 }}
+            title="Renommer"
+          >✏️</span>
+        )}
+      </div>
+
+      {/* User pill — top right */}
+      {isPrivate && currentUser && (
+        <div style={{
+          position: 'fixed', top: 14, right: 14, zIndex: 40,
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 12px', borderRadius: 999,
+          background: 'rgba(22,18,26,0.9)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(16px)',
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+            👤 {currentUser.username}
+          </span>
+          <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)' }} />
+          <button
+            onClick={logout}
+            style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}
+          >
+            Déconnexion
+          </button>
+        </div>
+      )}
+
       {/* Navigation hint */}
       <div style={{
-        position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+        position: 'fixed', top: 46, left: '50%', transform: 'translateX(-50%)',
         fontSize: 11, color: 'rgba(255,255,255,0.15)', pointerEvents: 'none',
         letterSpacing: '0.05em', whiteSpace: 'nowrap',
       }}>
@@ -272,7 +360,7 @@ export default function App() {
 
       {/* Group filter bar */}
       <div style={{
-        position: 'fixed', top: 36, left: '50%', transform: 'translateX(-50%)',
+        position: 'fixed', top: 46, left: '50%', transform: 'translateX(-50%)',
         background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)',
         border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999,
         zIndex: 40,
@@ -283,7 +371,7 @@ export default function App() {
       {/* Tag filter pills */}
       {allTags.length > 0 && (
         <div style={{
-          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', top: 92, left: '50%', transform: 'translateX(-50%)',
           display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap',
           padding: '6px 10px',
           background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)',
@@ -340,6 +428,9 @@ export default function App() {
 
       {/* Chat Panel */}
       <ChatPanel />
+
+      {/* Settings Panel */}
+      <SettingsPanel />
     </div>
   )
 }

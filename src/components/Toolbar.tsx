@@ -1,4 +1,5 @@
-import { Plus, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react'
+import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings } from 'lucide-react'
+import { useLaunchpadStore } from '../store'
 
 interface Props {
   scale: number
@@ -12,6 +13,7 @@ interface Props {
 
 export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, projectCount }: Props) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 500
+  const { showSettings, setShowSettings } = useLaunchpadStore()
 
   return (
     <div
@@ -74,6 +76,18 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
 
       <button onClick={onRefresh} title="Rafraîchir" style={{ ...btnStyle(isMobile), marginLeft: isMobile ? 0 : 2 }}>
         <RefreshCw size={isMobile ? 12 : 14} />
+      </button>
+
+      {/* Settings button */}
+      <button
+        onClick={() => setShowSettings(!showSettings)}
+        title="Paramètres"
+        style={{
+          ...btnStyle(isMobile),
+          color: showSettings ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+        }}
+      >
+        <Settings size={isMobile ? 12 : 14} />
       </button>
 
       <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)', marginInline: isMobile ? 2 : 4 }} />

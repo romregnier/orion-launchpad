@@ -10,7 +10,7 @@ export function GroupBar() {
   const [newEmoji, setNewEmoji] = useState('✨')
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(COLOR_PALETTE[0])
-  const [pillMenu, setPillMenu] = useState<{ groupId: string; x: number; y: number } | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
   // Close create form on Escape or click outside
@@ -31,20 +31,6 @@ export function GroupBar() {
     }
   }, [showCreateForm])
 
-  // Close pill context menu on click outside
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPillMenu(null) }
-    const onClick = () => setPillMenu(null)
-    if (pillMenu) {
-      window.addEventListener('keydown', onKey)
-      window.addEventListener('mousedown', onClick)
-    }
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      window.removeEventListener('mousedown', onClick)
-    }
-  }, [pillMenu])
-
   const handleConfirm = () => {
     if (!newName.trim()) return
     addGroup({ name: newName.trim(), color: newColor, emoji: newEmoji })
@@ -52,6 +38,18 @@ export function GroupBar() {
     setNewName('')
     setNewColor(COLOR_PALETTE[0])
     setShowCreateForm(false)
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent, groupId: string) => {
+    e.stopPropagation()
+    if (confirmDeleteId === groupId) {
+      deleteGroup(groupId)
+      setConfirmDeleteId(null)
+    } else {
+      setConfirmDeleteId(groupId)
+      // Auto-cancel after 2.5s
+      setTimeout(() => setConfirmDeleteId(prev => prev === groupId ? null : prev), 2500)
+    }
   }
 
   return (
@@ -147,76 +145,68 @@ export function GroupBar() {
       {/* Group pills */}
       {groups.map(group => {
         const isActive = activeGroup === group.id
+        const isConfirming = confirmDeleteId === group.id
         return (
-          <motion.button
+          <motion.div
             key={group.id}
-            onClick={() => setGroupFilter(isActive ? null : group.id)}
-            onContextMenu={e => {
-              e.preventDefault()
-              e.stopPropagation()
-              setPillMenu({ groupId: group.id, x: e.clientX, y: e.clientY })
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            style={{
-              height: 28,
-              borderRadius: 999,
-              padding: '4px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: `1px solid ${group.color}`,
-              background: isActive ? group.color : `${group.color}33`,
-              color: isActive ? '#fff' : group.color,
-              boxShadow: isActive ? `0 0 12px ${group.color}66` : 'none',
-              transition: 'all 0.15s',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
+            style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+            initial={false}
+            whileHover="hovered"
           >
-            <span>{group.emoji}</span>
-            <span>{group.name}</span>
-          </motion.button>
+            <motion.button
+              onClick={() => setGroupFilter(isActive ? null : group.id)}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                height: 28,
+                borderRadius: 999,
+                padding: isConfirming ? '4px 8px 4px 12px' : '4px 12px',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: `1px solid ${isConfirming ? '#ef4444' : group.color}`,
+                background: isConfirming
+                  ? 'rgba(239,68,68,0.2)'
+                  : isActive
+                  ? group.color
+                  : `${group.color}33`,
+                color: isConfirming ? '#ef4444' : isActive ? '#fff' : group.color,
+                boxShadow: isActive && !isConfirming ? `0 0 12px ${group.color}66` : 'none',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                paddingRight: isConfirming ? 4 : undefined,
+              }}
+            >
+              <span>{group.emoji}</span>
+              <span>{group.name}</span>
+              {/* Delete button — visible on hover or confirming */}
+              <motion.button
+                variants={{ hovered: { opacity: 1, scale: 1 } }}
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={isConfirming ? { opacity: 1, scale: 1 } : undefined}
+                onClick={(e) => handleDeleteClick(e, group.id)}
+                title={isConfirming ? 'Confirmer la suppression' : 'Supprimer le groupe'}
+                style={{
+                  width: 16, height: 16, borderRadius: '50%',
+                  border: 'none',
+                  background: isConfirming ? '#ef4444' : 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700,
+                  marginLeft: 2,
+                  flexShrink: 0,
+                  transition: 'background 0.15s',
+                }}
+              >
+                {isConfirming ? '✓' : '×'}
+              </motion.button>
+            </motion.button>
+          </motion.div>
         )
       })}
-
-      {/* Pill right-click context menu */}
-      <AnimatePresence>
-        {pillMenu && (
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            style={{
-              position: 'fixed',
-              top: pillMenu.y,
-              left: pillMenu.x,
-              background: '#3E3742',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
-              padding: 4,
-              zIndex: 1000,
-            }}
-          >
-            <button
-              onClick={() => { deleteGroup(pillMenu.groupId); setPillMenu(null) }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                color: '#ef4444', background: 'transparent', border: 'none',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            >
-              Supprimer
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

@@ -1,10 +1,11 @@
 import { useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare } from 'lucide-react'
+import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare, Pencil } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
 import { CommentsPanel } from './CommentsPanel'
 import { GroupContextMenu } from './GroupContextMenu'
+import { EditProjectModal } from './EditProjectModal'
 
 interface Props {
   project: Project
@@ -32,6 +33,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   const [copied, setCopied] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
   const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
   const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
 
@@ -154,6 +156,13 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
               </a>
               <button onClick={handleCopy} title="Copier le lien" style={{ ...actionBtn, color: copied ? '#10B981' : 'rgba(255,255,255,0.6)' }}>
                 {copied ? <Check size={13} /> : <Copy size={13} />}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowEdit(true) }}
+                title="Modifier le projet"
+                style={actionBtn}
+              >
+                <Pencil size={13} />
               </button>
               <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 2px' }} />
               <button
@@ -301,6 +310,13 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
           </div>
         </motion.div>
       </div>
+
+      {/* EditProjectModal */}
+      <EditProjectModal
+        project={project}
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+      />
 
       {/* CommentsPanel rendered via portal — outside card DOM tree */}
       <CommentsPanel
