@@ -63,9 +63,10 @@ export function BotModal({ open, onClose, editAgent }: Props) {
     onClose()
   }
 
+  // Pas de &embed=1 — on veut l'UI complète (panels + canvas) dans le fullscreen modal
   const tailorSrc = tailorUrl
-    ? `https://the-tailor.surge.sh?config=${encodeURIComponent(tailorUrl)}&embed=1`
-    : 'https://the-tailor.surge.sh?embed=1'
+    ? `https://the-tailor.surge.sh?config=${encodeURIComponent(tailorUrl)}`
+    : 'https://the-tailor.surge.sh'
 
   return (
     <AnimatePresence>
