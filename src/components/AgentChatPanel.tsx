@@ -44,25 +44,33 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
   const emoji = AGENT_EMOJI[agentKey] ?? '🤖'
 
   useEffect(() => {
-    // Charger l'historique
+    // Charger uniquement les messages de cette conversation (agent + user)
     supabase
       .from('agent_chat_messages')
       .select('*')
       .eq('agent_id', agent.id)
+      .eq('user_id', currentUser)
       .order('created_at', { ascending: true })
       .limit(50)
       .then(({ data }) => { if (data) setMessages(data as ChatMessage[]) })
 
-    // Realtime
+    // Realtime — filtré par agent ET user
     const channel = supabase
-      .channel(`chat-${agent.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_chat_messages', filter: `agent_id=eq.${agent.id}` },
-        (payload) => setMessages(prev => [...prev, payload.new as ChatMessage])
-      )
+      .channel(`chat-${agent.id}-${currentUser}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'agent_chat_messages',
+        filter: `agent_id=eq.${agent.id}`,
+      }, (payload) => {
+        const msg = payload.new as ChatMessage
+        // Ne montrer que les messages de cette conversation
+        if (msg.user_id === currentUser || msg.sender === agentKey) {
+          setMessages(prev => [...prev, msg])
+        }
+      })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [agent.id])
+  }, [agent.id, currentUser, agentKey])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
