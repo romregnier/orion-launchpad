@@ -138,6 +138,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       <button
         onClick={onAdd}
         title="Ajouter un projet"
+        data-testid="btn-add-project"
         style={{
           display: 'flex',
           alignItems: 'center',
