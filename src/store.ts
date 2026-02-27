@@ -107,6 +107,7 @@ interface LaunchpadStore {
   removeCanvasAgent: (id: string) => Promise<void>
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
   subscribeToAgents: () => () => void
+  setAgentWorkingOn: (agentId: string, projectId: string | null) => Promise<void>
   lists: ListWidget[]
   addList: (title: string, type: ListType) => void
   removeList: (id: string) => void
@@ -352,7 +353,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       subscribeToAgents: () => {
-        type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean }
+        type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean; working_on_project?: string | null }
         const rowToAgent = (row: AgentRow): CanvasAgent => ({
           id: row.id, owner: row.owner, name: row.name,
           tailorUrl: row.tailor_url ?? undefined,
@@ -360,6 +361,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           agent_key: row.agent_key ?? undefined,
           is_system: row.is_system ?? false,
           position: { x: row.position_x, y: row.position_y },
+          working_on_project: row.working_on_project ?? null,
         })
 
         supabase.from('canvas_agents').select('*').then(({ data }) => {
@@ -382,6 +384,15 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           .subscribe()
 
         return () => { supabase.removeChannel(channel) }
+      },
+
+      setAgentWorkingOn: async (agentId, projectId) => {
+        set(state => ({
+          canvasAgents: state.canvasAgents.map(a =>
+            a.id === agentId ? { ...a, working_on_project: projectId } : a
+          ),
+        }))
+        await supabase.from('canvas_agents').update({ working_on_project: projectId }).eq('id', agentId)
       },
 
       addList: (title, type) => set((state) => {

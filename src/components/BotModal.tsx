@@ -10,12 +10,13 @@ interface Props {
 }
 
 export function BotModal({ open, onClose, editAgent }: Props) {
-  const { addCanvasAgent, updateCanvasAgent } = useLaunchpadStore()
+  const { addCanvasAgent, updateCanvasAgent, projects, setAgentWorkingOn } = useLaunchpadStore()
   const [name, setName] = useState('')
   const [botToken, setBotToken] = useState('')
   const [tailorUrl, setTailorUrl] = useState('')
   const [showTailor, setShowTailor] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [workingOn, setWorkingOn] = useState<string | null>(null)
   const tailorRef = useRef<HTMLIFrameElement>(null)
 
   const isEdit = !!editAgent
@@ -26,10 +27,12 @@ export function BotModal({ open, onClose, editAgent }: Props) {
       setName(editAgent.name)
       setBotToken(editAgent.bot_token ?? '')
       setTailorUrl(editAgent.tailorUrl ?? '')
+      setWorkingOn(editAgent.working_on_project ?? null)
     } else {
       setName('')
       setBotToken('')
       setTailorUrl('')
+      setWorkingOn(null)
     }
     setShowTailor(false)
   }, [editAgent, open])
@@ -56,6 +59,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
         bot_token: botToken.trim() || undefined,
         tailorUrl: tailorUrl || undefined,
       })
+      await setAgentWorkingOn(editAgent.id, workingOn)
     } else {
       await addCanvasAgent(name.trim(), tailorUrl || undefined, botToken.trim() || undefined)
     }
@@ -196,6 +200,23 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                   <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 20, lineHeight: 1.5 }}>
                     Obtenir via @BotFather sur Telegram. Permet d'envoyer des messages à ce bot depuis le chat.
                   </p>
+
+                  {/* Travaille sur — visible uniquement en mode édition */}
+                  {isEdit && (
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '0.08em' }}>TRAVAILLE SUR</label>
+                      <select
+                        value={workingOn ?? ''}
+                        onChange={e => setWorkingOn(e.target.value || null)}
+                        style={{ ...inputStyle, colorScheme: 'dark' }}
+                      >
+                        <option value="">— Aucun projet —</option>
+                        {projects.map(p => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Avatar Tailor */}
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 8, letterSpacing: '0.08em' }}>AVATAR</label>

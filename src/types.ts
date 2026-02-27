@@ -52,4 +52,5 @@ export interface CanvasAgent {
   agent_key?: string
   is_system?: boolean
   position: { x: number; y: number }
+  working_on_project?: string | null
 }

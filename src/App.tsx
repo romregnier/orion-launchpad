@@ -16,6 +16,7 @@ import { PresenceBar } from './components/PresenceBar'
 import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
 import { AgentChatPanel } from './components/AgentChatPanel'
 import { BotModal } from './components/BotModal'
+import { WorkProgressBar } from './components/WorkProgressBar'
 import type { CanvasAgent } from './types'
 
 
@@ -260,6 +261,9 @@ function LaunchpadCanvas() {
           )}
         </div>
       </header>
+
+      {/* ── Work progress bar ────────────────────────────────────────────────── */}
+      <WorkProgressBar />
 
       {/* ── Group filter bar ─────────────────────────────────────────────────── */}
       <nav

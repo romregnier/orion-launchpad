@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { OrionAvatar3D } from './OrionAvatar3D'
 import { useLaunchpadStore } from '../store'
 import type { CanvasAgent } from '../types'
@@ -11,7 +12,7 @@ interface CanvasAgentAvatarProps {
 }
 
 export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: CanvasAgentAvatarProps) {
-  const { updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping } = useLaunchpadStore()
+  const { projects, updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping, setAgentWorkingOn } = useLaunchpadStore()
   const [hovered, setHovered] = useState(false)
 
   // Local drag state for smooth visual feedback (no Supabase on every frame)
@@ -23,9 +24,19 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
   const isOwner = currentUser?.username === agent.owner
   const canEdit = isAdmin || isOwner
 
-  const pos = dragPos ?? agent.position
+  // Compute effective position: working_on_project overrides drag/store position
+  const targetProject = agent.working_on_project
+    ? projects.find(p => p.id === agent.working_on_project)
+    : null
+
+  const effectivePos = targetProject
+    ? { x: targetProject.position.x + 98, y: targetProject.position.y - 90 }
+    : (dragPos ?? agent.position)
+
+  const isWorking = !!targetProject
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isWorking) return // non-draggable when working on a project
     e.stopPropagation()
     e.preventDefault()
     isDragging.current = true
@@ -37,8 +48,6 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
     }
 
     let rafId: number | null = null
-
-    // lastPosRef tracks the final drag position so onUp can read without closure staleness
     const lastPosRef = { x: agent.position.x, y: agent.position.y }
 
     const onUpMove = (ev: MouseEvent) => {
@@ -67,29 +76,37 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
 
     window.addEventListener('mousemove', onUpMove)
     window.addEventListener('mouseup', onUp)
-  }, [agent.id, agent.position.x, agent.position.y, canvasScale, updateAgentPosition, pushOverlapping])
+  }, [agent.id, agent.position.x, agent.position.y, canvasScale, updateAgentPosition, pushOverlapping, isWorking])
 
   const ownerInitial = agent.owner.slice(0, 1).toUpperCase()
 
+  // Void reference to prevent unused variable warning
+  void setAgentWorkingOn
+
   return (
-    <div
+    <motion.div
       data-no-drag
       className="canvas-agent-avatar"
+      initial={false}
+      animate={{ x: effectivePos.x, y: effectivePos.y }}
+      transition={{ type: 'spring', stiffness: 120, damping: 20 }}
       onMouseDown={onMouseDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         position: 'absolute',
-        left: pos.x,
-        top: pos.y,
+        left: 0,
+        top: 0,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 4,
-        cursor: isDragging.current ? 'grabbing' : 'grab',
+        cursor: isWorking ? 'default' : (isDragging.current ? 'grabbing' : 'grab'),
         userSelect: 'none',
-        filter: hovered ? 'drop-shadow(0 4px 16px rgba(225,31,123,0.35))' : 'none',
-        transition: 'filter 0.2s',
+        filter: isWorking
+          ? 'drop-shadow(0 0 8px rgba(225,31,123,0.6))'
+          : hovered ? 'drop-shadow(0 4px 16px rgba(225,31,123,0.35))' : 'none',
+        transition: isWorking ? 'filter 1s ease-in-out' : 'filter 0.2s',
         zIndex: isDragging.current ? 500 : 10,
       }}
     >
@@ -161,46 +178,66 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
       </div>
 
       {/* Name tag + chat button */}
-      <div className="canvas-agent-avatar__label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <div
-          onClick={() => onChat?.(agent)}
-          title={`Discuter avec ${agent.name}`}
-          style={{
-            background: 'rgba(26,23,28,0.92)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 6,
-            padding: '3px 9px',
-            fontSize: 11,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.9)',
-            backdropFilter: 'blur(8px)',
-            whiteSpace: 'nowrap',
-            cursor: onChat ? 'pointer' : 'default',
-          }}
-        >
-          {agent.name}
-        </div>
-
-        {onChat && (
-          <button
-            className="canvas-agent-avatar__chat-btn"
-            onMouseDown={e => e.stopPropagation()}
-            onClick={e => { e.stopPropagation(); onChat(agent) }}
-            title="Ouvrir le chat"
+      <div className="canvas-agent-avatar__label" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div
+            onClick={() => onChat?.(agent)}
+            title={`Discuter avec ${agent.name}`}
             style={{
-              background: 'rgba(225,31,123,0.15)',
-              border: '1px solid rgba(225,31,123,0.3)',
+              background: 'rgba(26,23,28,0.92)',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 6,
-              padding: '3px 7px',
-              fontSize: 12,
-              cursor: 'pointer',
-              color: '#E11F7B',
+              padding: '3px 9px',
+              fontSize: 11,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.9)',
+              backdropFilter: 'blur(8px)',
+              whiteSpace: 'nowrap',
+              cursor: onChat ? 'pointer' : 'default',
             }}
           >
-            💬
-          </button>
+            {agent.name}
+          </div>
+
+          {onChat && (
+            <button
+              className="canvas-agent-avatar__chat-btn"
+              onMouseDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onChat(agent) }}
+              title="Ouvrir le chat"
+              style={{
+                background: 'rgba(225,31,123,0.15)',
+                border: '1px solid rgba(225,31,123,0.3)',
+                borderRadius: 6,
+                padding: '3px 7px',
+                fontSize: 12,
+                cursor: 'pointer',
+                color: '#E11F7B',
+              }}
+            >
+              💬
+            </button>
+          )}
+        </div>
+
+        {/* Working badge */}
+        {isWorking && (
+          <div
+            style={{
+              background: 'rgba(225,31,123,0.2)',
+              border: '1px solid rgba(225,31,123,0.4)',
+              borderRadius: 4,
+              padding: '2px 7px',
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#E11F7B',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ⚡ en cours
+          </div>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
