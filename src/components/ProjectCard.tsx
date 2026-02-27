@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { ExternalLink, Trash2, GripHorizontal, Github, Copy, Check, MessageSquare } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
 import { CommentsPanel } from './CommentsPanel'
@@ -22,13 +22,15 @@ function tagColor(tag: string): string {
 }
 
 export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
-  const { updatePosition, removeProject } = useLaunchpadStore()
+  const { removeProject } = useLaunchpadStore()
   const [isDragging, setIsDragging] = useState(false)
-  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
-  const [showActions, setShowActions] = useState(isTouchDevice)
+  const [showActions, setShowActions] = useState(false)
   const [imgError, setImgError] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
+  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
 
   const commentCount = (() => {
     try {
@@ -44,31 +46,20 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
       setTimeout(() => setCopied(false), 2000)
     })
   }, [project.url])
-  const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
+
+  const { updatePosition } = useLaunchpadStore()
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
-    e.stopPropagation()
-    e.preventDefault()
-
+    e.stopPropagation(); e.preventDefault()
     setIsDragging(true)
-    dragStart.current = {
-      mouseX: e.clientX,
-      mouseY: e.clientY,
-      cardX: project.position.x,
-      cardY: project.position.y,
-    }
-
+    dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, cardX: project.position.x, cardY: project.position.y }
     const onMove = (ev: MouseEvent) => {
       const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
       const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
       updatePosition(project.id, dragStart.current.cardX + dx, dragStart.current.cardY + dy)
     }
-    const onUp = () => {
-      setIsDragging(false)
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
+    const onUp = () => { setIsDragging(false); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [project.id, project.position.x, project.position.y, canvasScale, updatePosition])
@@ -79,13 +70,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     e.stopPropagation()
     const touch = e.touches[0]
     setIsDragging(true)
-    dragStart.current = {
-      mouseX: touch.clientX,
-      mouseY: touch.clientY,
-      cardX: project.position.x,
-      cardY: project.position.y,
-    }
-
+    dragStart.current = { mouseX: touch.clientX, mouseY: touch.clientY, cardX: project.position.x, cardY: project.position.y }
     const onMove = (ev: TouchEvent) => {
       if (ev.touches.length !== 1) return
       const t = ev.touches[0]
@@ -93,11 +78,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
       const dy = (t.clientY - dragStart.current.mouseY) / canvasScale
       updatePosition(project.id, dragStart.current.cardX + dx, dragStart.current.cardY + dy)
     }
-    const onEnd = () => {
-      setIsDragging(false)
-      window.removeEventListener('touchmove', onMove)
-      window.removeEventListener('touchend', onEnd)
-    }
+    const onEnd = () => { setIsDragging(false); window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd) }
     window.addEventListener('touchmove', onMove, { passive: true })
     window.addEventListener('touchend', onEnd)
   }, [project.id, project.position.x, project.position.y, canvasScale, updatePosition])
@@ -109,186 +90,221 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
 
   const accent = project.color ?? '#E11F7B'
 
-  // ── Outer div: handles absolute positioning + drag (NO Framer Motion here)
-  // ── Inner motion.div: handles only entrance animation (no position props)
   return (
-    <div
-      className="project-card"
-      style={{
-        position: 'absolute',
-        left: project.position.x,
-        top: project.position.y,
-        width: 260,
-        zIndex: isDragging ? 1000 : showActions ? 100 : 1,
-        cursor: isDragging ? 'grabbing' : 'grab',
-      }}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
-      onDoubleClick={onDoubleClick}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.88, y: -8 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 26, delay: index * 0.08 }}
+    <>
+      <div
         style={{
-          borderRadius: 16,
-          background: 'rgba(26,22,30,0.95)',
-          border: `1px solid rgba(255,255,255,0.09)`,
-          backdropFilter: 'blur(24px)',
-          boxShadow: isDragging
-            ? `0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px ${accent}44`
-            : '0 8px 32px rgba(0,0,0,0.5)',
-          overflow: 'hidden',
-          transition: isDragging ? 'box-shadow 0.1s ease' : 'box-shadow 0.2s ease',
+          position: 'absolute',
+          left: project.position.x,
+          top: project.position.y,
+          width: 260,
+          zIndex: isDragging ? 1000 : showActions ? 100 : 1,
+          cursor: isDragging ? 'grabbing' : 'grab',
         }}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onDoubleClick={onDoubleClick}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => { if (!showDeleteConfirm) setShowActions(false) }}
       >
-        {/* Preview image */}
-        <div className="relative overflow-hidden" style={{ height: 150, background: `${accent}22` }}>
-          {project.image && !imgError ? (
-            <img
-              src={project.image}
-              alt={project.title}
-              onError={() => setImgError(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              draggable={false}
-            />
-          ) : (
-            <div style={{
-              width: '100%', height: '100%',
-              background: `linear-gradient(135deg, ${accent}44 0%, ${accent}11 60%, rgba(0,0,0,0.3) 100%)`,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              {project.favicon
-                ? <img src={project.favicon} alt="" style={{ width: 36, height: 36, borderRadius: 8, opacity: 0.85 }} />
-                : <span style={{ fontSize: 36, opacity: 0.4 }}>🌐</span>}
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', maxWidth: 180, textAlign: 'center' }}>
+        {/* ── Floating action bar ABOVE the card ── */}
+        <AnimatePresence>
+          {(showActions || isTouchDevice) && (
+            <motion.div
+              data-no-drag
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: 8,
+                display: 'flex',
+                gap: 4,
+                padding: '6px 8px',
+                borderRadius: 12,
+                background: 'rgba(15,12,20,0.96)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+                zIndex: 10,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {project.github && (
+                <a href={project.github} target="_blank" rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title="GitHub"
+                  style={actionBtn}>
+                  <Github size={13} />
+                </a>
+              )}
+              <a href={project.url} target="_blank" rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title="Ouvrir"
+                style={actionBtn}>
+                <ExternalLink size={13} />
+              </a>
+              <button onClick={handleCopy} title="Copier le lien" style={{ ...actionBtn, color: copied ? '#10B981' : 'rgba(255,255,255,0.6)' }}>
+                {copied ? <Check size={13} /> : <Copy size={13} />}
+              </button>
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 2px' }} />
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowComments(true) }}
+                title="Commentaires"
+                style={{ ...actionBtn, position: 'relative' }}
+              >
+                <MessageSquare size={13} />
+                {commentCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -5, right: -5,
+                    background: '#E11F7B', borderRadius: '50%',
+                    width: 13, height: 13, fontSize: 7, fontWeight: 800,
+                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1.5px solid rgba(15,12,20,0.96)',
+                  }}>
+                    {commentCount > 9 ? '9+' : commentCount}
+                  </span>
+                )}
+              </button>
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 2px' }} />
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true) }}
+                  title="Retirer du canvas"
+                  style={{ ...actionBtn, color: 'rgba(255,100,100,0.7)' }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', paddingInline: 4 }}>Retirer ?</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeProject(project.id) }}
+                    style={{ ...actionBtn, background: 'rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 10, fontWeight: 700, padding: '0 8px', width: 'auto', borderRadius: 6 }}
+                  >Oui</button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false) }}
+                    style={{ ...actionBtn, fontSize: 10, fontWeight: 700, padding: '0 8px', width: 'auto', borderRadius: 6 }}
+                  >Non</button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Card body ── */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.88, y: -8 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 26, delay: index * 0.08 }}
+          style={{
+            borderRadius: 16,
+            background: 'rgba(26,22,30,0.97)',
+            border: `1px solid ${showActions ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
+            backdropFilter: 'blur(24px)',
+            boxShadow: isDragging
+              ? `0 24px 60px rgba(0,0,0,0.7), 0 0 0 2px ${accent}55`
+              : showActions
+              ? `0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px ${accent}22`
+              : '0 4px 20px rgba(0,0,0,0.4)',
+            overflow: 'hidden',
+            transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+          }}
+        >
+          {/* Accent top bar */}
+          <div style={{ height: 2, background: accent, opacity: showActions ? 1 : 0.6, transition: 'opacity 0.2s' }} />
+
+          {/* Preview */}
+          <div style={{ position: 'relative', height: 130, background: `${accent}18` }}>
+            {project.image && !imgError ? (
+              <img
+                src={project.image} alt={project.title}
+                onError={() => setImgError(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                draggable={false}
+              />
+            ) : (
+              <div style={{
+                width: '100%', height: '100%',
+                background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 60%, rgba(0,0,0,0.2) 100%)`,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}>
+                {project.favicon
+                  ? <img src={project.favicon} alt="" style={{ width: 32, height: 32, borderRadius: 8, opacity: 0.75 }} />
+                  : <span style={{ fontSize: 32, opacity: 0.35 }}>🌐</span>}
+              </div>
+            )}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(26,22,30,0.9) 100%)' }} />
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '10px 14px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+              {project.favicon && (
+                <img src={project.favicon} alt="" style={{ width: 14, height: 14, borderRadius: 3, flexShrink: 0 }} />
+              )}
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#f0eaf5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {project.title}
               </span>
             </div>
-          )}
 
-          <div className="absolute inset-0"
-            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(26,22,30,0.9) 100%)' }} />
-          <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: accent }} />
-
-          {/* Action buttons */}
-          <motion.div
-            className="absolute top-2 right-2 flex gap-1.5"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: showActions ? 1 : 0 }}
-            transition={{ duration: 0.15 }}
-            data-no-drag
-          >
-            {project.github && (
-              <a href={project.github} target="_blank" rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center justify-center w-7 h-7 rounded-lg"
-                style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', color: '#fff' }}
-                title="GitHub">
-                <Github size={13} />
-              </a>
+            {project.description && (
+              <p style={{
+                fontSize: 11, color: 'rgba(255,255,255,0.42)', lineHeight: 1.45, margin: '0 0 8px',
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}>
+                {project.description}
+              </p>
             )}
-            <a href={project.url} target="_blank" rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center justify-center w-7 h-7 rounded-lg"
-              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', color: '#fff' }}
-              title="Ouvrir">
-              <ExternalLink size={13} />
-            </a>
-            <button
-              onClick={handleCopy}
-              className="flex items-center justify-center w-7 h-7 rounded-lg"
-              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', color: copied ? '#10B981' : '#fff' }}
-              title="Copier le lien">
-              {copied ? <Check size={13} /> : <Copy size={13} />}
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowComments(true) }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg"
-              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', color: '#fff', position: 'relative' }}
-              title="Commentaires">
-              <MessageSquare size={13} />
-              {commentCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -4, right: -4, background: '#E11F7B',
-                  borderRadius: '50%', width: 14, height: 14, fontSize: 8, fontWeight: 700,
-                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {commentCount}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: project.tags?.length ? 8 : 0 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 170 }}>
+                {project.url.replace(/^https?:\/\//, '')}
+              </span>
+              {project.addedBy && (
+                <span style={{ fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: `${accent}22`, color: accent, flexShrink: 0 }}>
+                  {project.addedBy}
                 </span>
               )}
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); removeProject(project.id) }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg"
-              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', color: 'rgba(255,80,80,0.9)' }}
-              title="Supprimer">
-              <Trash2 size={13} />
-            </button>
-          </motion.div>
-        </div>
-
-        {/* Card body */}
-        <div style={{ padding: '12px 14px 14px' }}>
-          <div className="flex items-center gap-2 mb-1">
-            {project.favicon && (
-              <img src={project.favicon} alt="" style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0 }} />
-            )}
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {project.title}
-            </span>
-          </div>
-
-          {project.description && (
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4,
-              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-              overflow: 'hidden', marginBottom: 8 }}>
-              {project.description}
-            </p>
-          )}
-
-          <div className="flex items-center justify-between" style={{ marginBottom: project.tags?.length ? 8 : 0 }}>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', overflow: 'hidden',
-              textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
-              {project.url.replace(/^https?:\/\//, '')}
-            </span>
-            {project.addedBy && (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.06em',
-                padding: '2px 6px', borderRadius: 4, background: `${accent}22`, color: accent }}>
-                {project.addedBy}
-              </span>
-            )}
-          </div>
-
-          {project.tags && project.tags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-              {project.tags.map((tag) => {
-                const c = tagColor(tag)
-                return (
-                  <span key={tag} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.04em',
-                    padding: '2px 7px', borderRadius: 20, background: `${c}22`, color: c, border: `1px solid ${c}44` }}>
-                    {tag}
-                  </span>
-                )
-              })}
             </div>
-          )}
-        </div>
 
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2"
-          style={{ color: 'rgba(255,255,255,0.1)', pointerEvents: 'none' }}>
-          <GripHorizontal size={12} />
-        </div>
-      </motion.div>
+            {project.tags && project.tags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {project.tags.map((tag) => {
+                  const c = tagColor(tag)
+                  return (
+                    <span key={tag} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.03em', padding: '2px 7px', borderRadius: 20, background: `${c}1A`, color: c, border: `1px solid ${c}33` }}>
+                      {tag}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* CommentsPanel rendered via portal — outside card DOM tree */}
       <CommentsPanel
         projectId={project.id}
         projectTitle={project.title}
         open={showComments}
         onClose={() => setShowComments(false)}
       />
-    </div>
+    </>
   )
+}
+
+const actionBtn: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  width: 28, height: 28, borderRadius: 8,
+  color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+  border: 'none', background: 'transparent',
+  transition: 'background 0.12s, color 0.12s',
+  flexShrink: 0,
 }

@@ -1,0 +1,193 @@
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Lightbulb, ThumbsUp, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { useLaunchpadStore } from '../store'
+
+const SESSION_ID = (() => {
+  let id = localStorage.getItem('launchpad_session')
+  if (!id) { id = Math.random().toString(36).slice(2); localStorage.setItem('launchpad_session', id) }
+  return id
+})()
+
+interface Props {
+  position: { x: number; y: number }
+  canvasScale: number
+  index?: number
+}
+
+export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: Props) {
+  const { ideas, addIdea, voteIdea } = useLaunchpadStore()
+  const [collapsed, setCollapsed] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [newIdea, setNewIdea] = useState('')
+  const [author, setAuthor] = useState(() => localStorage.getItem('launchpad_username') ?? 'Anonyme')
+
+  const sorted = [...ideas].sort((a, b) => b.votes - a.votes)
+
+  const submit = () => {
+    if (!newIdea.trim()) return
+    localStorage.setItem('launchpad_username', author)
+    addIdea(newIdea.trim(), author || 'Anonyme')
+    setNewIdea('')
+    setShowForm(false)
+  }
+
+  return (
+    <div style={{ position: 'absolute', left: position.x, top: position.y, width: 280, zIndex: 2 }}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 26, delay: index * 0.08 }}
+        style={{
+          borderRadius: 16,
+          background: 'rgba(26,22,30,0.97)',
+          border: '1px solid rgba(255,215,0,0.15)',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.08)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '12px 14px',
+            borderBottom: collapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
+            background: 'rgba(255,193,7,0.06)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: 'pointer',
+          }}
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Lightbulb size={14} style={{ color: '#FFC107' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
+              Idées de projets
+            </span>
+            <span style={{
+              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20,
+              background: 'rgba(255,193,7,0.15)', color: '#FFC107',
+            }}>
+              {ideas.length}
+            </span>
+          </div>
+          {collapsed ? <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronUp size={12} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+        </div>
+
+        <AnimatePresence initial={false}>
+          {!collapsed && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ overflow: 'hidden' }}
+            >
+              {/* Ideas list */}
+              <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
+                {sorted.map((idea, i) => {
+                  const hasVoted = idea.votedBy.includes(SESSION_ID)
+                  return (
+                    <motion.div
+                      key={idea.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 8,
+                        padding: '8px 10px', borderRadius: 10,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${hasVoted ? 'rgba(225,31,123,0.3)' : 'rgba(255,255,255,0.05)'}`,
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4, margin: 0 }}>{idea.text}</p>
+                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 3, display: 'block' }}>
+                          par {idea.author}
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); voteIdea(idea.id, SESSION_ID) }}
+                        style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                          padding: '4px 6px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                          background: hasVoted ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.05)',
+                          transition: 'all 0.15s', flexShrink: 0,
+                        }}
+                      >
+                        <ThumbsUp size={10} style={{ color: hasVoted ? '#E11F7B' : 'rgba(255,255,255,0.3)' }} />
+                        <span style={{ fontSize: 9, fontWeight: 700, color: hasVoted ? '#E11F7B' : 'rgba(255,255,255,0.35)' }}>
+                          {idea.votes}
+                        </span>
+                      </button>
+                    </motion.div>
+                  )
+                })}
+              </div>
+
+              {/* Add idea form */}
+              <AnimatePresence>
+                {showForm && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    style={{ overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input
+                        value={author}
+                        onChange={(e) => setAuthor(e.target.value)}
+                        placeholder="Ton nom…"
+                        style={{
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 11,
+                          outline: 'none', fontFamily: 'inherit',
+                        }}
+                      />
+                      <textarea
+                        value={newIdea}
+                        onChange={(e) => setNewIdea(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() } }}
+                        placeholder="Décris ton idée de projet…"
+                        rows={2}
+                        style={{
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 8, padding: '7px 10px', color: '#fff', fontSize: 11,
+                          outline: 'none', resize: 'none', lineHeight: 1.4, fontFamily: 'inherit',
+                        }}
+                        autoFocus
+                      />
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setShowForm(false)} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>Annuler</button>
+                        <button onClick={submit} disabled={!newIdea.trim()} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: newIdea.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: newIdea.trim() ? 'pointer' : 'default' }}>Proposer</button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Footer */}
+              {!showForm && (
+                <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowForm(true) }}
+                    style={{
+                      width: '100%', padding: '7px', borderRadius: 8, border: '1px dashed rgba(255,255,255,0.12)',
+                      background: 'transparent', color: 'rgba(255,255,255,0.35)', fontSize: 11,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(225,31,123,0.4)'; e.currentTarget.style.color = '#E11F7B' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
+                  >
+                    <Plus size={11} /> Proposer une idée
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  )
+}

@@ -6,6 +6,7 @@ import { AddProjectModal } from './components/AddProjectModal'
 import { Toolbar } from './components/Toolbar'
 import { OrionAvatar3D } from './components/OrionAvatar3D'
 import { ChatPanel } from './components/ChatPanel'
+import { IdeaWidget } from './components/IdeaWidget'
 
 // Error boundary to prevent Three.js crashes from killing the app
 class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
@@ -25,7 +26,15 @@ const MAX_SCALE = 2.5
 const SCALE_STEP = 0.15 // used for toolbar buttons only
 
 export default function App() {
-  const { projects, fetchRemote, remoteLoaded } = useLaunchpadStore()
+  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter } = useLaunchpadStore()
+
+  // Collect all unique tags from all projects
+  const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
+
+  // Filtered projects
+  const visibleProjects = activeFilter
+    ? projects.filter((p) => p.tags?.includes(activeFilter))
+    : projects
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
@@ -192,7 +201,7 @@ export default function App() {
         }}
       >
         <AnimatePresence>
-          {projects.map((project, index) => (
+          {visibleProjects.map((project, index) => (
             <ProjectCard
               key={project.id}
               project={project}
@@ -201,6 +210,13 @@ export default function App() {
             />
           ))}
         </AnimatePresence>
+
+        {/* IdeaWidget — fixed position on canvas */}
+        <IdeaWidget
+          position={{ x: -260, y: 60 }}
+          canvasScale={scale}
+          index={visibleProjects.length}
+        />
 
         {/* Empty state */}
         {remoteLoaded && projects.length === 0 && (
@@ -244,14 +260,57 @@ export default function App() {
 
       {/* Navigation hint */}
       <div style={{
-        position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-        fontSize: 11, color: 'rgba(255,255,255,0.18)', pointerEvents: 'none',
+        position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+        fontSize: 11, color: 'rgba(255,255,255,0.15)', pointerEvents: 'none',
         letterSpacing: '0.05em', whiteSpace: 'nowrap',
       }}>
-        <span className="hidden sm:inline">Scroll pour zoomer · Alt+drag pour naviguer · </span>
-        <span className="sm:hidden">Pincer pour zoomer · Glisser pour naviguer · </span>
-        Drag pour repositionner
+        <span className="hidden sm:inline">Scroll pour zoomer · Alt+drag pour naviguer</span>
+        <span className="sm:hidden">Pincer pour zoomer · Glisser pour naviguer</span>
       </div>
+
+      {/* Tag filter pills */}
+      {allTags.length > 0 && (
+        <div style={{
+          position: 'fixed', top: 36, left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap',
+          padding: '6px 10px',
+          background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999,
+          zIndex: 40,
+        }}>
+          <button
+            onClick={() => setFilter(null)}
+            style={{
+              padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+              border: 'none', cursor: 'pointer', transition: 'all 0.15s', letterSpacing: '0.03em',
+              background: !activeFilter ? '#E11F7B' : 'rgba(255,255,255,0.07)',
+              color: !activeFilter ? '#fff' : 'rgba(255,255,255,0.4)',
+            }}
+          >
+            Tous
+          </button>
+          {allTags.map((tag) => {
+            const active = activeFilter === tag
+            let hash = 0
+            for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffffffff
+            const colors = ['#E11F7B','#7C3AED','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4']
+            const c = colors[Math.abs(hash) % colors.length]
+            return (
+              <button key={tag} onClick={() => setFilter(active ? null : tag)}
+                style={{
+                  padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+                  border: `1px solid ${active ? c : `${c}44`}`,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  background: active ? `${c}22` : 'transparent',
+                  color: active ? c : 'rgba(255,255,255,0.4)',
+                }}
+              >
+                {tag}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Add modal */}
       <AddProjectModal
