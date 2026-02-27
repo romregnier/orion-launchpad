@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Project, ListWidget, ListType } from './types'
 import { sha256 } from './utils/hash'
+import { supabase } from './lib/supabase'
 
 export interface CanvasObject {
   id: string
@@ -201,6 +202,14 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       fetchRemote: async () => {
         try {
+          // Charger isPrivate depuis Supabase (source de vérité globale)
+          const { data: settings } = await supabase.from('board_settings').select('value').eq('key', 'isPrivate').single()
+          if (settings) {
+            const serverPrivate = settings.value === true || settings.value === 'true'
+            if (serverPrivate !== get().isPrivate) set({ isPrivate: serverPrivate })
+          }
+        } catch { /* ignore */ }
+        try {
           const res = await fetch(REMOTE_PROJECTS_URL)
           if (!res.ok) { set({ remoteLoaded: true }); return }
           const remote: Project[] = await res.json()
@@ -285,6 +294,8 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       setBoardName: (name) => set({ boardName: name }),
       setPrivate: (v) => {
+        // Persister dans Supabase pour que tous les clients voient le même état
+        supabase.from('board_settings').upsert({ key: 'isPrivate', value: v }).then(() => {})
         // When enabling private mode, auto-login the first admin so the current session isn't kicked
         if (v && !get().currentUser) {
           const admin = get().members.find(m => m.role === 'admin')
