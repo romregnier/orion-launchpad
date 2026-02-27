@@ -80,7 +80,7 @@ export function EditProjectModal({ project, open, onClose }: Props) {
           position: 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.7)',
           backdropFilter: 'blur(8px)',
-          zIndex: 190,
+          zIndex: 490,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -90,7 +90,7 @@ export function EditProjectModal({ project, open, onClose }: Props) {
           exit={{ scale: 0.94, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 350, damping: 28 }}
           style={{
-            zIndex: 200,
+            zIndex: 500,
             maxWidth: 480,
             width: 'calc(100vw - 32px)',
             borderRadius: 20,

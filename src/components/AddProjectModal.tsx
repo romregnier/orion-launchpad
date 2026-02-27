@@ -78,14 +78,14 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
           {/* Backdrop */}
           <motion.div
             className="fixed inset-0"
-            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 500 }}
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 490 }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={handleClose}
           />
           {/* Modal — centré, z-index 501 pour passer au-dessus de tout */}
           <motion.div
             style={{
-              position: 'fixed', zIndex: 501,
+              position: 'fixed', zIndex: 500,
               left: '50%', top: '50%',
               transform: 'translate(-50%, -50%)',
               width: 'min(460px, 94vw)',
@@ -98,7 +98,7 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
             initial={{ opacity: 0, scale: 0.93, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.93, y: 20 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

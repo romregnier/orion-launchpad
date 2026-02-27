@@ -266,22 +266,20 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
                         </button>
                       )
                     })()}
-                    {/* Delete item */}
-                    {sessionId === item.createdBy && (
-                      <button
-                        data-no-drag=""
-                        onClick={() => removeListItem(list.id, item.id)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer', padding: 2,
-                          color: 'rgba(239,68,68,0.5)', display: 'flex', alignItems: 'center', flexShrink: 0,
-                          opacity: 0, transition: 'opacity 0.15s',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
-                      >
-                        <X size={9} />
-                      </button>
-                    )}
+                    {/* Delete item — visible to anyone on hover */}
+                    <button
+                      data-no-drag=""
+                      onClick={() => removeListItem(list.id, item.id)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+                        color: 'rgba(239,68,68,0.5)', display: 'flex', alignItems: 'center', flexShrink: 0,
+                        opacity: 0, transition: 'opacity 0.15s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
+                    >
+                      <X size={9} />
+                    </button>
                   </div>
                 ))}
                 {list.items.length === 0 && (
