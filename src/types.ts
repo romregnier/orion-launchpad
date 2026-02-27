@@ -48,5 +48,8 @@ export interface CanvasAgent {
   owner: string
   name: string
   tailorUrl?: string
+  bot_token?: string
+  agent_key?: string
+  is_system?: boolean
   position: { x: number; y: number }
 }

@@ -15,6 +15,8 @@ import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusWidget } from './components/BuildStatusWidget'
 import { PresenceBar } from './components/PresenceBar'
 import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
+import { AgentChatPanel } from './components/AgentChatPanel'
+import type { CanvasAgent } from './types'
 
 class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback?: ReactNode }) {
@@ -45,6 +47,7 @@ function LaunchpadCanvas() {
   const [showAddList, setShowAddList] = useState(false)
   const [showAddAgent, setShowAddAgent] = useState(false)
   const [agentNameInput, setAgentNameInput] = useState('')
+  const [chatAgent, setChatAgent] = useState<CanvasAgent | null>(null)
   const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
@@ -165,7 +168,7 @@ function LaunchpadCanvas() {
         ))}
         <IdeaWidget canvasScale={scale} index={visibleProjects.length} />
         {canvasAgents.map(agent => (
-          <CanvasAgentAvatar key={agent.id} agent={agent} canvasScale={scale} />
+          <CanvasAgentAvatar key={agent.id} agent={agent} canvasScale={scale} onChat={setChatAgent} />
         ))}
         {remoteLoaded && projects.length === 0 && (
           <div style={{ position: 'absolute', left: 400, top: 260, transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
@@ -253,6 +256,17 @@ function LaunchpadCanvas() {
       <SettingsPanel />
       <PresenceBar currentUser={currentUser} />
       <BuildStatusWidget />
+
+      {/* Agent chat panel */}
+      <AnimatePresence>
+        {chatAgent && (
+          <AgentChatPanel
+            agent={chatAgent}
+            currentUser={currentUser?.username ?? 'visiteur'}
+            onClose={() => setChatAgent(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showAddAgent && (

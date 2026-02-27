@@ -339,16 +339,15 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const owner = get().currentUser?.username ?? 'anon'
         const { data, error } = await supabase
           .from('canvas_agents')
-          .insert({ agent_name: name, tailor_url: tailorUrl ?? null, user_id: owner, pos_x: 200, pos_y: 200 })
+          .insert({ name, tailor_url: tailorUrl ?? null, owner, position_x: 200, position_y: 200 })
           .select()
           .single()
         if (error || !data) return
+        const row = data as { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number }
         const agent: CanvasAgent = {
-          id: data.id as string,
-          owner,
-          name: data.agent_name as string,
-          tailorUrl: data.tailor_url as string | undefined,
-          position: { x: data.pos_x as number, y: data.pos_y as number },
+          id: row.id, owner: row.owner, name: row.name,
+          tailorUrl: row.tailor_url ?? undefined,
+          position: { x: row.position_x, y: row.position_y },
         }
         set(state => ({ canvasAgents: [...state.canvasAgents, agent] }))
       },
@@ -359,51 +358,38 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       updateAgentPosition: async (id, x, y) => {
-        await supabase.from('canvas_agents').update({ pos_x: x, pos_y: y }).eq('id', id)
+        await supabase.from('canvas_agents').update({ position_x: x, position_y: y }).eq('id', id)
         set(state => ({
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, position: { x, y } } : a),
         }))
       },
 
       subscribeToAgents: () => {
-        // Initial fetch
+        type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean }
+        const rowToAgent = (row: AgentRow): CanvasAgent => ({
+          id: row.id, owner: row.owner, name: row.name,
+          tailorUrl: row.tailor_url ?? undefined,
+          bot_token: row.bot_token ?? undefined,
+          agent_key: row.agent_key ?? undefined,
+          is_system: row.is_system ?? false,
+          position: { x: row.position_x, y: row.position_y },
+        })
+
         supabase.from('canvas_agents').select('*').then(({ data }) => {
-          if (data) {
-            const agents: CanvasAgent[] = (data as Array<{
-              id: string; user_id: string; agent_name: string; tailor_url: string | null; pos_x: number; pos_y: number
-            }>).map(row => ({
-              id: row.id,
-              owner: row.user_id,
-              name: row.agent_name,
-              tailorUrl: row.tailor_url ?? undefined,
-              position: { x: row.pos_x, y: row.pos_y },
-            }))
-            set({ canvasAgents: agents })
-          }
+          if (data) set({ canvasAgents: (data as AgentRow[]).map(rowToAgent) })
         })
 
         const channel = supabase
           .channel('canvas_agents_realtime')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'canvas_agents' }, (payload) => {
             if (payload.eventType === 'INSERT') {
-              const row = payload.new as { id: string; user_id: string; agent_name: string; tailor_url: string | null; pos_x: number; pos_y: number }
-              const agent: CanvasAgent = {
-                id: row.id, owner: row.user_id, name: row.agent_name,
-                tailorUrl: row.tailor_url ?? undefined,
-                position: { x: row.pos_x, y: row.pos_y },
-              }
+              const agent = rowToAgent(payload.new as AgentRow)
               set(state => ({ canvasAgents: [...state.canvasAgents.filter(a => a.id !== agent.id), agent] }))
             } else if (payload.eventType === 'UPDATE') {
-              const row = payload.new as { id: string; user_id: string; agent_name: string; tailor_url: string | null; pos_x: number; pos_y: number }
-              set(state => ({
-                canvasAgents: state.canvasAgents.map(a => a.id === row.id
-                  ? { ...a, position: { x: row.pos_x, y: row.pos_y } }
-                  : a
-                ),
-              }))
+              const row = payload.new as AgentRow
+              set(state => ({ canvasAgents: state.canvasAgents.map(a => a.id === row.id ? { ...a, position: { x: row.position_x, y: row.position_y } } : a) }))
             } else if (payload.eventType === 'DELETE') {
-              const old = payload.old as { id: string }
-              set(state => ({ canvasAgents: state.canvasAgents.filter(a => a.id !== old.id) }))
+              set(state => ({ canvasAgents: state.canvasAgents.filter(a => a.id !== (payload.old as AgentRow).id) }))
             }
           })
           .subscribe()

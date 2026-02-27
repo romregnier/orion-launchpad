@@ -6,9 +6,10 @@ import type { CanvasAgent } from '../types'
 interface CanvasAgentAvatarProps {
   agent: CanvasAgent
   canvasScale: number
+  onChat?: (agent: CanvasAgent) => void
 }
 
-export function CanvasAgentAvatar({ agent, canvasScale }: CanvasAgentAvatarProps) {
+export function CanvasAgentAvatar({ agent, canvasScale, onChat }: CanvasAgentAvatarProps) {
   const { updateAgentPosition, removeCanvasAgent, currentUser } = useLaunchpadStore()
   const [hovered, setHovered] = useState(false)
   const isDragging = useRef(false)
@@ -130,19 +131,40 @@ export function CanvasAgentAvatar({ agent, canvasScale }: CanvasAgentAvatarProps
         )}
       </div>
 
-      {/* Agent name label */}
-      <div style={{
-        background: 'rgba(26,23,28,0.9)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 6,
-        padding: '2px 8px',
-        fontSize: 11,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.85)',
-        backdropFilter: 'blur(8px)',
-        whiteSpace: 'nowrap',
-      }}>
-        {agent.name}
+      {/* Agent name + chat button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div
+          onClick={() => onChat?.(agent)}
+          style={{
+            background: 'rgba(26,23,28,0.9)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 6,
+            padding: '2px 8px',
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(8px)',
+            whiteSpace: 'nowrap',
+            cursor: onChat ? 'pointer' : 'default',
+          }}
+        >
+          {agent.name}
+        </div>
+        {onChat && (
+          <button
+            onMouseDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onChat(agent) }}
+            style={{
+              background: 'rgba(225,31,123,0.15)',
+              border: '1px solid rgba(225,31,123,0.3)',
+              borderRadius: 6,
+              padding: '2px 6px',
+              fontSize: 11,
+              cursor: 'pointer',
+              color: '#E11F7B',
+            }}
+          >💬</button>
+        )}
       </div>
     </div>
   )
