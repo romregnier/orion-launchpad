@@ -6,18 +6,24 @@ import { supabase } from './lib/supabase'
 
 export interface CanvasObject {
   id: string
-  type: 'project' | 'list' | 'idea'
+  type: 'project' | 'list' | 'idea' | 'agent'
   x: number
   y: number
   width: number
   height: number
 }
 
-function getAllCanvasObjectsFromState(state: { projects: Project[]; lists: ListWidget[]; ideaWidgetPosition: { x: number; y: number } }): CanvasObject[] {
+function getAllCanvasObjectsFromState(state: {
+  projects: Project[]
+  lists: ListWidget[]
+  ideaWidgetPosition: { x: number; y: number }
+  canvasAgents?: CanvasAgent[]
+}): CanvasObject[] {
   const objects: CanvasObject[] = []
   state.projects.forEach(p => objects.push({ id: p.id, type: 'project', x: p.position.x, y: p.position.y, width: 280, height: 180 }))
   state.lists.forEach(l => objects.push({ id: l.id, type: 'list', x: l.position.x, y: l.position.y, width: 260, height: 200 }))
   objects.push({ id: 'idea-widget', type: 'idea', x: state.ideaWidgetPosition.x, y: state.ideaWidgetPosition.y, width: 240, height: 160 })
+  state.canvasAgents?.forEach(a => objects.push({ id: a.id, type: 'agent', x: a.position.x, y: a.position.y, width: 80, height: 100 }))
   return objects
 }
 
@@ -178,27 +184,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           }
         }),
 
+      // Direct position set — anti-overlap handled by pushOverlapping() on drop
       updatePosition: (id, x, y) =>
-        set((state) => {
-          const CARD_W = 260, CARD_H = 220, PAD = 16
-          // Nudge until no overlap with any other card
-          let nx = x, ny = y
-          let attempts = 0
-          const others = state.projects.filter(p => p.id !== id)
-          const overlaps = (cx: number, cy: number) =>
-            others.some(p =>
-              cx < p.position.x + CARD_W + PAD &&
-              cx + CARD_W + PAD > p.position.x &&
-              cy < p.position.y + CARD_H + PAD &&
-              cy + CARD_H + PAD > p.position.y
-            )
-          while (overlaps(nx, ny) && attempts < 12) {
-            nx += CARD_W + PAD
-            if (attempts % 3 === 2) { nx = x; ny += CARD_H + PAD }
-            attempts++
-          }
-          return { projects: state.projects.map((p) => p.id === id ? { ...p, position: { x: nx, y: ny } } : p) }
-        }),
+        set((state) => ({
+          projects: state.projects.map((p) => p.id === id ? { ...p, position: { x, y } } : p),
+        })),
 
       updateProject: (id, updates) =>
         set((state) => ({
@@ -264,24 +254,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       deleteIdea: (id) => set((state) => ({ ideas: state.ideas.filter(i => i.id !== id) })),
       setFilter: (tag) => set({ activeFilter: tag }),
-      setIdeaWidgetPosition: (x, y) => set((state) => {
-        const CARD_W = 280, CARD_H = 220, PAD = 16
-        let nx = x, ny = y
-        let attempts = 0
-        const overlaps = (cx: number, cy: number) =>
-          state.projects.some(p =>
-            cx < p.position.x + CARD_W + PAD &&
-            cx + CARD_W + PAD > p.position.x &&
-            cy < p.position.y + CARD_H + PAD &&
-            cy + CARD_H + PAD > p.position.y
-          )
-        while (overlaps(nx, ny) && attempts < 12) {
-          nx += CARD_W + PAD
-          if (attempts % 3 === 2) { nx = x; ny += CARD_H + PAD }
-          attempts++
-        }
-        return { ideaWidgetPosition: { x: nx, y: ny } }
-      }),
+      setIdeaWidgetPosition: (x, y) => set({ ideaWidgetPosition: { x, y } }),
 
       addGroup: (group) => set((state) => ({
         groups: [...state.groups, { ...group, id: `group-${Date.now()}`, order: state.groups.length }]
@@ -494,25 +467,9 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         }),
       })),
 
-      updateListPosition: (id, x, y) => set((state) => {
-        const CARD_W = 280, CARD_H = 220, PAD = 16
-        let nx = x, ny = y
-        let attempts = 0
-        const others = [...state.projects, ...state.lists.filter(l => l.id !== id)]
-        const overlaps = (cx: number, cy: number) =>
-          others.some(p =>
-            cx < p.position.x + CARD_W + PAD &&
-            cx + CARD_W + PAD > p.position.x &&
-            cy < p.position.y + CARD_H + PAD &&
-            cy + CARD_H + PAD > p.position.y
-          )
-        while (overlaps(nx, ny) && attempts < 12) {
-          nx += CARD_W + PAD
-          if (attempts % 3 === 2) { nx = x; ny += CARD_H + PAD }
-          attempts++
-        }
-        return { lists: state.lists.map(l => l.id === id ? { ...l, position: { x: nx, y: ny } } : l) }
-      }),
+      updateListPosition: (id, x, y) => set((state) => ({
+        lists: state.lists.map(l => l.id === id ? { ...l, position: { x, y } } : l),
+      })),
 
       pushOverlapping: (draggedId, dragX, dragY) => {
         const state = get()
@@ -521,6 +478,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const CANVAS_W = 6000, CANVAS_H = 4000
         const CANVAS_PAD = 8
 
+        // Include all movable objects: projects + lists + idea + agents
         const objects = getAllCanvasObjectsFromState(state)
 
         // Build mutable positions map (dragged gets new position)
@@ -588,7 +546,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           visited.add(target.id)
         }
 
-        // Apply positions — dragged keeps its own position
+        // Apply positions — dragged keeps its own position, others get pushed
         const newProjects = state.projects.map(p => {
           if (p.id === draggedId) return p
           const pos = positions.get(p.id)
@@ -601,10 +559,20 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         })
         const ideaPos = draggedId === 'idea-widget' ? undefined : positions.get('idea-widget')
 
+        // Apply to agents (fire-and-forget Supabase updates for pushed agents)
+        const newAgents = state.canvasAgents.map(a => {
+          if (a.id === draggedId) return a
+          const pos = positions.get(a.id)
+          if (!pos) return a
+          supabase.from('canvas_agents').update({ position_x: pos.x, position_y: pos.y }).eq('id', a.id)
+          return { ...a, position: pos }
+        })
+
         set({
           projects: newProjects,
           lists: newLists,
           ideaWidgetPosition: ideaPos ?? state.ideaWidgetPosition,
+          canvasAgents: newAgents,
           swapTarget: null,
         })
       },

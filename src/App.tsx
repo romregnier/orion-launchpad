@@ -1,10 +1,9 @@
-import { useRef, useState, useCallback, useEffect, Component, type ReactNode } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLaunchpadStore } from './store'
 import { ProjectCard } from './components/ProjectCard'
 import { AddProjectModal } from './components/AddProjectModal'
 import { Toolbar } from './components/Toolbar'
-import { OrionAvatar3D } from './components/OrionAvatar3D'
 import { ChatPanel } from './components/ChatPanel'
 import { IdeaWidget } from './components/IdeaWidget'
 import { ListWidgetCard } from './components/ListWidgetCard'
@@ -19,17 +18,6 @@ import { AgentChatPanel } from './components/AgentChatPanel'
 import { BotModal } from './components/BotModal'
 import type { CanvasAgent } from './types'
 
-class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
-    super(props)
-    this.state = { hasError: false }
-  }
-  static getDerivedStateFromError() { return { hasError: true } }
-  render() {
-    if (this.state.hasError) return this.props.fallback ?? null
-    return this.props.children
-  }
-}
 
 const MIN_SCALE = 0.2
 const MAX_SCALE = 2.5
@@ -40,7 +28,6 @@ function LaunchpadCanvas() {
   const { projects, lists, canvasAgents, subscribeToAgents, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
-  const [showTailorModal, setShowTailorModal] = useState(false)
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
@@ -193,69 +180,160 @@ function LaunchpadCanvas() {
         </motion.div>
       )}
 
-      <Toolbar scale={scale} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} onRefresh={() => fetchRemote()} onAdd={() => setShowAdd(true)} onAddList={() => setShowAddList(true)} onAddAgent={() => { setEditingAgent(null); setShowBotModal(true) }} projectCount={projects.length} />
+      {/* ── Toolbar (bottom) ─────────────────────────────────────────────────── */}
+      <Toolbar
+        scale={scale}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onReset={resetView}
+        onRefresh={() => fetchRemote()}
+        onAdd={() => setShowAdd(true)}
+        onAddList={() => setShowAddList(true)}
+        onAddAgent={() => { setEditingAgent(null); setShowBotModal(true) }}
+        projectCount={projects.length}
+      />
 
-      <div style={{ position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)', zIndex: 35, userSelect: 'none', pointerEvents: 'none' }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{boardName}</span>
-      </div>
+      {/* ── Top navbar ───────────────────────────────────────────────────────── */}
+      <header
+        className="launchpad-navbar"
+        style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0,
+          height: 52,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          zIndex: 35,
+          pointerEvents: 'none', // let canvas clicks pass through
+        }}
+      >
+        {/* Left spacer (or future logo) */}
+        <div className="launchpad-navbar__left" style={{ flex: 1 }} />
 
-      {isPrivate && currentUser && (
-        <div style={{ position: 'fixed', top: 14, right: 14, zIndex: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(22,18,26,0.9)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>👤 {currentUser.username}</span>
-          <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)' }} />
-          <button onClick={logout} style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>Déconnexion</button>
+        {/* Center: board name */}
+        <div className="launchpad-navbar__title" style={{ userSelect: 'none' }}>
+          <span style={{ fontSize: 17, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '-0.02em' }}>
+            {boardName}
+          </span>
         </div>
-      )}
 
-      <div style={{ position: 'fixed', top: 46, left: '50%', transform: 'translateX(-50%)', background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999, zIndex: 40 }}>
+        {/* Right: user info + logout */}
+        <div className="launchpad-navbar__right" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', pointerEvents: 'all' }}>
+          {isPrivate && currentUser && (
+            <div
+              className="launchpad-navbar__user"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '5px 12px',
+                borderRadius: 999,
+                background: 'rgba(22,18,26,0.92)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(16px)',
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+                👤 {currentUser.username}
+              </span>
+              <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+              <button
+                onClick={logout}
+                style={{
+                  background: 'none', border: 'none',
+                  color: '#E11F7B', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', padding: 0, whiteSpace: 'nowrap',
+                }}
+              >
+                Déconnexion
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ── Group filter bar ─────────────────────────────────────────────────── */}
+      <nav
+        className="launchpad-groupbar"
+        style={{
+          position: 'fixed',
+          top: 54, left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(15,12,20,0.88)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 999,
+          zIndex: 40,
+          maxWidth: 'calc(100vw - 32px)',
+          overflow: 'hidden',
+        }}
+      >
         <GroupBar />
-      </div>
+      </nav>
 
+      {/* ── Tag filter bar ───────────────────────────────────────────────────── */}
       {allTags.length > 0 && (
-        <div style={{ position: 'fixed', top: 92, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', padding: '6px 10px', background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999, zIndex: 40 }}>
-          <button onClick={() => setFilter(null)} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700, border: 'none', cursor: 'pointer', background: !activeFilter ? '#E11F7B' : 'rgba(255,255,255,0.07)', color: !activeFilter ? '#fff' : 'rgba(255,255,255,0.4)' }}>Tous</button>
+        <nav
+          className="launchpad-tagbar"
+          style={{
+            position: 'fixed',
+            top: 96, left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: 6,
+            alignItems: 'center',
+            flexWrap: 'nowrap',
+            padding: '5px 10px',
+            background: 'rgba(15,12,20,0.88)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 999,
+            zIndex: 40,
+            maxWidth: 'calc(100vw - 32px)',
+            overflowX: 'auto',
+          }}
+        >
+          <button
+            onClick={() => setFilter(null)}
+            style={{
+              padding: '3px 10px', borderRadius: 999,
+              fontSize: 10, fontWeight: 700, border: 'none',
+              cursor: 'pointer', flexShrink: 0,
+              background: !activeFilter ? '#E11F7B' : 'rgba(255,255,255,0.07)',
+              color: !activeFilter ? '#fff' : 'rgba(255,255,255,0.4)',
+            }}
+          >
+            Tous
+          </button>
           {allTags.map((tag) => {
             const active = activeFilter === tag
-            let hash = 0; for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffffffff
-            const colors = ['#E11F7B','#7C3AED','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4']
+            let hash = 0
+            for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffffffff
+            const colors = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
             const c = colors[Math.abs(hash) % colors.length]
-            return <button key={tag} onClick={() => setFilter(active ? null : tag)} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700, border: `1px solid ${active ? c : `${c}44`}`, cursor: 'pointer', background: active ? `${c}22` : 'transparent', color: active ? c : 'rgba(255,255,255,0.4)' }}>{tag}</button>
+            return (
+              <button
+                key={tag}
+                onClick={() => setFilter(active ? null : tag)}
+                style={{
+                  padding: '3px 10px', borderRadius: 999,
+                  fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  border: `1px solid ${active ? c : `${c}44`}`,
+                  cursor: 'pointer',
+                  background: active ? `${c}22` : 'transparent',
+                  color: active ? c : 'rgba(255,255,255,0.4)',
+                }}
+              >
+                {tag}
+              </button>
+            )
           })}
-        </div>
+        </nav>
       )}
 
       <AddListModal open={showAddList} onClose={() => setShowAddList(false)} />
       <AddProjectModal open={showAdd} onClose={() => setShowAdd(false)} defaultPosition={newCardPosition} />
-
-      <div style={{ position: 'fixed', bottom: 100, left: 20, zIndex: 45, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        <ErrorBoundary fallback={<div style={{ fontSize: 32 }}>🌟</div>}>
-          <OrionAvatar3D size={80} />
-        </ErrorBoundary>
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowTailorModal(true)} style={{ background: 'rgba(22,18,26,0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '4px 10px', fontSize: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          ✂️ Personnaliser
-        </motion.button>
-      </div>
-
-      <AnimatePresence>
-        {showTailorModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTailorModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 490 }} />
-            <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ type: 'spring', stiffness: 350, damping: 28 }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, pointerEvents: 'none' }}>
-              <div style={{ width: 'min(900px, calc(100vw - 32px))', height: 'min(620px, calc(100vh - 80px))', background: '#0B090D', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', display: 'flex', flexDirection: 'column', pointerEvents: 'all' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(22,18,26,0.95)', flexShrink: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>✂️</span>
-                    <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>The Tailor</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Personnalise ton avatar Orion</span>
-                  </div>
-                  <button onClick={() => setShowTailorModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1 }}>×</button>
-                </div>
-                <iframe src="https://the-tailor.surge.sh" style={{ flex: 1, border: 'none', width: '100%' }} title="The Tailor" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       <ChatPanel />
       <SettingsPanel />
