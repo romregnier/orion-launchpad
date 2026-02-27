@@ -1,7 +1,7 @@
 [
   {
     "id": "manga-reader",
-    "url": "https://sorrento-mermaids-590ffd59.surge.sh",
+    "url": "https://manga-reader-orion.surge.sh",
     "title": "Manga Reader",
     "description": "Reader manga Mangas.io-style — modes de lecture, réactions corgi, commentaires, zoom, RTL/LTR.",
     "image": "https://api.microlink.io/?url=https://sorrento-mermaids-590ffd59.surge.sh&screenshot=true&meta=false&embed=screenshot.url",
@@ -28,9 +28,17 @@
     "github": "https://github.com/romregnier/crumb",
     "addedBy": "Orion",
     "addedAt": 1740614400000,
-    "position": { "x": 600, "y": 300 },
+    "position": {
+      "x": 600,
+      "y": 300
+    },
     "color": "#FF6B35",
-    "tags": ["Mobile", "PWA", "Social", "Geo"]
+    "tags": [
+      "Mobile",
+      "PWA",
+      "Social",
+      "Geo"
+    ]
   },
   {
     "id": "launchpad",
