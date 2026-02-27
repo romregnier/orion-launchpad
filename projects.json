@@ -60,5 +60,17 @@
       "agents"
     ],
     "github": "https://github.com/romregnier/orion-launchpad"
+  },
+  {
+    "id": "the-tailor",
+    "title": "The Tailor",
+    "description": "Crée et personnalise ton avatar 3D",
+    "url": "https://the-tailor.surge.sh",
+    "github": "https://github.com/romregnier/the-tailor",
+    "addedBy": "Orion",
+    "addedAt": 1740647000000,
+    "position": { "x": 900, "y": 60 },
+    "tags": ["3D", "Design", "Avatar"],
+    "color": "#E11F7B"
   }
 ]
