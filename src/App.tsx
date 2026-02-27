@@ -37,7 +37,20 @@ export default function App() {
   const { projects, lists, canvasAgents, subscribeToAgents, addCanvasAgent, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
-  // Auth gate — after all hooks
+  // All hooks MUST be declared before any conditional return (React rules of hooks)
+  const [showTailorModal, setShowTailorModal] = useState(false)
+  const [scale, setScale] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+  const [showAddList, setShowAddList] = useState(false)
+  const [showAddAgent, setShowAddAgent] = useState(false)
+  const [agentNameInput, setAgentNameInput] = useState('')
+  const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
+
+  // Auth gate — safe after all hook declarations
   if (isPrivate && !currentUser) return <LoginScreen />
 
   // Collect all unique tags from all projects
@@ -49,17 +62,6 @@ export default function App() {
     const tagMatch = !activeFilter || (p.tags ?? []).includes(activeFilter)
     return groupMatch && tagMatch
   })
-  const [showTailorModal, setShowTailorModal] = useState(false)
-  const [scale, setScale] = useState(1)
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
-  const [isPanning, setIsPanning] = useState(false)
-  const [showAdd, setShowAdd] = useState(false)
-  const [showAddList, setShowAddList] = useState(false)
-  const [showAddAgent, setShowAddAgent] = useState(false)
-  const [agentNameInput, setAgentNameInput] = useState('')
-  const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
-  const canvasRef = useRef<HTMLDivElement>(null)
-
   // Center canvas and fetch remote projects on mount
   useEffect(() => {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
@@ -73,8 +75,6 @@ export default function App() {
   }, [subscribeToAgents])
 
   // Touch pan + pinch-to-zoom
-  const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
-
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       touchState.current = {
