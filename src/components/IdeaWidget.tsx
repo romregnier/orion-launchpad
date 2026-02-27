@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lightbulb, ThumbsUp, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
@@ -10,19 +10,67 @@ const SESSION_ID = (() => {
 })()
 
 interface Props {
-  position: { x: number; y: number }
   canvasScale: number
   index?: number
 }
 
-export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: Props) {
-  const { ideas, addIdea, voteIdea } = useLaunchpadStore()
+export function IdeaWidget({ canvasScale, index = 0 }: Props) {
+  const { ideas, addIdea, voteIdea, ideaWidgetPosition, setIdeaWidgetPosition } = useLaunchpadStore()
   const [collapsed, setCollapsed] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [newIdea, setNewIdea] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
   const [author, setAuthor] = useState(() => localStorage.getItem('launchpad_username') ?? 'Anonyme')
 
+  const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
   const sorted = [...ideas].sort((a, b) => b.votes - a.votes)
+
+  // ── Mouse drag ──────────────────────────────────────────────────────────────
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('[data-no-drag]')) return
+    e.preventDefault()
+    setIsDragging(true)
+    dragStart.current = {
+      mouseX: e.clientX, mouseY: e.clientY,
+      cardX: ideaWidgetPosition.x, cardY: ideaWidgetPosition.y,
+    }
+    const onMove = (ev: MouseEvent) => {
+      const dx = (ev.clientX - dragStart.current.mouseX) / canvasScale
+      const dy = (ev.clientY - dragStart.current.mouseY) / canvasScale
+      setIdeaWidgetPosition(dragStart.current.cardX + dx, dragStart.current.cardY + dy)
+    }
+    const onUp = () => {
+      setIsDragging(false)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [canvasScale, ideaWidgetPosition, setIdeaWidgetPosition])
+
+  // ── Touch drag ──────────────────────────────────────────────────────────────
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('[data-no-drag]')) return
+    const touch = e.touches[0]
+    setIsDragging(true)
+    dragStart.current = {
+      mouseX: touch.clientX, mouseY: touch.clientY,
+      cardX: ideaWidgetPosition.x, cardY: ideaWidgetPosition.y,
+    }
+    const onMove = (ev: TouchEvent) => {
+      const t = ev.touches[0]
+      const dx = (t.clientX - dragStart.current.mouseX) / canvasScale
+      const dy = (t.clientY - dragStart.current.mouseY) / canvasScale
+      setIdeaWidgetPosition(dragStart.current.cardX + dx, dragStart.current.cardY + dy)
+    }
+    const onEnd = () => {
+      setIsDragging(false)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+    }
+    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchend', onEnd)
+  }, [canvasScale, ideaWidgetPosition, setIdeaWidgetPosition])
 
   const submit = () => {
     if (!newIdea.trim()) return
@@ -33,44 +81,70 @@ export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: P
   }
 
   return (
-    <div style={{ position: 'absolute', left: position.x, top: position.y, width: 280, zIndex: 2 }}>
+    <div
+      style={{
+        position: 'absolute',
+        left: ideaWidgetPosition.x,
+        top: ideaWidgetPosition.y,
+        width: 280,
+        zIndex: isDragging ? 50 : 2,
+        cursor: isDragging ? 'grabbing' : 'grab',
+      }}
+      onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 26, delay: index * 0.08 }}
+        animate={{ opacity: 1, scale: isDragging ? 1.03 : 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 350, damping: 28, delay: isDragging ? 0 : index * 0.08 }}
         style={{
           borderRadius: 16,
           background: 'rgba(26,22,30,0.97)',
-          border: '1px solid rgba(255,215,0,0.15)',
+          border: `1px solid ${isDragging ? 'rgba(255,193,7,0.35)' : 'rgba(255,215,0,0.15)'}`,
           backdropFilter: 'blur(24px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.08)',
+          boxShadow: isDragging
+            ? '0 24px 56px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,193,7,0.2)'
+            : '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.08)',
           overflow: 'hidden',
+          userSelect: 'none',
         }}
       >
-        {/* Header */}
+        {/* Header — drag handle */}
         <div
           style={{
             padding: '12px 14px',
             borderBottom: collapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
             background: 'rgba(255,193,7,0.06)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            cursor: 'pointer',
+            cursor: isDragging ? 'grabbing' : 'grab',
           }}
-          onClick={() => setCollapsed(!collapsed)}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Lightbulb size={14} style={{ color: '#FFC107' }} />
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}
+            onClick={() => !isDragging && setCollapsed(!collapsed)}
+            data-no-drag={collapsed ? undefined : undefined}
+          >
+            <Lightbulb size={14} style={{ color: '#FFC107', flexShrink: 0 }} />
             <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
               Idées de projets
             </span>
             <span style={{
               fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20,
-              background: 'rgba(255,193,7,0.15)', color: '#FFC107',
+              background: 'rgba(255,193,7,0.15)', color: '#FFC107', flexShrink: 0,
             }}>
               {ideas.length}
             </span>
           </div>
-          {collapsed ? <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronUp size={12} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+          <div
+            onClick={(e) => { e.stopPropagation(); setCollapsed(!collapsed) }}
+            data-no-drag=""
+            style={{ cursor: 'pointer', padding: 4 }}
+          >
+            {collapsed
+              ? <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.3)' }} />
+              : <ChevronUp size={12} style={{ color: 'rgba(255,255,255,0.3)' }} />
+            }
+          </div>
         </div>
 
         <AnimatePresence initial={false}>
@@ -83,7 +157,10 @@ export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: P
               style={{ overflow: 'hidden' }}
             >
               {/* Ideas list */}
-              <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
+              <div
+                data-no-drag=""
+                style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}
+              >
                 {sorted.map((idea, i) => {
                   const hasVoted = idea.votedBy.includes(SESSION_ID)
                   return (
@@ -106,6 +183,7 @@ export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: P
                         </span>
                       </div>
                       <button
+                        data-no-drag=""
                         onClick={(e) => { e.stopPropagation(); voteIdea(idea.id, SESSION_ID) }}
                         style={{
                           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
@@ -133,7 +211,7 @@ export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: P
                     exit={{ height: 0, opacity: 0 }}
                     style={{ overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.06)' }}
                   >
-                    <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div data-no-drag="" style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <input
                         value={author}
                         onChange={(e) => setAuthor(e.target.value)}
@@ -158,8 +236,8 @@ export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: P
                         autoFocus
                       />
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button onClick={() => setShowForm(false)} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>Annuler</button>
-                        <button onClick={submit} disabled={!newIdea.trim()} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: newIdea.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: newIdea.trim() ? 'pointer' : 'default' }}>Proposer</button>
+                        <button data-no-drag="" onClick={() => setShowForm(false)} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>Annuler</button>
+                        <button data-no-drag="" onClick={submit} disabled={!newIdea.trim()} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: newIdea.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: newIdea.trim() ? 'pointer' : 'default' }}>Proposer</button>
                       </div>
                     </div>
                   </motion.div>
@@ -168,7 +246,7 @@ export function IdeaWidget({ position, canvasScale: _canvasScale, index = 0 }: P
 
               {/* Footer */}
               {!showForm && (
-                <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div data-no-drag="" style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowForm(true) }}
                     style={{

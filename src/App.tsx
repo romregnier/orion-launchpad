@@ -213,7 +213,6 @@ export default function App() {
 
         {/* IdeaWidget — fixed position on canvas */}
         <IdeaWidget
-          position={{ x: -260, y: 60 }}
           canvasScale={scale}
           index={visibleProjects.length}
         />

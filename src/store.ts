@@ -20,6 +20,7 @@ interface LaunchpadStore {
   deletedIds: string[]
   remoteLoaded: boolean
   ideas: Idea[]
+  ideaWidgetPosition: { x: number; y: number }
   activeFilter: string | null
   addProject: (project: Project) => void
   removeProject: (id: string) => void
@@ -30,6 +31,7 @@ interface LaunchpadStore {
   addIdea: (text: string, author: string) => void
   voteIdea: (id: string, sessionId: string) => void
   setFilter: (tag: string | null) => void
+  setIdeaWidgetPosition: (x: number, y: number) => void
 }
 
 export const useLaunchpadStore = create<LaunchpadStore>()(
@@ -39,6 +41,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       deletedProjects: [],
       deletedIds: [],
       remoteLoaded: false,
+      ideaWidgetPosition: { x: -300, y: 60 },
       ideas: [
         { id: 'idea-1', text: 'Un dashboard analytics pour nos apps 📊', author: 'Orion', votes: 3, votedBy: [], createdAt: new Date().toISOString() },
         { id: 'idea-2', text: 'Une landing page pour Crumb 🌍', author: 'Nova', votes: 2, votedBy: [], createdAt: new Date().toISOString() },
@@ -136,6 +139,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         })),
 
       setFilter: (tag) => set({ activeFilter: tag }),
+      setIdeaWidgetPosition: (x, y) => set({ ideaWidgetPosition: { x, y } }),
     }),
     {
       name: 'orion-launchpad',
