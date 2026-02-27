@@ -4,7 +4,7 @@ import type { Project } from './types'
 
 // GitHub raw URL — updated once the repo is created
 const REMOTE_PROJECTS_URL =
-  'https://raw.githubusercontent.com/romaindsigns/orion-launchpad/main/projects.json'
+  'https://raw.githubusercontent.com/romregnier/orion-launchpad/main/projects.json'
 
 interface LaunchpadStore {
   projects: Project[]
@@ -45,7 +45,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       fetchRemote: async () => {
         try {
           const res = await fetch(REMOTE_PROJECTS_URL)
-          if (!res.ok) return
+          if (!res.ok) {
+            // Remote unavailable — mark loaded so UI isn't stuck on spinner
+            set({ remoteLoaded: true })
+            return
+          }
           const remote: Project[] = await res.json()
           const local = get().projects
           // Merge: remote projects take precedence by id, keep local positions if saved
@@ -59,9 +63,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
               merged[idx] = { ...merged[idx], position: lp.position }
             }
           })
-          set({ projects: merged, remoteLoaded: true })
+          // Always use remote projects if we got them (even if local was empty)
+          const finalProjects = merged.length > 0 ? merged : remote
+          set({ projects: finalProjects, remoteLoaded: true })
         } catch {
-          // Offline or repo not yet created — use local only
+          // Offline or repo not yet created — mark loaded so UI shows local state
           set({ remoteLoaded: true })
         }
       },

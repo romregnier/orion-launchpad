@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Link, Loader2, Sparkles } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
@@ -19,6 +19,13 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
   const [error, setError] = useState('')
   const [fetched, setFetched] = useState(false)
   const [meta, setMeta] = useState<{ image?: string; favicon?: string; color?: string }>({})
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
 
   const reset = () => {
     setUrl(''); setTitle(''); setDescription(''); setError('')

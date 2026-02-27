@@ -1,13 +1,28 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, Component, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLaunchpadStore } from './store'
 import { ProjectCard } from './components/ProjectCard'
 import { AddProjectModal } from './components/AddProjectModal'
 import { Toolbar } from './components/Toolbar'
+import { OrionAvatar3D } from './components/OrionAvatar3D'
+import { ChatPanel } from './components/ChatPanel'
+
+// Error boundary to prevent Three.js crashes from killing the app
+class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) return this.props.fallback ?? null
+    return this.props.children
+  }
+}
 
 const MIN_SCALE = 0.2
 const MAX_SCALE = 2.5
-const SCALE_STEP = 0.15
+const SCALE_STEP = 0.15 // used for toolbar buttons only
 
 export default function App() {
   const { projects, fetchRemote, remoteLoaded } = useLaunchpadStore()
@@ -23,6 +38,69 @@ export default function App() {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
     fetchRemote()
   }, [fetchRemote])
+
+  // Touch pan + pinch-to-zoom
+  const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchState.current = {
+        touches: Array.from(e.touches),
+        lastDist: 0,
+        lastMid: { x: e.touches[0].clientX, y: e.touches[0].clientY },
+      }
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[1].clientX - e.touches[0].clientX
+      const dy = e.touches[1].clientY - e.touches[0].clientY
+      touchState.current = {
+        touches: Array.from(e.touches),
+        lastDist: Math.hypot(dx, dy),
+        lastMid: { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 },
+      }
+    }
+  }, [])
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
+    if (!touchState.current) return
+
+    if (e.touches.length === 1) {
+      const prev = touchState.current.lastMid
+      const cur = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      setOffset(o => ({ x: o.x + cur.x - prev.x, y: o.y + cur.y - prev.y }))
+      touchState.current.lastMid = cur
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[1].clientX - e.touches[0].clientX
+      const dy = e.touches[1].clientY - e.touches[0].clientY
+      const dist = Math.hypot(dx, dy)
+      const mid = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 }
+      const prevDist = touchState.current.lastDist
+      const prevMid = touchState.current.lastMid
+
+      if (prevDist > 0) {
+        const pinchRatio = dist / prevDist
+        const rect = canvasRef.current?.getBoundingClientRect()
+        if (rect) {
+          const mx = mid.x - rect.left
+          const my = mid.y - rect.top
+          setScale(s => {
+            const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, s * pinchRatio))
+            setOffset(o => ({
+              x: o.x - mx * (newScale / s - 1) + (mid.x - prevMid.x),
+              y: o.y - my * (newScale / s - 1) + (mid.y - prevMid.y),
+            }))
+            return newScale
+          })
+        }
+      }
+      touchState.current.lastDist = dist
+      touchState.current.lastMid = mid
+    }
+  }, [])
+
+  const onTouchEnd = useCallback(() => {
+    touchState.current = null
+  }, [])
 
   // Pan: middle mouse button or Alt+drag
   const onMouseDown = useCallback((e: React.MouseEvent) => {
@@ -46,11 +124,22 @@ export default function App() {
     window.addEventListener('mouseup', onUp)
   }, [offset])
 
-  // Scroll to zoom
+  // Scroll to zoom (cursor-centered)
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
-    const delta = e.deltaY > 0 ? -SCALE_STEP : SCALE_STEP
-    setScale((s) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, +(s + delta).toFixed(2))))
+    const delta = -e.deltaY * 0.001
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+    setScale((s) => {
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, s + delta))
+      setOffset(o => ({
+        x: o.x - mouseX * (newScale / s - 1),
+        y: o.y - mouseY * (newScale / s - 1),
+      }))
+      return newScale
+    })
   }, [])
 
   const zoomIn = () => setScale((s) => Math.min(MAX_SCALE, +(s + SCALE_STEP).toFixed(2)))
@@ -68,9 +157,12 @@ export default function App() {
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}
+      style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', touchAction: 'none' }}
       onMouseDown={onMouseDown}
       onWheel={onWheel}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       {/* Dot-grid background */}
       <div
@@ -100,11 +192,12 @@ export default function App() {
         }}
       >
         <AnimatePresence>
-          {projects.map((project) => (
+          {projects.map((project, index) => (
             <ProjectCard
               key={project.id}
               project={project}
               canvasScale={scale}
+              index={index}
             />
           ))}
         </AnimatePresence>
@@ -144,6 +237,7 @@ export default function App() {
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onReset={resetView}
+        onRefresh={() => fetchRemote()}
         onAdd={() => setShowAdd(true)}
         projectCount={projects.length}
       />
@@ -154,7 +248,9 @@ export default function App() {
         fontSize: 11, color: 'rgba(255,255,255,0.18)', pointerEvents: 'none',
         letterSpacing: '0.05em', whiteSpace: 'nowrap',
       }}>
-        Scroll pour zoomer · Alt+drag pour naviguer · Drag pour repositionner
+        <span className="hidden sm:inline">Scroll pour zoomer · Alt+drag pour naviguer · </span>
+        <span className="sm:hidden">Pincer pour zoomer · Glisser pour naviguer · </span>
+        Drag pour repositionner
       </div>
 
       {/* Add modal */}
@@ -163,6 +259,16 @@ export default function App() {
         onClose={() => setShowAdd(false)}
         defaultPosition={newCardPosition}
       />
+
+      {/* Orion 3D Avatar — wrapped in error boundary in case WebGL is unavailable */}
+      <ErrorBoundary fallback={
+        <div style={{ position: 'fixed', bottom: 24, left: 24, width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg,#E11F7B,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, zIndex: 200, boxShadow: '0 0 20px rgba(225,31,123,0.4)' }}>🌟</div>
+      }>
+        <OrionAvatar3D />
+      </ErrorBoundary>
+
+      {/* Chat Panel */}
+      <ChatPanel />
     </div>
   )
 }

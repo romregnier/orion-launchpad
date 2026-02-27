@@ -9,6 +9,8 @@ export interface Project {
   addedAt: number
   position: { x: number; y: number }
   color?: string // accent color
+  github?: string // GitHub repo URL
+  tags?: string[] // tags displayed as pills
 }
 
 export interface CanvasState {
