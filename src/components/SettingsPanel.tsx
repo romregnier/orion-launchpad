@@ -273,31 +273,14 @@ export function SettingsPanel() {
                             </button>
                           </div>
                         )}
-                        <div style={{ position: 'relative' }}>
-                          <select
-                            value={newRole}
-                            onChange={e => setNewRole(e.target.value as 'admin' | 'member')}
-                            style={{
-                              ...inputStyle,
-                              cursor: 'pointer',
-                              appearance: 'none',
-                              WebkitAppearance: 'none',
-                              paddingRight: 32,
-                              background: 'rgba(255,255,255,0.07)',
-                              color: '#fff',
-                            }}
-                          >
-                            <option value="member" style={{ background: '#1A171C', color: '#fff' }}>Membre</option>
-                            <option value="admin" style={{ background: '#1A171C', color: '#fff' }}>Admin</option>
-                          </select>
-                          <span style={{
-                            position: 'absolute', right: 10, top: '50%',
-                            transform: 'translateY(-50%)',
-                            pointerEvents: 'none',
-                            color: 'rgba(255,255,255,0.4)',
-                            fontSize: 10,
-                          }}>▼</span>
-                        </div>
+                        <select
+                          value={newRole}
+                          onChange={e => setNewRole(e.target.value as 'admin' | 'member')}
+                          style={{ ...inputStyle, cursor: 'pointer', colorScheme: 'dark' }}
+                        >
+                          <option value="member">Membre</option>
+                          <option value="admin">Admin</option>
+                        </select>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button
                             onClick={handleAddMember}

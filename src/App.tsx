@@ -218,8 +218,15 @@ function LaunchpadCanvas() {
           </span>
         </div>
 
-        {/* Right: user info + logout */}
-        <div className="launchpad-navbar__right" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', pointerEvents: 'all' }}>
+        {/* Right: présence + user info + logout */}
+        <div
+          className="launchpad-navbar__right"
+          style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, pointerEvents: 'all' }}
+        >
+          {/* Avatars des users connectés */}
+          <PresenceBar currentUser={currentUser} />
+
+          {/* User connecté + déconnexion */}
           {isPrivate && currentUser && (
             <div
               className="launchpad-navbar__user"
@@ -232,6 +239,7 @@ function LaunchpadCanvas() {
                 background: 'rgba(22,18,26,0.92)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(16px)',
+                flexShrink: 0,
               }}
             >
               <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
@@ -337,7 +345,6 @@ function LaunchpadCanvas() {
 
       <ChatPanel />
       <SettingsPanel />
-      <PresenceBar currentUser={currentUser} />
       <BuildStatusWidget />
 
       {/* Agent chat panel */}

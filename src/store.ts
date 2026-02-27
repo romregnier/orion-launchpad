@@ -344,10 +344,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       updateAgentPosition: async (id, x, y) => {
-        await supabase.from('canvas_agents').update({ position_x: x, position_y: y }).eq('id', id)
+        // Mise à jour optimiste : visuel instantané, Supabase en arrière-plan
         set(state => ({
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, position: { x, y } } : a),
         }))
+        supabase.from('canvas_agents').update({ position_x: x, position_y: y }).eq('id', id)
       },
 
       subscribeToAgents: () => {

@@ -80,11 +80,8 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
 
   return (
     <div
+      className="presence-bar"
       style={{
-        position: 'fixed',
-        top: 12,
-        right: 12,
-        zIndex: 50,
         display: 'flex',
         alignItems: 'center',
         gap: 4,
