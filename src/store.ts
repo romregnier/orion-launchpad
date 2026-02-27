@@ -216,7 +216,24 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       deleteIdea: (id) => set((state) => ({ ideas: state.ideas.filter(i => i.id !== id) })),
       setFilter: (tag) => set({ activeFilter: tag }),
-      setIdeaWidgetPosition: (x, y) => set({ ideaWidgetPosition: { x, y } }),
+      setIdeaWidgetPosition: (x, y) => set((state) => {
+        const CARD_W = 280, CARD_H = 220, PAD = 16
+        let nx = x, ny = y
+        let attempts = 0
+        const overlaps = (cx: number, cy: number) =>
+          state.projects.some(p =>
+            cx < p.position.x + CARD_W + PAD &&
+            cx + CARD_W + PAD > p.position.x &&
+            cy < p.position.y + CARD_H + PAD &&
+            cy + CARD_H + PAD > p.position.y
+          )
+        while (overlaps(nx, ny) && attempts < 12) {
+          nx += CARD_W + PAD
+          if (attempts % 3 === 2) { nx = x; ny += CARD_H + PAD }
+          attempts++
+        }
+        return { ideaWidgetPosition: { x: nx, y: ny } }
+      }),
 
       addGroup: (group) => set((state) => ({
         groups: [...state.groups, { ...group, id: `group-${Date.now()}`, order: state.groups.length }]

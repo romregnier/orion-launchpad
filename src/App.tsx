@@ -298,16 +298,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Navigation hint */}
-      <div style={{
-        position: 'fixed', top: 46, left: '50%', transform: 'translateX(-50%)',
-        fontSize: 11, color: 'rgba(255,255,255,0.15)', pointerEvents: 'none',
-        letterSpacing: '0.05em', whiteSpace: 'nowrap',
-      }}>
-        <span className="hidden sm:inline">Scroll pour zoomer · Alt+drag pour naviguer</span>
-        <span className="sm:hidden">Pincer pour zoomer · Glisser pour naviguer</span>
-      </div>
-
       {/* Group filter bar */}
       <div style={{
         position: 'fixed', top: 46, left: '50%', transform: 'translateX(-50%)',

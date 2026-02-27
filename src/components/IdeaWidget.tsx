@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lightbulb, ThumbsUp, Plus, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
@@ -15,7 +15,21 @@ interface Props {
 }
 
 export function IdeaWidget({ canvasScale, index = 0 }: Props) {
-  const { ideas, addIdea, voteIdea, deleteIdea, ideaWidgetPosition, setIdeaWidgetPosition } = useLaunchpadStore()
+  const { ideas, addIdea, voteIdea, deleteIdea, ideaWidgetPosition, setIdeaWidgetPosition, projects } = useLaunchpadStore()
+
+  // On mount: nudge away from any overlapping project card
+  useEffect(() => {
+    const CARD_W = 280, CARD_H = 220, PAD = 16
+    const { x, y } = ideaWidgetPosition
+    const overlaps = projects.some(p =>
+      x < p.position.x + CARD_W + PAD &&
+      x + CARD_W + PAD > p.position.x &&
+      y < p.position.y + CARD_H + PAD &&
+      y + CARD_H + PAD > p.position.y
+    )
+    if (overlaps) setIdeaWidgetPosition(x, y) // triggers the nudge logic in store
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [collapsed, setCollapsed] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [newIdea, setNewIdea] = useState('')
