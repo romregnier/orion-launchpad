@@ -9,10 +9,11 @@ interface Props {
   onRefresh: () => void
   onAdd: () => void
   onAddList: () => void
+  onAddAgent: () => void
   projectCount: number
 }
 
-export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, projectCount }: Props) {
+export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount }: Props) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 500
   const { showSettings, setShowSettings, boardName } = useLaunchpadStore()
 
@@ -92,6 +93,22 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       </button>
 
       <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)', marginInline: isMobile ? 2 : 4 }} />
+
+      {/* Add agent button */}
+      <button
+        onClick={onAddAgent}
+        title="Ajouter un agent sur le canvas"
+        style={{
+          display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6,
+          height: isMobile ? 30 : 34, paddingInline: isMobile ? 10 : 14,
+          borderRadius: 10, background: 'rgba(245,158,11,0.15)',
+          color: '#F59E0B', fontSize: isMobile ? 12 : 13, fontWeight: 600,
+          cursor: 'pointer', border: '1px solid rgba(245,158,11,0.3)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        ＋{!isMobile && ' Agent'}
+      </button>
 
       {/* Add list button */}
       <button

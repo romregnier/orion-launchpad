@@ -42,3 +42,11 @@ export interface CanvasState {
   offsetY: number
   scale: number
 }
+
+export interface CanvasAgent {
+  id: string
+  owner: string
+  name: string
+  tailorUrl?: string
+  position: { x: number; y: number }
+}

@@ -12,6 +12,9 @@ import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { LoginScreen } from './components/LoginScreen'
+import { BuildStatusWidget } from './components/BuildStatusWidget'
+import { PresenceBar } from './components/PresenceBar'
+import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
 
 // Error boundary to prevent Three.js crashes from killing the app
 class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
@@ -31,7 +34,7 @@ const MAX_SCALE = 2.5
 const SCALE_STEP = 0.15 // used for toolbar buttons only
 
 export default function App() {
-  const { projects, lists, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, addCanvasAgent, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   // Auth gate — after all hooks
@@ -52,6 +55,8 @@ export default function App() {
   const [isPanning, setIsPanning] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showAddList, setShowAddList] = useState(false)
+  const [showAddAgent, setShowAddAgent] = useState(false)
+  const [agentNameInput, setAgentNameInput] = useState('')
   const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
 
@@ -60,6 +65,12 @@ export default function App() {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
     fetchRemote()
   }, [fetchRemote])
+
+  // Subscribe to canvas agents realtime
+  useEffect(() => {
+    const unsub = subscribeToAgents()
+    return unsub
+  }, [subscribeToAgents])
 
   // Touch pan + pinch-to-zoom
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
@@ -242,6 +253,15 @@ export default function App() {
           index={visibleProjects.length}
         />
 
+        {/* Canvas agents */}
+        {canvasAgents.map(agent => (
+          <CanvasAgentAvatar
+            key={agent.id}
+            agent={agent}
+            canvasScale={scale}
+          />
+        ))}
+
         {/* Empty state */}
         {remoteLoaded && projects.length === 0 && (
           <div style={{
@@ -280,6 +300,7 @@ export default function App() {
         onRefresh={() => fetchRemote()}
         onAdd={() => setShowAdd(true)}
         onAddList={() => setShowAddList(true)}
+        onAddAgent={() => { setAgentNameInput(''); setShowAddAgent(true) }}
         projectCount={projects.length}
       />
 
@@ -490,6 +511,88 @@ export default function App() {
 
       {/* Settings Panel */}
       <SettingsPanel />
+
+      {/* Presence bar — top right */}
+      <PresenceBar currentUser={currentUser} />
+
+      {/* Build status widget — bottom right */}
+      <BuildStatusWidget />
+
+      {/* Add Agent modal */}
+      <AnimatePresence>
+        {showAddAgent && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowAddAgent(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 490 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              style={{
+                position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                zIndex: 500, background: '#1A171C', borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.1)',
+                padding: 24, width: 320, boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 16 }}>
+                ＋ Ajouter un agent
+              </h3>
+              <input
+                autoFocus
+                value={agentNameInput}
+                onChange={e => setAgentNameInput(e.target.value)}
+                onKeyDown={async e => {
+                  if (e.key === 'Enter' && agentNameInput.trim()) {
+                    await addCanvasAgent(agentNameInput.trim())
+                    setShowAddAgent(false)
+                  }
+                  if (e.key === 'Escape') setShowAddAgent(false)
+                }}
+                placeholder="Nom de l'agent (ex: Nova, Forge…)"
+                style={{
+                  width: '100%', background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
+                  padding: '10px 12px', fontSize: 14, color: '#fff',
+                  outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button
+                  onClick={() => setShowAddAgent(false)}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  }}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={async () => {
+                    if (agentNameInput.trim()) {
+                      await addCanvasAgent(agentNameInput.trim())
+                      setShowAddAgent(false)
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: 8,
+                    background: 'linear-gradient(135deg, #F59E0B, #d97706)',
+                    border: 'none', color: '#fff', cursor: 'pointer',
+                    fontSize: 13, fontWeight: 600,
+                  }}
+                >
+                  Ajouter
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
