@@ -61,11 +61,12 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
         const nx = dragStart.current.cardX + dx
         const ny = dragStart.current.cardY + dy
         setIdeaWidgetPosition(nx, ny)
-        pushOverlapping('idea-widget', nx, ny)
       })
     }
     const onUp = () => {
       setIsDragging(false)
+      const { x, y } = useLaunchpadStore.getState().ideaWidgetPosition
+      pushOverlapping('idea-widget', x, y)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
@@ -89,10 +90,11 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
       const nx = dragStart.current.cardX + dx
       const ny = dragStart.current.cardY + dy
       setIdeaWidgetPosition(nx, ny)
-      pushOverlapping('idea-widget', nx, ny)
     }
     const onEnd = () => {
       setIsDragging(false)
+      const { x, y } = useLaunchpadStore.getState().ideaWidgetPosition
+      pushOverlapping('idea-widget', x, y)
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onEnd)
     }

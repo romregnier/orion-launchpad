@@ -110,10 +110,15 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
         const nx = dragStart.current.cardX + dx
         const ny = dragStart.current.cardY + dy
         updatePosition(project.id, nx, ny)
-        pushOverlapping(project.id, nx, ny)
       })
     }
-    const onUp = () => { setIsDragging(false); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    const onUp = () => {
+      setIsDragging(false)
+      const { x, y } = useLaunchpadStore.getState().projects.find(p => p.id === project.id)?.position ?? { x: 0, y: 0 }
+      pushOverlapping(project.id, x, y)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [project.id, project.position.x, project.position.y, canvasScale, updatePosition, pushOverlapping])

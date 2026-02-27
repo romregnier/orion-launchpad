@@ -49,11 +49,12 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
         const nx = dragStart.current.cardX + dx
         const ny = dragStart.current.cardY + dy
         updateListPosition(list.id, nx, ny)
-        pushOverlapping(list.id, nx, ny)
       })
     }
     const onUp = () => {
       setIsDragging(false)
+      const pos = useLaunchpadStore.getState().lists.find(l => l.id === list.id)?.position ?? list.position
+      pushOverlapping(list.id, pos.x, pos.y)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
@@ -76,10 +77,11 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
       const nx = dragStart.current.cardX + dx
       const ny = dragStart.current.cardY + dy
       updateListPosition(list.id, nx, ny)
-      pushOverlapping(list.id, nx, ny)
     }
     const onEnd = () => {
       setIsDragging(false)
+      const pos = useLaunchpadStore.getState().lists.find(l => l.id === list.id)?.position ?? list.position
+      pushOverlapping(list.id, pos.x, pos.y)
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onEnd)
     }
