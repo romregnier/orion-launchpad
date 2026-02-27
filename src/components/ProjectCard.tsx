@@ -4,6 +4,7 @@ import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare } from 'lucide
 import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
 import { CommentsPanel } from './CommentsPanel'
+import { GroupContextMenu } from './GroupContextMenu'
 
 interface Props {
   project: Project
@@ -22,7 +23,9 @@ function tagColor(tag: string): string {
 }
 
 export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
-  const { removeProject } = useLaunchpadStore()
+  const { removeProject, groups } = useLaunchpadStore()
+  const group = groups.find(g => g.id === project.groupId)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [showActions, setShowActions] = useState(false)
   const [imgError, setImgError] = useState(false)
@@ -106,6 +109,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
         onDoubleClick={onDoubleClick}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => { if (!showDeleteConfirm) setShowActions(false) }}
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY }) }}
       >
         {/* ── Floating action bar ABOVE the card ── */}
         <AnimatePresence>
@@ -240,6 +244,15 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
               </div>
             )}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(26,22,30,0.9) 100%)' }} />
+            {group && (
+              <div style={{
+                position: 'absolute', top: 12, left: 12, zIndex: 10,
+                width: 10, height: 10, borderRadius: '50%',
+                background: group.color,
+                border: '2px solid #2C272F',
+                boxShadow: `0 0 6px ${group.color}80`,
+              }} title={group.name} />
+            )}
           </div>
 
           {/* Body */}
@@ -296,6 +309,16 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
         open={showComments}
         onClose={() => setShowComments(false)}
       />
+
+      {contextMenu && (
+        <GroupContextMenu
+          projectId={project.id}
+          currentGroupId={project.groupId}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </>
   )
 }

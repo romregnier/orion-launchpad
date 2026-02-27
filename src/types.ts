@@ -11,6 +11,7 @@ export interface Project {
   color?: string // accent color
   github?: string // GitHub repo URL
   tags?: string[] // tags displayed as pills
+  groupId?: string // assigned group
 }
 
 export interface CanvasState {

@@ -7,6 +7,7 @@ import { Toolbar } from './components/Toolbar'
 import { OrionAvatar3D } from './components/OrionAvatar3D'
 import { ChatPanel } from './components/ChatPanel'
 import { IdeaWidget } from './components/IdeaWidget'
+import { GroupBar } from './components/GroupBar'
 
 // Error boundary to prevent Three.js crashes from killing the app
 class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
@@ -26,15 +27,17 @@ const MAX_SCALE = 2.5
 const SCALE_STEP = 0.15 // used for toolbar buttons only
 
 export default function App() {
-  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter } = useLaunchpadStore()
+  const { projects, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup } = useLaunchpadStore()
 
   // Collect all unique tags from all projects
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
 
   // Filtered projects
-  const visibleProjects = activeFilter
-    ? projects.filter((p) => p.tags?.includes(activeFilter))
-    : projects
+  const visibleProjects = projects.filter(p => {
+    const groupMatch = !activeGroup || p.groupId === activeGroup
+    const tagMatch = !activeFilter || (p.tags ?? []).includes(activeFilter)
+    return groupMatch && tagMatch
+  })
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
@@ -267,10 +270,20 @@ export default function App() {
         <span className="sm:hidden">Pincer pour zoomer · Glisser pour naviguer</span>
       </div>
 
+      {/* Group filter bar */}
+      <div style={{
+        position: 'fixed', top: 36, left: '50%', transform: 'translateX(-50%)',
+        background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.07)', borderRadius: 999,
+        zIndex: 40,
+      }}>
+        <GroupBar />
+      </div>
+
       {/* Tag filter pills */}
       {allTags.length > 0 && (
         <div style={{
-          position: 'fixed', top: 36, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
           display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap',
           padding: '6px 10px',
           background: 'rgba(15,12,20,0.85)', backdropFilter: 'blur(16px)',
