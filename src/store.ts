@@ -474,9 +474,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       pushOverlapping: (draggedId, dragX, dragY) => {
         const state = get()
         const PADDING = 16
-        const DEAD_ZONE = 12
+        const DEAD_ZONE = 8
         const CANVAS_W = 6000, CANVAS_H = 4000
         const CANVAS_PAD = 8
+        const MAX_PASSES = 8
 
         // Include all movable objects: projects + lists + idea + agents
         const objects = getAllCanvasObjectsFromState(state)
@@ -489,61 +490,62 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         positions.set(draggedId, { x: dragX, y: dragY })
 
         const getObj = (id: string) => objects.find(o => o.id === id)
-        const draggedObj = getObj(draggedId)
-        if (!draggedObj) return
 
-        // BFS — level 1 only (direct neighbours of the dragged card)
-        const visited = new Set<string>([draggedId])
-        const draggedPos = positions.get(draggedId)!
+        // Helper: push one object away from another
+        const pushPair = (srcId: string, tgtId: string): boolean => {
+          const src = getObj(srcId)
+          const tgt = getObj(tgtId)
+          if (!src || !tgt) return false
+          const sPos = positions.get(srcId)!
+          const tPos = positions.get(tgtId)!
 
-        for (const target of objects) {
-          if (visited.has(target.id)) continue
-          const tPos = positions.get(target.id)!
+          const sLeft = sPos.x, sRight = sPos.x + src.width
+          const sTop = sPos.y, sBottom = sPos.y + src.height
+          const tLeft = tPos.x, tRight = tPos.x + tgt.width
+          const tTop = tPos.y, tBottom = tPos.y + tgt.height
 
-          // AABB overlap with padding
-          const sLeft = draggedPos.x, sRight = draggedPos.x + draggedObj.width
-          const sTop = draggedPos.y, sBottom = draggedPos.y + draggedObj.height
-          const tLeft = tPos.x, tRight = tPos.x + target.width
-          const tTop = tPos.y, tBottom = tPos.y + target.height
+          const overlapX = Math.min(sRight + PADDING - tLeft, tRight + PADDING - sLeft)
+          const overlapY = Math.min(sBottom + PADDING - tTop, tBottom + PADDING - sTop)
+          if (overlapX <= DEAD_ZONE || overlapY <= DEAD_ZONE) return false
 
-          // Compute raw overlap on each axis
-          const rawOverlapX = Math.min(sRight + PADDING - tLeft, tRight + PADDING - sLeft)
-          const rawOverlapY = Math.min(sBottom + PADDING - tTop, tBottom + PADDING - sTop)
+          const dx = (tPos.x + tgt.width / 2) - (sPos.x + src.width / 2)
+          const dy = (tPos.y + tgt.height / 2) - (sPos.y + src.height / 2)
 
-          // Dead zone: only push if overlap exceeds 12px on BOTH axes
-          if (rawOverlapX <= DEAD_ZONE || rawOverlapY <= DEAD_ZONE) continue
+          const pushX = dx >= 0 ? sRight + PADDING - tLeft : -(tRight + PADDING - sLeft)
+          const pushY = dy >= 0 ? sBottom + PADDING - tTop : -(tBottom + PADDING - sTop)
 
-          // Centre-to-centre direction
-          const sCX = draggedPos.x + draggedObj.width / 2
-          const sCY = draggedPos.y + draggedObj.height / 2
-          const tCX = tPos.x + target.width / 2
-          const tCY = tPos.y + target.height / 2
-          const dx = tCX - sCX
-          const dy = tCY - sCY
-
-          const overlapAmtXRight = sRight + PADDING - tLeft
-          const overlapAmtXLeft = tRight + PADDING - sLeft
-          const overlapAmtYDown = sBottom + PADDING - tTop
-          const overlapAmtYUp = tBottom + PADDING - sTop
-
-          let newX = tPos.x
-          let newY = tPos.y
-
-          const pushAmtX = dx >= 0 ? overlapAmtXRight : overlapAmtXLeft
-          const pushAmtY = dy >= 0 ? overlapAmtYDown : overlapAmtYUp
-
-          if (pushAmtX <= pushAmtY) {
-            newX = dx >= 0 ? tPos.x + overlapAmtXRight : tPos.x - overlapAmtXLeft
+          let nx = tPos.x, ny = tPos.y
+          if (Math.abs(pushX) <= Math.abs(pushY)) {
+            nx = tPos.x + pushX
           } else {
-            newY = dy >= 0 ? tPos.y + overlapAmtYDown : tPos.y - overlapAmtYUp
+            ny = tPos.y + pushY
+          }
+          nx = Math.max(CANVAS_PAD, Math.min(nx, CANVAS_W - tgt.width - CANVAS_PAD))
+          ny = Math.max(CANVAS_PAD, Math.min(ny, CANVAS_H - tgt.height - CANVAS_PAD))
+          positions.set(tgtId, { x: nx, y: ny })
+          return true
+        }
+
+        // Multi-pass BFS: resolve cascading overlaps up to MAX_PASSES
+        // Pass 0: push objects overlapping with the dragged card (dragged is frozen)
+        // Pass 1+: push objects that now overlap each other due to previous pushes
+        const movedInLastPass = new Set<string>([draggedId])
+
+        for (let pass = 0; pass < MAX_PASSES; pass++) {
+          const movedThisPass = new Set<string>()
+
+          for (const mover of movedInLastPass) {
+            for (const other of objects) {
+              if (other.id === mover || other.id === draggedId) continue
+              if (pushPair(mover, other.id)) {
+                movedThisPass.add(other.id)
+              }
+            }
           }
 
-          // Clamp to canvas bounds
-          newX = Math.max(CANVAS_PAD, Math.min(newX, CANVAS_W - target.width - CANVAS_PAD))
-          newY = Math.max(CANVAS_PAD, Math.min(newY, CANVAS_H - target.height - CANVAS_PAD))
-
-          positions.set(target.id, { x: newX, y: newY })
-          visited.add(target.id)
+          if (movedThisPass.size === 0) break // stable — no more overlaps
+          movedInLastPass.clear()
+          for (const id of movedThisPass) movedInLastPass.add(id)
         }
 
         // Apply positions — dragged keeps its own position, others get pushed

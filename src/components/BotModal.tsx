@@ -78,43 +78,99 @@ export function BotModal({ open, onClose, editAgent }: Props) {
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', zIndex: 490 }}
           />
 
-          {/* Modal */}
+          {/* Modal — fullscreen quand Tailor est affiché */}
           <motion.div
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
             style={{
-              position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'fixed',
+              inset: showTailor ? 0 : undefined,
+              ...(showTailor ? {} : { top: 0, left: 0, right: 0, bottom: 0 }),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               zIndex: 500, pointerEvents: 'none',
             }}
           >
-            <div style={{
-              width: showTailor ? 'min(940px, calc(100vw - 32px))' : 380,
-              background: '#1A171C',
-              borderRadius: 18,
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-              overflow: 'hidden',
-              pointerEvents: 'all',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'width 0.3s ease',
-            }}>
+            <div
+              className="bot-modal"
+              style={{
+                width: showTailor ? '100vw' : 'min(400px, calc(100vw - 32px))',
+                height: showTailor ? '100vh' : 'auto',
+                maxHeight: showTailor ? '100vh' : 'calc(100vh - 80px)',
+                background: '#1A171C',
+                borderRadius: showTailor ? 0 : 18,
+                border: showTailor ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                boxShadow: showTailor ? 'none' : '0 24px 64px rgba(0,0,0,0.6)',
+                overflow: 'hidden',
+                pointerEvents: 'all',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'width 0.25s ease, height 0.25s ease, border-radius 0.25s ease',
+              }}
+            >
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+              <div
+                className="bot-modal__header"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 20px',
+                  borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  flexShrink: 0,
+                  background: '#1A171C',
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 18 }}>🤖</span>
                   <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>
-                    {isEdit ? `Modifier ${editAgent?.name}` : 'Ajouter un bot'}
+                    {isEdit ? `Modifier — ${editAgent?.name}` : 'Ajouter un bot'}
                   </span>
+                  {showTailor && (
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>
+                      · Personnalise l'avatar puis clique sur "Valider"
+                    </span>
+                  )}
                 </div>
-                <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 20 }}>×</button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {showTailor && (
+                    <button
+                      onClick={() => setShowTailor(false)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 8,
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      ← Retour au formulaire
+                    </button>
+                  )}
+                  <button
+                    onClick={onClose}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '2px 4px' }}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', height: showTailor ? 560 : 'auto' }}>
-                {/* Form */}
-                <div style={{ padding: 20, width: showTailor ? 340 : '100%', flexShrink: 0, overflowY: 'auto' }}>
+              <div
+                className="bot-modal__body"
+                style={{ display: 'flex', flex: showTailor ? 1 : undefined, overflow: 'hidden' }}
+              >
+                {/* Form — masqué en mode Tailor fullscreen sur mobile, visible en sidebar sinon */}
+                <div
+                  className="bot-modal__form"
+                  style={{
+                    padding: 20,
+                    width: showTailor ? 'min(320px, 30vw)' : '100%',
+                    minWidth: showTailor ? 260 : undefined,
+                    flexShrink: 0,
+                    overflowY: 'auto',
+                    display: showTailor && window.innerWidth < 600 ? 'none' : 'block',
+                  }}
+                >
                   {/* Nom */}
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '0.08em' }}>NOM DU BOT</label>
                   <input
@@ -175,17 +231,24 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                   </div>
                 </div>
 
-                {/* Tailor iframe */}
+                {/* Tailor iframe — plein écran (sauf sidebar form) */}
                 {showTailor && (
-                  <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ padding: '8px 12px', fontSize: 10, color: 'rgba(255,255,255,0.3)', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-                      Personnalise l'avatar · La config sera capturée automatiquement
-                    </div>
+                  <div
+                    className="bot-modal__tailor"
+                    style={{
+                      flex: 1,
+                      borderLeft: '1px solid rgba(255,255,255,0.07)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      minWidth: 0,
+                    }}
+                  >
                     <iframe
                       ref={tailorRef}
                       src={tailorSrc}
-                      style={{ flex: 1, border: 'none', width: '100%' }}
-                      title="The Tailor"
+                      style={{ flex: 1, border: 'none', width: '100%', height: '100%' }}
+                      title="The Tailor — avatar editor"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
                     />
                   </div>
                 )}
