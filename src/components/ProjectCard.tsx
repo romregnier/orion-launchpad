@@ -281,9 +281,9 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 <Eye size={13} />
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); triggerScreenshot(project.id, project.url) }}
-                title="📸 Screenshot"
-                style={{ ...actionBtn, fontSize: 11 }}
+                onClick={(e) => { e.stopPropagation(); if (screenshotUrl) triggerScreenshot(project.id, project.url) }}
+                title={screenshotUrl ? '📸 Screenshot' : 'Screenshot non disponible'}
+                style={{ ...actionBtn, fontSize: 11, opacity: screenshotUrl ? 1 : 0.3, cursor: screenshotUrl ? 'pointer' : 'not-allowed' }}
               >
                 📸
               </button>

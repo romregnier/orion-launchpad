@@ -118,7 +118,32 @@ export function BuildStatusWidget({ canvasScale }: Props) {
     window.addEventListener('mouseup', onUp)
   }, [pos, canvasScale])
 
-  if (tasks.length === 0) return null
+  if (tasks.length === 0) return (
+    <div
+      data-no-drag
+      className="build-status-widget"
+      onMouseDown={onMouseDown}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        zIndex: 40,
+        background: 'rgba(22,18,26,0.85)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 14,
+        padding: '10px 14px',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+        backdropFilter: 'blur(16px)',
+        transform: `translate(${pos.x}px, ${pos.y}px)`,
+      }}
+    >
+      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>
+        ⚡ BUILD STATUS
+      </span>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 4 }}>Agents en veille</div>
+    </div>
+  )
 
   return (
     <motion.div

@@ -174,6 +174,8 @@ interface LaunchpadStore {
   showSettings: boolean
   /** Fetch all projects from Supabase and update local state */
   fetchProjects: () => Promise<void>
+  /** Re-fetch projects and agents without creating new Realtime channels */
+  refreshAll: () => Promise<void>
   /** Subscribe to Supabase Realtime for projects — returns unsubscribe fn */
   subscribeToProjects: () => () => void
   addProject: (project: Project) => Promise<void>
@@ -317,6 +319,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
               }),
             }))
           }
+          // FIX 8 — Anti-overlap initial : corriger les chevauchements après chargement des positions
+          const loadedProjects = get().projects
+          for (const p of loadedProjects) {
+            get().pushOverlapping(p.id, p.position.x, p.position.y)
+          }
         } else {
           set({ remoteLoaded: true })
         }
@@ -335,6 +342,29 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           })
           .subscribe()
         return () => { supabase.removeChannel(ch) }
+      },
+
+      /** Re-fetch projects and agents without creating new Realtime channels */
+      refreshAll: async () => {
+        await get().fetchProjects()
+        const { data } = await supabase.from('canvas_agents').select('*')
+        if (data) {
+          type AgentRow = { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; agent_key?: string; is_system?: boolean; working_on_project?: string | null; home_x?: number | null; home_y?: number | null; tailor_config?: import('./types').AvatarConfig | null }
+          set({
+            canvasAgents: (data as AgentRow[]).map(row => ({
+              id: row.id, owner: row.owner, name: row.name,
+              tailorUrl: row.tailor_url ?? undefined,
+              bot_token: row.bot_token ?? undefined,
+              agent_key: row.agent_key ?? undefined,
+              is_system: row.is_system ?? false,
+              position: { x: row.position_x, y: row.position_y },
+              working_on_project: row.working_on_project ?? null,
+              home_x: row.home_x ?? null,
+              home_y: row.home_y ?? null,
+              tailor_config: row.tailor_config ?? null,
+            })),
+          })
+        }
       },
 
       /** Add a project optimistically and persist to Supabase.
@@ -568,7 +598,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
        */
       logout: async () => {
         await supabase.auth.signOut()
-        set({ currentUser: null })
+        set({ currentUser: null, boardMembers: [] })
       },
 
       setShowSettings: (v) => set({ showSettings: v }),
@@ -1108,15 +1138,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
     {
       name: 'orion-launchpad-v3',
       partialize: (state) => ({
-        projects: state.projects,
         deletedIds: state.deletedIds,
-        deletedProjects: state.deletedProjects,
         groups: state.groups,
         activeGroup: state.activeGroup,
         boardName: state.boardName,
         isPrivate: state.isPrivate,
-        currentUser: state.currentUser,
-        boardMembers: state.boardMembers,
       }),
     }
   )

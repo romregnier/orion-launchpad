@@ -27,7 +27,7 @@ const SCALE_STEP = 0.15
 
 // ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, refreshAll } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -42,10 +42,27 @@ function LaunchpadCanvas() {
   const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
+  const hasAutoFitted = useRef(false)
 
   useEffect(() => {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
   }, [])
+
+  // FIX 4 — Auto-fit canvas pour que les agents (y≈520) soient visibles
+  useEffect(() => {
+    if (remoteLoaded && canvasAgents.length > 0 && !hasAutoFitted.current) {
+      hasAutoFitted.current = true
+      const allY = [...projects.map(p => p.position.y + 200), ...canvasAgents.map(a => a.position.y + 80)]
+      const allX = [...projects.map(p => p.position.x + 300), ...canvasAgents.map(a => a.position.x + 64)]
+      const maxY = Math.max(...allY)
+      const maxX = Math.max(...allX)
+      const viewH = window.innerHeight - 120
+      const viewW = window.innerWidth
+      const fitScale = Math.min(1, viewW / maxX, viewH / maxY)
+      setScale(Math.max(0.5, fitScale))
+      setOffset({ x: 20, y: 20 })
+    }
+  }, [remoteLoaded, canvasAgents.length, canvasAgents, projects])
 
   useEffect(() => {
     const unsubProjects = subscribeToProjects()
@@ -196,7 +213,7 @@ function LaunchpadCanvas() {
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onReset={resetView}
-        onRefresh={() => subscribeToProjects()}
+        onRefresh={() => refreshAll()}
         onAdd={() => setShowAdd(true)}
         onAddList={() => setShowAddList(true)}
         onAddAgent={() => { setEditingAgent(null); setShowBotModal(true) }}
