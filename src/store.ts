@@ -238,6 +238,23 @@ interface LaunchpadStore {
   voteListItem: (listId: string, itemId: string, sessionId: string) => Promise<void>
   moveListItem: (listId: string, itemId: string, direction: 'up' | 'down') => Promise<void>
   updateListPosition: (id: string, x: number, y: number) => void
+  /** Project metadata (screenshots, AI meta) keyed by project_id */
+  projectMetadata: Record<string, ProjectMeta>
+  /** Fetch all project_metadata rows and store in projectMetadata */
+  fetchProjectMetadata: () => Promise<void>
+}
+
+interface ProjectMeta {
+  project_id: string
+  screenshot_url?: string | null
+  ai_meta?: {
+    summary?: string
+    health_score?: number
+    tags?: string[]
+    suggestions?: string[]
+    category?: string
+  } | null
+  ai_analyzed_at?: string | null
 }
 
 export const useLaunchpadStore = create<LaunchpadStore>()(
@@ -266,6 +283,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       canvasAgents: [],
       lists: [],
       boardMembers: [],
+      projectMetadata: {},
 
       /**
        * Fetch all projects from Supabase and hydrate local state.
@@ -574,6 +592,20 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         set(state => ({
           boardMembers: state.boardMembers.map(m => m.email === email ? { ...m, role } : m)
         }))
+      },
+
+      /**
+       * Fetch all project_metadata rows and store in projectMetadata record.
+       */
+      fetchProjectMetadata: async () => {
+        const { data } = await supabase.from('project_metadata').select('*')
+        if (data) {
+          const meta: Record<string, ProjectMeta> = {}
+          for (const row of data as ProjectMeta[]) {
+            meta[row.project_id] = row
+          }
+          set({ projectMetadata: meta })
+        }
       },
 
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),

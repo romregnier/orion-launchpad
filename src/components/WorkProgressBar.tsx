@@ -21,10 +21,10 @@ interface BuildTask {
 }
 
 const STORAGE_KEY = 'wpb-pos'
-// FIX 3 — Sur mobile, positionner plus haut pour ne pas chevaucher la Toolbar du bas
+// FIX 3 — Sur mobile, positionner en haut (y=80) pour ne pas chevaucher la Toolbar du bas
 const DEFAULT_POS = {
   x: 16,
-  y: window.innerWidth < 768 ? window.innerHeight - 280 : window.innerHeight - 220,
+  y: window.innerWidth < 768 ? 80 : window.innerHeight - 220,
 }
 
 function loadPos(): { x: number; y: number } {
