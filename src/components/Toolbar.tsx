@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { supabase } from '../lib/supabase'
 
+interface ActiveTask { id: string; agent_key?: string | null; progress: number; step_label?: string | null }
+
 interface Props {
   scale: number
   onZoomIn: () => void
@@ -30,13 +32,32 @@ interface Props {
 
 /**
  * Mini indicateur de tâches dans la Toolbar.
- * - Toujours visible : affiche le nombre de tâches actives ou "Agents en veille"
- * - Avec tâche active : affiche ⚡ agent · progress% + mini barre rose
+ * Subscription Supabase directe (indépendant du store Zustand) pour garantir la réactivité.
+ * - Idle : "Agents en veille"
+ * - Actif : ⚡ agent · progress% + mini barre rose
  */
 function MiniProgress() {
-  const { activeBuildTasks } = useLaunchpadStore()
-  const activeTask = activeBuildTasks[0] ?? null
-  const taskCount = activeBuildTasks.length
+  const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([])
+
+  useEffect(() => {
+    const load = () => {
+      supabase
+        .from('build_tasks')
+        .select('id, agent_key, progress, step_label, status')
+        .in('status', ['running', 'pending'])
+        .order('started_at', { ascending: false })
+        .then(({ data }) => { if (data) setActiveTasks(data as ActiveTask[]) })
+    }
+    load()
+    const ch = supabase
+      .channel('miniprogress_direct')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'build_tasks' }, load)
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
+
+  const activeTask = activeTasks[0] ?? null
+  const taskCount = activeTasks.length
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: '1px solid rgba(255,255,255,0.08)', minWidth: 0 }}>

@@ -163,6 +163,8 @@ function LaunchpadCanvas() {
           <ListWidgetCard key={list.id} list={list} canvasScale={scale} sessionId={sessionId} />
         ))}
         <IdeaWidget canvasScale={scale} index={visibleProjects.length} />
+        {/* BuildStatusWidget — flottant sur le canvas, draggable */}
+        <BuildStatusWidget canvasScale={scale} />
         {canvasAgents.map(agent => (
           <CanvasAgentAvatar
             key={agent.id} agent={agent} canvasScale={scale}
@@ -358,7 +360,7 @@ function LaunchpadCanvas() {
 
       <ChatPanel open={showGlobalChat} onClose={() => setShowGlobalChat(false)} />
       <SettingsPanel />
-      <BuildStatusWidget />
+      {/* BuildStatusWidget déplacé dans le canvas div */}
 
       {/* Agent chat panel */}
       <AnimatePresence>
