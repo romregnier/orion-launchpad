@@ -403,37 +403,43 @@ function LaunchpadCanvas() {
 // ── App root — auth routing uniquement ────────────────────────────────────────
 export default function App() {
   const { isPrivate, currentUser, fetchProjects } = useLaunchpadStore()
+  // authReady : true quand on sait si l'utilisateur est connecté ou non
+  const [authReady, setAuthReady] = useState(false)
 
-  // Sync Supabase Auth session into store + handle invite callback
   useEffect(() => {
+    // 1. Vérifier la session existante immédiatement (évite le flash)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
+        useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
+        useLaunchpadStore.getState().fetchBoardMembers()
+      }
+      setAuthReady(true)
+    })
+
+    // 2. Écouter les changements d'auth ultérieurs
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
         useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
-        // Mark member as active if they were pending (invite callback)
         await supabase.from('board_members')
           .update({ status: 'active', joined_at: new Date().toISOString() })
           .eq('email', session.user.email ?? '')
           .eq('status', 'pending')
-        // Fetch board members immediately so settings panel is pre-populated
         await useLaunchpadStore.getState().fetchBoardMembers()
       } else if (event === 'SIGNED_OUT') {
         useLaunchpadStore.setState({ currentUser: null })
-      } else if (session?.user) {
-        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
-        useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
-        // Also fetch members on session restore (page reload)
-        await useLaunchpadStore.getState().fetchBoardMembers()
       }
     })
     return () => subscription.unsubscribe()
   }, [])
 
-  // Restore auth session from Supabase and load initial isPrivate
   useEffect(() => {
     fetchProjects()
   }, [fetchProjects])
 
+  // Attendre que l'auth soit résolue avant de rendre quoi que ce soit
+  if (!authReady) return null
   if (isPrivate && !currentUser) return <LoginScreen />
   return <LaunchpadCanvas />
 }
