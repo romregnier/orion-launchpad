@@ -48,21 +48,15 @@ function LaunchpadCanvas() {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
   }, [])
 
-  // FIX 4 — Auto-fit canvas pour que les agents (y≈520) soient visibles
+  // Auto-fit : centrer la vue sur les projets + agents une seule fois au chargement
   useEffect(() => {
-    if (remoteLoaded && canvasAgents.length > 0 && !hasAutoFitted.current) {
+    if (remoteLoaded && !hasAutoFitted.current) {
       hasAutoFitted.current = true
-      const allY = [...projects.map(p => p.position.y + 200), ...canvasAgents.map(a => a.position.y + 80)]
-      const allX = [...projects.map(p => p.position.x + 300), ...canvasAgents.map(a => a.position.x + 64)]
-      const maxY = Math.max(...allY)
-      const maxX = Math.max(...allX)
-      const viewH = window.innerHeight - 120
-      const viewW = window.innerWidth
-      const fitScale = Math.min(1, viewW / maxX, viewH / maxY)
-      setScale(Math.max(0.5, fitScale))
-      setOffset({ x: 20, y: 20 })
+      // Offset centré sur les projets (qui sont à y≈60-350), assez bas pour voir les agents (y≈520)
+      setOffset({ x: 60, y: 20 })
+      setScale(0.85)
     }
-  }, [remoteLoaded, canvasAgents.length, canvasAgents, projects])
+  }, [remoteLoaded])
 
   useEffect(() => {
     const unsubProjects = subscribeToProjects()

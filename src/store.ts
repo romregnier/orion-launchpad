@@ -319,11 +319,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
               }),
             }))
           }
-          // FIX 8 — Anti-overlap initial : corriger les chevauchements après chargement des positions
-          const loadedProjects = get().projects
-          for (const p of loadedProjects) {
-            get().pushOverlapping(p.id, p.position.x, p.position.y)
-          }
+          // Anti-overlap retiré du load — positions from DB sont source de vérité
         } else {
           set({ remoteLoaded: true })
         }
