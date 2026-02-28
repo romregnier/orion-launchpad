@@ -141,6 +141,7 @@ export function BuildStatusWidget() {
             <div style={{ padding: '6px 0', maxHeight: 200, overflowY: 'auto' }}>
               {tasks.map(task => {
                 const agentColor = AGENT_COLORS[task.agent] ?? '#fff'
+                const taskAny = task as BuildTask & { screenshot_url?: string }
                 return (
                   <div
                     key={task.id}
@@ -171,6 +172,13 @@ export function BuildStatusWidget() {
                     }}>
                       {task.label}
                     </span>
+                    {taskAny.screenshot_url && (
+                      <img
+                        src={taskAny.screenshot_url}
+                        alt="preview"
+                        style={{ width: 48, height: 32, objectFit: 'cover', borderRadius: 4, border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}
+                      />
+                    )}
                     <span style={{
                       fontSize: 9,
                       color: task.status === 'running'

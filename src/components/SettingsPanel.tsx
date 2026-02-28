@@ -5,6 +5,7 @@ import { X, Trash2 } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import { sha256 } from '../utils/hash'
 import { Select } from './Select'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 
 const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
@@ -72,6 +73,10 @@ export function SettingsPanel() {
       setTimeout(() => setCopiedPassword(false), 2000)
     })
   }
+
+  // Push notifications — userId = premier membre (admin) ou null
+  const currentUserId = members.length > 0 ? members[0].username : null
+  const { permission, subscribed, subscribe } = usePushNotifications(currentUserId)
 
   const handleClearCanvas = () => {
     if (confirmClear) {
@@ -412,7 +417,27 @@ export function SettingsPanel() {
                 </div>
               </Section>
 
-              {/* Section 4 — Danger zone */}
+              {/* Section 4 — Notifications push */}
+              <Section title="Notifications">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>
+                      Recevoir des alertes quand un agent termine une tâche
+                    </p>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '4px 0 0' }}>
+                      {permission === 'granted' ? '✅ Notifications activées' : permission === 'denied' ? '🚫 Bloquées dans le navigateur' : 'Non configurées'}
+                    </p>
+                  </div>
+                  {permission !== 'granted' && permission !== 'denied' && (
+                    <button onClick={subscribe} style={{ padding: '8px 14px', borderRadius: 8, background: '#E11F7B', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      Activer
+                    </button>
+                  )}
+                  {subscribed && <span style={{ fontSize: 11, color: '#10B981' }}>✓ Abonné</span>}
+                </div>
+              </Section>
+
+              {/* Section 5 — Danger zone */}
               <Section title="Zone de danger" danger>
                 <button
                   onClick={handleClearCanvas}

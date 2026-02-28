@@ -11,6 +11,9 @@ import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare, Pencil, Refre
 import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
 import { fetchMeta } from '../utils/fetchMeta'
+import { useProjectMeta } from '../hooks/useProjectMeta'
+import { useProjectAnalysis } from '../hooks/useProjectAnalysis'
+import { triggerScreenshot } from '../lib/triggerScreenshot'
 import { CommentsPanel } from './CommentsPanel'
 import { GroupContextMenu } from './GroupContextMenu'
 import { EditProjectModal } from './EditProjectModal'
@@ -36,6 +39,10 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   const { removeProject, groups, updateProject, canvasAgents } = useLaunchpadStore()
   const workingAgents = canvasAgents.filter(a => a.working_on_project === project.id)
   const group = groups.find(g => g.id === project.groupId)
+  const meta = useProjectMeta(project.id)
+  const { analyze, analyzing } = useProjectAnalysis()
+  const healthScore = meta?.ai_meta?.health_score
+  const screenshotUrl = meta?.screenshot_url
 
   // Auto-fetch missing image/favicon on mount
   // Auto-fetch missing meta — run only once per project id, not on every render
@@ -248,6 +255,32 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
               >
                 <Eye size={13} />
               </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); triggerScreenshot(project.id, project.url) }}
+                title="📸 Screenshot"
+                style={{ ...actionBtn, fontSize: 11 }}
+              >
+                📸
+              </button>
+              {project.url && (
+                <button
+                  className="project-card__action-btn"
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); analyze(project.id, project.url) }}
+                  title="Analyser le projet avec l'IA"
+                  disabled={analyzing === project.id}
+                  style={{
+                    ...actionBtn,
+                    background: analyzing === project.id ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.15)',
+                    border: '1px solid rgba(99,102,241,0.3)',
+                    borderRadius: 6, padding: '4px 8px',
+                    fontSize: 11, color: '#818CF8', cursor: analyzing === project.id ? 'wait' : 'pointer',
+                    width: 'auto',
+                  }}
+                >
+                  {analyzing === project.id ? '⏳' : '🔍'}
+                </button>
+              )}
               <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 2px' }} />
               <button
                 onClick={(e) => { e.stopPropagation(); setShowComments(true) }}
@@ -357,7 +390,34 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
 
           {/* Preview */}
           <div style={{ position: 'relative', height: 130, background: `${accent}18` }}>
-            {project.image && !imgError ? (
+            {/* Health score badge */}
+            {healthScore !== undefined && (
+              <div
+                className="project-card__health-score"
+                title={meta?.ai_meta?.suggestions?.join(' · ')}
+                style={{
+                  position: 'absolute', top: 8, right: 8,
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: healthScore >= 70 ? '#10B98122' : healthScore >= 40 ? '#F59E0B22' : '#EF444422',
+                  border: `2px solid ${healthScore >= 70 ? '#10B981' : healthScore >= 40 ? '#F59E0B' : '#EF4444'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, fontWeight: 800,
+                  color: healthScore >= 70 ? '#10B981' : healthScore >= 40 ? '#F59E0B' : '#EF4444',
+                  cursor: 'help',
+                  zIndex: 4,
+                }}
+              >
+                {healthScore}
+              </div>
+            )}
+            {/* Screenshot (priority) or OG image */}
+            {screenshotUrl ? (
+              <img
+                src={screenshotUrl} alt={project.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                draggable={false}
+              />
+            ) : project.image && !imgError ? (
               <img
                 src={project.image} alt={project.title}
                 onError={() => setImgError(true)}
@@ -429,6 +489,11 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                   )
                 })}
               </div>
+            )}
+            {meta?.ai_meta?.summary && (
+              <p className="project-card__ai-summary" style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: '6px 0 0', lineHeight: 1.4, fontStyle: 'italic' }}>
+                {meta.ai_meta.summary}
+              </p>
             )}
           </div>
         </motion.div>
