@@ -36,7 +36,8 @@ function tagColor(tag: string): string {
 }
 
 export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
-  const { removeProject, groups, updateProject, canvasAgents, activeBuildTasks } = useLaunchpadStore()
+  const { removeProject, groups, updateProject, canvasAgents, activeBuildTasks, currentUser } = useLaunchpadStore()
+  const isViewer = currentUser?.role === 'viewer'
   // Agents travaillant sur ce projet — depuis working_on_project (manuel) OU build_tasks actives (automatique)
   const workingAgents = canvasAgents.filter(a => a.working_on_project === project.id)
   const taskAgentKeys = activeBuildTasks
@@ -120,6 +121,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   const pushSpring = { type: 'spring' as const, stiffness: 300, damping: 30 }
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isViewer) return // viewers cannot drag
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
     e.stopPropagation(); e.preventDefault()
     setIsDragging(true)
@@ -146,9 +148,10 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [project.id, project.position.x, project.position.y, canvasScale, updatePosition, pushOverlapping])
+  }, [isViewer, project.id, project.position.x, project.position.y, canvasScale, updatePosition, pushOverlapping])
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (isViewer) return // viewers cannot drag
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
     if (e.touches.length !== 1) return
     e.stopPropagation()
@@ -165,7 +168,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     const onEnd = () => { setIsDragging(false); window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd) }
     window.addEventListener('touchmove', onMove, { passive: true })
     window.addEventListener('touchend', onEnd)
-  }, [project.id, project.position.x, project.position.y, canvasScale, updatePosition])
+  }, [isViewer, project.id, project.position.x, project.position.y, canvasScale, updatePosition])
 
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return

@@ -379,14 +379,22 @@ function LaunchpadCanvas() {
 export default function App() {
   const { isPrivate, currentUser, fetchProjects } = useLaunchpadStore()
 
-  // Sync Supabase Auth session into store
+  // Sync Supabase Auth session into store + handle invite callback
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
         const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
         useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
-      } else {
+        // Mark member as active if they were pending (invite callback)
+        await supabase.from('board_members')
+          .update({ status: 'active', joined_at: new Date().toISOString() })
+          .eq('email', session.user.email ?? '')
+          .eq('status', 'pending')
+      } else if (event === 'SIGNED_OUT') {
         useLaunchpadStore.setState({ currentUser: null })
+      } else if (session?.user) {
+        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
+        useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
       }
     })
     return () => subscription.unsubscribe()

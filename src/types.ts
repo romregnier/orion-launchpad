@@ -59,6 +59,16 @@ export interface AvatarConfig {
   bodyScale?: number
 }
 
+export interface BoardMember {
+  id: string
+  email: string
+  role: 'admin' | 'member' | 'viewer'
+  invitedBy?: string
+  invitedAt: string
+  joinedAt?: string
+  status: 'pending' | 'active' | 'revoked'
+}
+
 export interface CanvasAgent {
   id: string
   owner: string

@@ -22,7 +22,8 @@ interface Props {
 
 export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount }: Props) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 500
-  const { showSettings, setShowSettings, boardName } = useLaunchpadStore()
+  const { showSettings, setShowSettings, boardName, currentUser } = useLaunchpadStore()
+  const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'member'
 
   return (
     <div
@@ -102,8 +103,8 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
 
       <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)', marginInline: isMobile ? 2 : 4 }} />
 
-      {/* Add agent button */}
-      <button
+      {/* Add agent button — canEdit only */}
+      {canEdit && <button
         onClick={onAddAgent}
         title="Ajouter un agent sur le canvas"
         style={{
@@ -116,10 +117,10 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
         }}
       >
         ＋{!isMobile && ' Agent'}
-      </button>
+      </button>}
 
-      {/* Add list button */}
-      <button
+      {/* Add list button — canEdit only */}
+      {canEdit && <button
         onClick={onAddList}
         title="Nouvelle liste"
         style={{
@@ -132,10 +133,10 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
         }}
       >
         📋{!isMobile && ' Liste'}
-      </button>
+      </button>}
 
-      {/* Add button */}
-      <button
+      {/* Add button — canEdit only */}
+      {canEdit && <button
         onClick={onAdd}
         title="Ajouter un projet"
         data-testid="btn-add-project"
@@ -158,7 +159,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       >
         <Plus size={isMobile ? 13 : 15} />
         {!isMobile && 'Ajouter'}
-      </button>
+      </button>}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Project, ListWidget, ListType, CanvasAgent } from './types'
+import type { Project, ListWidget, ListType, CanvasAgent, BoardMember } from './types'
 import { supabase } from './lib/supabase'
 
 export interface CanvasObject {
@@ -133,7 +133,7 @@ interface LaunchpadStore {
   activeGroup: string | null
   boardName: string
   isPrivate: boolean
-  currentUser: { username: string; role: 'admin' | 'member' } | null
+  currentUser: { username: string; role: 'admin' | 'member' | 'viewer' } | null
   showSettings: boolean
   /** Fetch all projects from Supabase and update local state */
   fetchProjects: () => Promise<void>
@@ -161,6 +161,14 @@ interface LaunchpadStore {
   login: (email: string, password: string) => Promise<boolean>
   logout: () => Promise<void>
   setShowSettings: (v: boolean) => void
+  boardMembers: BoardMember[]
+  fetchBoardMembers: () => Promise<void>
+  /** Invite a member by email. Inserts into board_members and triggers Supabase Auth signUp. */
+  inviteMember: (email: string, role: 'member' | 'viewer') => Promise<{ ok: boolean; error?: string }>
+  /** Remove a member from board_members by email. */
+  removeMember: (email: string) => Promise<void>
+  /** Update a member's role in board_members. */
+  updateMemberRole: (email: string, role: 'admin' | 'member' | 'viewer') => Promise<void>
   clearProjects: () => void
   swapTarget: string | null
   setSwapTarget: (id: string | null) => void
@@ -216,6 +224,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       activeBuildTasks: [],
       canvasAgents: [],
       lists: [],
+      boardMembers: [],
 
       /**
        * Fetch all projects from Supabase and hydrate local state.
@@ -407,6 +416,68 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       setShowSettings: (v) => set({ showSettings: v }),
+
+      fetchBoardMembers: async () => {
+        const { data } = await supabase.from('board_members').select('*').order('invited_at', { ascending: true })
+        if (data) {
+          const members: BoardMember[] = (data as Array<{
+            id: string; email: string; role: string; invited_by: string | null;
+            invited_at: string; joined_at: string | null; status: string
+          }>).map(row => ({
+            id: row.id,
+            email: row.email,
+            role: row.role as BoardMember['role'],
+            invitedBy: row.invited_by ?? undefined,
+            invitedAt: row.invited_at,
+            joinedAt: row.joined_at ?? undefined,
+            status: row.status as BoardMember['status'],
+          }))
+          set({ boardMembers: members })
+        }
+      },
+
+      /**
+       * Invite a member by email. Attempts Supabase Auth signUp (sends confirmation email),
+       * then inserts into board_members with status 'pending'.
+       */
+      inviteMember: async (email, role) => {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password: crypto.randomUUID(),
+          options: { emailRedirectTo: 'https://orion-launchpad.surge.sh' },
+        })
+        if (signUpError && !signUpError.message.includes('already registered') && !signUpError.message.includes('User already registered')) {
+          return { ok: false, error: signUpError.message }
+        }
+        const { error: dbError } = await supabase.from('board_members').insert({
+          email,
+          role,
+          invited_by: get().currentUser?.username ?? 'admin',
+          status: 'pending',
+        })
+        if (dbError) return { ok: false, error: dbError.message }
+        await get().fetchBoardMembers()
+        return { ok: true }
+      },
+
+      /**
+       * Remove a member from board_members by email.
+       */
+      removeMember: async (email) => {
+        await supabase.from('board_members').delete().eq('email', email)
+        set(state => ({ boardMembers: state.boardMembers.filter(m => m.email !== email) }))
+      },
+
+      /**
+       * Update a member's role in board_members.
+       */
+      updateMemberRole: async (email, role) => {
+        await supabase.from('board_members').update({ role }).eq('email', email)
+        set(state => ({
+          boardMembers: state.boardMembers.map(m => m.email === email ? { ...m, role } : m)
+        }))
+      },
+
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),
 
       setSwapTarget: (id) => set({ swapTarget: id }),
@@ -794,7 +865,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         isPrivate: state.isPrivate,
         currentUser: state.currentUser,
         lists: state.lists,
-
+        boardMembers: state.boardMembers,
       }),
     }
   )

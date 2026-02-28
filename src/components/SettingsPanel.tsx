@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Trash2 } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { Select } from './Select'
+import type { SelectOption } from './Select'
 
 const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
@@ -15,6 +17,7 @@ export function SettingsPanel() {
     currentUser,
     groups, addGroup, deleteGroup,
     clearProjects,
+    boardMembers, fetchBoardMembers, inviteMember, removeMember,
   } = useLaunchpadStore()
 
   // Board name editing
@@ -28,6 +31,38 @@ export function SettingsPanel() {
 
   // Danger zone
   const [confirmClear, setConfirmClear] = useState(false)
+
+  // Members section
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState<'member' | 'viewer'>('member')
+  const [inviting, setInviting] = useState(false)
+  const [inviteMsg, setInviteMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const roleOptions: SelectOption[] = [
+    { value: 'member', label: '✏️ Member' },
+    { value: 'viewer', label: '👁️ Viewer' },
+  ]
+
+  useEffect(() => {
+    if (showSettings && currentUser?.role === 'admin') {
+      fetchBoardMembers()
+    }
+  }, [showSettings, currentUser?.role, fetchBoardMembers])
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return
+    setInviting(true)
+    setInviteMsg(null)
+    const result = await inviteMember(inviteEmail.trim(), inviteRole)
+    setInviting(false)
+    if (result.ok) {
+      setInviteMsg({ ok: true, text: '✅ Invitation envoyée !' })
+      setInviteEmail('')
+    } else {
+      setInviteMsg({ ok: false, text: `❌ ${result.error ?? 'Erreur inconnue'}` })
+    }
+    setTimeout(() => setInviteMsg(null), 4000)
+  }
 
   const handleAddGroup = () => {
     if (!newGroupName.trim()) return
@@ -141,34 +176,92 @@ export function SettingsPanel() {
                 </div>
               </Section>
 
-              {/* Section 2 — Membres (if private) */}
-              {isPrivate && (
+              {/* Section 2 — Membres (admin only) */}
+              {currentUser?.role === 'admin' && (
                 <Section title="Membres">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {currentUser && (
-                      <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 12px',
-                        background: 'rgba(255,255,255,0.04)',
-                        borderRadius: 10,
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}>
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>👤 {currentUser.username}</span>
-                          <span style={{
-                            marginLeft: 8, fontSize: 10, fontWeight: 700,
-                            padding: '2px 7px', borderRadius: 999,
-                            background: currentUser.role === 'admin' ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.07)',
-                            color: currentUser.role === 'admin' ? '#E11F7B' : 'rgba(255,255,255,0.5)',
-                          }}>
-                            {currentUser.role}
-                          </span>
+                    {/* Member list */}
+                    {boardMembers.map(member => {
+                      const roleColor = member.role === 'admin' ? '#E11F7B' : member.role === 'member' ? '#7C3AED' : 'rgba(255,255,255,0.3)'
+                      const isCurrentUser = member.email === currentUser?.username
+                      return (
+                        <div key={member.id} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          background: 'rgba(255,255,255,0.04)',
+                          borderRadius: 10,
+                          border: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                            <span style={{ fontSize: 16 }}>{member.status === 'pending' ? '⏳' : '👤'}</span>
+                            <span style={{ fontSize: 12, color: '#fff', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {member.email}
+                            </span>
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
+                              background: roleColor + '22', color: roleColor, flexShrink: 0,
+                            }}>
+                              {member.role}
+                            </span>
+                            {member.status === 'pending' && (
+                              <span style={{ fontSize: 10, color: '#F59E0B', fontWeight: 600, flexShrink: 0 }}>En attente</span>
+                            )}
+                            {member.status === 'active' && (
+                              <span style={{ fontSize: 10, color: '#10B981', fontWeight: 600, flexShrink: 0 }}>Actif</span>
+                            )}
+                          </div>
+                          {!isCurrentUser && (
+                            <button
+                              onClick={() => removeMember(member.email)}
+                              style={{ background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.7)', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+                            >
+                              ✕
+                            </button>
+                          )}
                         </div>
+                      )
+                    })}
+
+                    {/* Invite form */}
+                    <div style={{
+                      padding: 12, borderRadius: 10,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4,
+                    }}>
+                      <input
+                        value={inviteEmail}
+                        onChange={e => setInviteEmail(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleInvite() }}
+                        placeholder="Email de l'invité..."
+                        style={inputStyle}
+                      />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Select
+                          value={inviteRole}
+                          onChange={v => setInviteRole(v as 'member' | 'viewer')}
+                          options={roleOptions}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          onClick={handleInvite}
+                          disabled={inviting || !inviteEmail.trim()}
+                          style={{
+                            padding: '10px 16px', borderRadius: 10,
+                            background: inviting ? 'rgba(225,31,123,0.5)' : '#E11F7B',
+                            border: 'none', color: '#fff', fontSize: 12, fontWeight: 700,
+                            cursor: inviting ? 'not-allowed' : 'pointer', flexShrink: 0,
+                          }}
+                        >
+                          {inviting ? '⏳' : 'Inviter →'}
+                        </button>
                       </div>
-                    )}
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
-                      Les membres sont gérés via Supabase Auth.
-                    </p>
+                      {inviteMsg && (
+                        <p style={{ margin: 0, fontSize: 12, color: inviteMsg.ok ? '#10B981' : '#EF4444', fontWeight: 600 }}>
+                          {inviteMsg.text}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </Section>
               )}
