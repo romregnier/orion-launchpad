@@ -113,7 +113,7 @@ export interface AgentChatMessage {
 }
 
 export type AgentTelegramToken = {
-  Nova:  '8619391852:AAFaZG0UKbJ3r7GvwrPuhtE-2W1fAekCTBo'
+  Nova:  '[NOVA_BOT_TOKEN]'
   Aria:  string   // à compléter
   Forge: string
   Rex:   string
@@ -347,7 +347,7 @@ Rendre le bouton delete visible en permanence sur mobile (pas uniquement au hove
 ```typescript
 // Mapping agent → Telegram token
 export const AGENT_TELEGRAM_TOKENS: Record<string, string> = {
-  Nova:  '8619391852:AAFaZG0UKbJ3r7GvwrPuhtE-2W1fAekCTBo',
+  Nova:  '[NOVA_BOT_TOKEN]',
   // Aria, Forge, Rex: à compléter par Romain
 }
 
