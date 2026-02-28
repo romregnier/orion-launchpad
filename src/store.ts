@@ -909,7 +909,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
     }),
     {
-      name: 'orion-launchpad',
+      name: 'orion-launchpad-v2',
       partialize: (state) => ({
         projects: state.projects,
         deletedIds: state.deletedIds,

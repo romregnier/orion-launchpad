@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { OrionAvatar3D } from './OrionAvatar3D'
 import { useLaunchpadStore } from '../store'
@@ -11,8 +11,21 @@ interface CanvasAgentAvatarProps {
   onEdit?: (agent: CanvasAgent) => void
 }
 
+/**
+ * Avatar draggable d'un agent sur le canvas.
+ *
+ * Deux modes :
+ * - **Idle** : l'agent est draggable, positionné sur le canvas selon `agent.position`.
+ * - **Working** : quand `agent.working_on_project` est défini, l'agent se déplace
+ *   automatiquement (style Warcraft 3) vers la ProjectCard correspondante, sous
+ *   celle-ci, aligné avec les autres agents qui travaillent sur le même projet.
+ *   Le drag est désactivé pendant ce mode.
+ *
+ * Le déplacement utilise une animation Framer Motion spring lente et fluide
+ * (stiffness 60) pour l'aller, et plus rapide (stiffness 120) pour le retour.
+ */
 export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: CanvasAgentAvatarProps) {
-  const { projects, updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping, setAgentWorkingOn } = useLaunchpadStore()
+  const { projects, canvasAgents, updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping, setAgentWorkingOn } = useLaunchpadStore()
   const [hovered, setHovered] = useState(false)
 
   // Local drag state for smooth visual feedback (no Supabase on every frame)
@@ -24,19 +37,60 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
   const isOwner = currentUser?.username === agent.owner
   const canEdit = isAdmin || isOwner
 
-  // Compute effective position: working_on_project overrides drag/store position
+  // ── Warcraft-style movement ────────────────────────────────────────────────
+
+  /** Projet sur lequel l'agent travaille actuellement. */
   const targetProject = agent.working_on_project
     ? projects.find(p => p.id === agent.working_on_project)
     : null
 
-  const effectivePos = targetProject
-    ? { x: targetProject.position.x + 98, y: targetProject.position.y - 90 }
-    : (dragPos ?? agent.position)
-
   const isWorking = !!targetProject
 
+  /**
+   * Index de cet agent parmi tous ceux qui travaillent sur le même projet.
+   * Permet de les aligner horizontalement sans chevauchement.
+   */
+  const workingAgentIndex = agent.working_on_project
+    ? canvasAgents
+        .filter(a => a.working_on_project === agent.working_on_project)
+        .findIndex(a => a.id === agent.id)
+    : 0
+
+  /**
+   * Position d'affichage calculée.
+   * - En mode working : sous la ProjectCard, décalée selon l'index.
+   * - En mode idle : position de drag ou position persistée.
+   */
+  const displayX = targetProject
+    ? targetProject.position.x + 10 + (workingAgentIndex * 44)
+    : (dragPos?.x ?? agent.position.x)
+
+  const displayY = targetProject
+    ? targetProject.position.y + 195  // juste sous la carte (hauteur ~180px + marge)
+    : (dragPos?.y ?? agent.position.y)
+
+  // ── Détection du mouvement pour l'effet "marche" ──────────────────────────
+
+  /** Indique si l'agent est en cours de déplacement (pour l'animation de marche). */
+  const [isMoving, setIsMoving] = useState(false)
+  const prevPosRef = useRef({ x: displayX, y: displayY })
+
+  useEffect(() => {
+    const moved =
+      Math.abs(displayX - prevPosRef.current.x) > 2 ||
+      Math.abs(displayY - prevPosRef.current.y) > 2
+    if (moved) {
+      setIsMoving(true)
+      prevPosRef.current = { x: displayX, y: displayY }
+      const t = setTimeout(() => setIsMoving(false), 800)
+      return () => clearTimeout(t)
+    }
+  }, [displayX, displayY])
+
+  // ── Drag handler ──────────────────────────────────────────────────────────
+
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (isWorking) return // non-draggable when working on a project
+    if (isWorking) return // ne pas drag un agent qui travaille
     e.stopPropagation()
     e.preventDefault()
     isDragging.current = true
@@ -88,8 +142,26 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
       data-no-drag
       className="canvas-agent-avatar"
       initial={false}
-      animate={{ x: effectivePos.x, y: effectivePos.y }}
-      transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+      animate={{
+        x: displayX,
+        y: displayY,
+        scale: isWorking ? 0.85 : 1,
+        rotate: isMoving ? [-2, 2, -2] : 0,
+      }}
+      transition={
+        isMoving
+          ? { rotate: { repeat: Infinity, duration: 0.3, ease: 'easeInOut' },
+              x: { type: 'spring', stiffness: isWorking ? 60 : 120, damping: isWorking ? 18 : 20, mass: isWorking ? 1.2 : 1 },
+              y: { type: 'spring', stiffness: isWorking ? 60 : 120, damping: isWorking ? 18 : 20, mass: isWorking ? 1.2 : 1 },
+              scale: { type: 'spring', stiffness: 120, damping: 20 },
+            }
+          : {
+              type: 'spring',
+              stiffness: isWorking ? 60 : 120,
+              damping: isWorking ? 18 : 20,
+              mass: isWorking ? 1.2 : 1,
+            }
+      }
       onMouseDown={onMouseDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -136,6 +208,21 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
         >
           {ownerInitial}
         </div>
+
+        {/* Indicateur visuel de déplacement */}
+        {isMoving && isWorking && (
+          <motion.div
+            animate={{ opacity: [0.6, 0], scale: [1, 1.5] }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '50%',
+              background: 'rgba(225,31,123,0.3)',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
 
         {/* Actions on hover — edit visible for admin or owner */}
         {hovered && canEdit && (
@@ -220,9 +307,11 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
           )}
         </div>
 
-        {/* Working badge */}
+        {/* Working badge — ⚡ quand en mouvement, 🔨 quand arrivé */}
         {isWorking && (
-          <div
+          <motion.div
+            animate={isMoving ? { opacity: [1, 0.5, 1] } : {}}
+            transition={isMoving ? { repeat: Infinity, duration: 0.6 } : {}}
             style={{
               background: 'rgba(225,31,123,0.2)',
               border: '1px solid rgba(225,31,123,0.4)',
@@ -234,8 +323,8 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
               whiteSpace: 'nowrap',
             }}
           >
-            ⚡ en cours
-          </div>
+            {isMoving ? '⚡ en route' : '🔨 en cours'}
+          </motion.div>
         )}
       </div>
     </motion.div>
