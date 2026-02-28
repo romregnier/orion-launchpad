@@ -4,7 +4,7 @@ import { useLaunchpadStore } from '../store'
 
 export function LoginScreen() {
   const { login, boardName } = useLaunchpadStore()
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState('romain')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -56,11 +56,11 @@ export function LoginScreen() {
 
         <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input
-            type="email"
+            type="text"
             value={email}
             onChange={e => { setEmail(e.target.value); setError(false) }}
-            placeholder="Adresse email"
-            autoComplete="email"
+            placeholder="Identifiant"
+            autoComplete="username"
             style={{
               width: '100%', boxSizing: 'border-box',
               background: 'rgba(255,255,255,0.05)',

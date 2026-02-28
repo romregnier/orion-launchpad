@@ -387,22 +387,26 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       /**
-       * Login via Supabase Auth.
-       * Admin role is assigned to romain@rive-studio.com.
+       * Login via SHA-256 — hash stocké dans Supabase board_settings (clé admin_hash).
+       * Fallback sur les membres locaux pour les autres users.
        */
-      login: async (email: string, password: string) => {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error || !data.user) return false
-        const role = data.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
-        set({ currentUser: { username: data.user.email ?? '', role } })
+      login: async (username: string, password: string) => {
+        const hash = await sha256(password)
+        // Vérifier le hash admin depuis Supabase (pas hardcodé dans le source)
+        const { data: setting } = await supabase.from('board_settings').select('value').eq('key', 'admin_hash').single()
+        const adminHash = setting?.value as string | undefined
+        if (adminHash && username === 'romain' && hash === adminHash) {
+          set({ currentUser: { username: 'romain', role: 'admin' } })
+          return true
+        }
+        // Vérifier les membres locaux
+        const member = get().members.find(m => m.username === username && m.passwordHash === hash)
+        if (!member) return false
+        set({ currentUser: { username: member.username, role: member.role } })
         return true
       },
 
-      /** Sign out from Supabase Auth */
-      logout: async () => {
-        await supabase.auth.signOut()
-        set({ currentUser: null })
-      },
+      logout: () => { set({ currentUser: null }) },
 
       setShowSettings: (v) => set({ showSettings: v }),
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),

@@ -382,18 +382,6 @@ export default function App() {
   // Restore auth session from Supabase and load initial isPrivate
   useEffect(() => {
     fetchProjects()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const store = useLaunchpadStore.getState()
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
-        store.currentUser ?? useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
-      } else if (event === 'SIGNED_OUT') {
-        useLaunchpadStore.setState({ currentUser: null })
-      }
-    })
-
-    return () => { subscription.unsubscribe() }
   }, [fetchProjects])
 
   if (isPrivate && !currentUser) return <LoginScreen />
