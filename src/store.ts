@@ -181,6 +181,8 @@ interface LaunchpadStore {
   restoreProject: (id: string) => void
   updatePosition: (id: string, x: number, y: number) => void
   syncPositionToDb: (id: string, x: number, y: number, type?: string) => void
+  /** Réorganise tous les projets et agents en grille propre et sauvegarde en DB */
+  tidyUp: () => Promise<void>
   subscribeToPositions: () => (() => void)
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>
   /** Fetch all ideas from Supabase */
@@ -390,6 +392,44 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         if (type === 'project') {
           supabase.from('projects').update({ position_x: x, position_y: y }).eq('id', id)
         }
+      },
+
+      /** Réorganise tous les projets et agents en grille propre et sauvegarde en DB */
+      tidyUp: async () => {
+        const { projects, canvasAgents } = get()
+        const COLS = 3
+        const CARD_W = 320, CARD_H = 200, GAP_X = 48, GAP_Y = 48
+        const START_X = 80, START_Y = 100
+        const username = useLaunchpadStore.getState().currentUser?.username ?? 'anon'
+
+        // Layout projets en grille
+        const updatedProjects = projects.map((proj, i) => {
+          const col = i % COLS
+          const row = Math.floor(i / COLS)
+          return { ...proj, position: { x: START_X + col * (CARD_W + GAP_X), y: START_Y + row * (CARD_H + GAP_Y) } }
+        })
+        set({ projects: updatedProjects })
+
+        // Layout agents en ligne sous les projets
+        const agentRows = Math.ceil(projects.length / COLS)
+        const agentY = START_Y + agentRows * (CARD_H + GAP_Y) + 60
+        const agentSpacing = 160
+        const agentStartX = START_X + 20
+        const updatedAgents = canvasAgents.map((agent, i) => ({
+          ...agent,
+          position: { x: agentStartX + i * agentSpacing, y: agentY },
+        }))
+        set({ canvasAgents: updatedAgents })
+
+        // Persister en DB (batch)
+        await Promise.all([
+          ...updatedProjects.map(p =>
+            supabase.from('card_positions').upsert({ id: p.id, type: 'project', position_x: p.position.x, position_y: p.position.y, updated_by: username, updated_at: new Date().toISOString() })
+          ),
+          ...updatedAgents.map(a =>
+            supabase.from('canvas_agents').update({ position_x: a.position.x, position_y: a.position.y, home_x: a.position.x, home_y: a.position.y }).eq('id', a.id)
+          ),
+        ])
       },
 
       /** Update a project optimistically and persist to Supabase */

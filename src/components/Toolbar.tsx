@@ -6,7 +6,7 @@
  * Props : scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount, onChat?
  */
 import { useState, useEffect } from 'react'
-import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings, MessageCircle } from 'lucide-react'
+import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings, MessageCircle, LayoutGrid } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { supabase } from '../lib/supabase'
@@ -20,6 +20,7 @@ interface Props {
   onAdd: () => void
   onAddList: () => void
   onAddAgent: () => void
+  onTidyUp: () => void
   projectCount: number
   /** Appelé au clic sur le bouton 💬 — pour ouvrir le panel de chat global */
   onChat?: () => void
@@ -28,29 +29,32 @@ interface Props {
 // ── MiniProgress ─────────────────────────────────────────────────────────────
 
 /**
- * Mini indicateur de tâches actives pour la Toolbar.
- * - Sans tâche active : affiche 🌟 {boardName}
+ * Mini indicateur de tâches dans la Toolbar.
+ * - Toujours visible : affiche le nombre de tâches actives ou "Agents en veille"
  * - Avec tâche active : affiche ⚡ agent · progress% + mini barre rose
- * Animé avec Framer Motion (fade entre les deux états).
  */
 function MiniProgress() {
-  const { activeBuildTasks, boardName } = useLaunchpadStore()
+  const { activeBuildTasks } = useLaunchpadStore()
   const activeTask = activeBuildTasks[0] ?? null
+  const taskCount = activeBuildTasks.length
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: '1px solid rgba(255,255,255,0.08)', minWidth: 0 }}>
       <AnimatePresence mode="wait">
         {!activeTask ? (
-          <motion.span
+          <motion.div
             key="idle"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            🌟 {boardName}
-          </motion.span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block' }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+              Agents en veille
+            </span>
+          </motion.div>
         ) : (
           <motion.div
             key="active"
@@ -62,8 +66,9 @@ function MiniProgress() {
           >
             <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
               ⚡ {activeTask.agent_key ?? 'agent'} · {Math.round(activeTask.progress)}%
+              {taskCount > 1 && <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}> +{taskCount - 1}</span>}
             </span>
-            <div style={{ width: 60, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+            <div style={{ width: 72, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${Math.min(100, activeTask.progress)}%`,
@@ -119,7 +124,7 @@ function useChatUnread(): boolean {
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
-export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount: _projectCount, onChat }: Props) {
+export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat }: Props) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
   const isVerySmall = typeof window !== 'undefined' && window.innerWidth < 380
   const { showSettings, setShowSettings, currentUser } = useLaunchpadStore()
@@ -157,10 +162,8 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       {/* Mini progress — desktop uniquement */}
       {!isMobile && <MiniProgress />}
 
-      {/* Mobile logo — compact */}
-      {isMobile && (
-        <span style={{ fontSize: 16, paddingRight: 6, borderRight: '1px solid rgba(255,255,255,0.08)', marginRight: 2 }}>🌟</span>
-      )}
+      {/* Mobile: compact task indicator */}
+      {isMobile && <MiniProgress />}
 
       {/* Zoom controls */}
       <button className="launchpad-toolbar__btn" onClick={onZoomOut} title="Zoom arrière" style={btnStyle(isMobile)}>
@@ -186,6 +189,11 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
 
       <button onClick={onRefresh} title="Rafraîchir" style={{ ...btnStyle(isMobile), marginLeft: isMobile ? 0 : 2 }}>
         <RefreshCw size={isMobile ? 12 : 14} />
+      </button>
+
+      {/* Tidy Up button — réorganise le canvas en grille */}
+      <button onClick={onTidyUp} title="Tidy up — Réorganiser" style={{ ...btnStyle(isMobile), color: 'rgba(255,255,255,0.5)' }}>
+        <LayoutGrid size={isMobile ? 12 : 14} />
       </button>
 
       {/* Settings button */}
