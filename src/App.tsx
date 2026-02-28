@@ -407,6 +407,9 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
+    // Timeout de sécurité : si getSession prend trop longtemps, on débloque quand même
+    const timeout = setTimeout(() => setAuthReady(true), 3000)
+
     // 1. Vérifier la session existante immédiatement (évite le flash)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -414,8 +417,9 @@ export default function App() {
         useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
         useLaunchpadStore.getState().fetchBoardMembers()
       }
+      clearTimeout(timeout)
       setAuthReady(true)
-    })
+    }).catch(() => { clearTimeout(timeout); setAuthReady(true) })
 
     // 2. Écouter les changements d'auth ultérieurs
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -439,7 +443,11 @@ export default function App() {
   }, [fetchProjects])
 
   // Attendre que l'auth soit résolue avant de rendre quoi que ce soit
-  if (!authReady) return null
+  if (!authReady) return (
+    <div style={{ width: '100vw', height: '100vh', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 32, animation: 'spin 1s linear infinite' }}>⚡</div>
+    </div>
+  )
   if (isPrivate && !currentUser) return <LoginScreen />
   return <LaunchpadCanvas />
 }
