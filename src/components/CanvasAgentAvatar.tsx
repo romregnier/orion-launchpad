@@ -3,6 +3,20 @@ import { motion } from 'framer-motion'
 import { OrionAvatar3D } from './OrionAvatar3D'
 import { useLaunchpadStore } from '../store'
 import type { CanvasAgent } from '../types'
+import { randomAvatarConfig } from '../utils/randomAvatar'
+
+/**
+ * Génère une config avatar déterministe basée sur le nom de l'agent.
+ * Même nom → même avatar (pas aléatoire).
+ *
+ * @param name - Nom de l'agent
+ * @returns AvatarConfig déterministe
+ */
+function seededConfig(name: string) {
+  const knownSeeds: Record<string, number> = { orion: 1, nova: 2, aria: 3, forge: 4, rex: 5 }
+  const seed = knownSeeds[name.toLowerCase()] ?? Math.abs(name.charCodeAt(0))
+  return randomAvatarConfig(seed)
+}
 
 interface CanvasAgentAvatarProps {
   agent: CanvasAgent
@@ -184,7 +198,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
     >
       {/* Avatar */}
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
-        <OrionAvatar3D size={64} avatarConfig={agent.tailor_config as Record<string, unknown> | null | undefined} />
+        <OrionAvatar3D size={64} avatarConfig={(agent.tailor_config ?? seededConfig(agent.name)) as Record<string, unknown>} />
 
         {/* Owner badge */}
         <div

@@ -15,8 +15,20 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
-export function ChatPanel() {
+interface ChatPanelProps {
+  /** Si défini, contrôle l'ouverture depuis l'extérieur */
+  open?: boolean
+  /** Appelé quand le panel se ferme en interne */
+  onClose?: () => void
+}
+
+export function ChatPanel({ open: externalOpen, onClose }: ChatPanelProps = {}) {
   const [open, setOpen] = useState(false)
+
+  // Sync avec l'état externe (bouton Toolbar)
+  useEffect(() => {
+    if (externalOpen !== undefined) setOpen(externalOpen)
+  }, [externalOpen])
   const [messages, setMessages] = useState<DbMessage[]>([])
   const [text, setText] = useState('')
   const [unread, setUnread] = useState(0)
@@ -78,7 +90,7 @@ export function ChatPanel() {
     <>
       {/* Toggle button */}
       <motion.button
-        onClick={open ? () => setOpen(false) : handleOpen}
+        onClick={open ? () => { setOpen(false); onClose?.() } : handleOpen}
         style={{
           position: 'fixed', bottom: 24, right: 24,
           width: 48, height: 48, borderRadius: '50%',
@@ -131,7 +143,7 @@ export function ChatPanel() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Chat du Launchpad 🌟</div>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#10B981' : '#6b7280' }} title={connected ? 'Connecté' : 'Hors ligne'} />
               </div>
-              <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'flex', padding: 4 }}>
+              <button onClick={() => { setOpen(false); onClose?.() }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'flex', padding: 4 }}>
                 <X size={14} />
               </button>
             </div>

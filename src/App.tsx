@@ -35,6 +35,7 @@ function LaunchpadCanvas() {
   const [isPanning, setIsPanning] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showAddList, setShowAddList] = useState(false)
+  const [showGlobalChat, setShowGlobalChat] = useState(false)
   const [chatAgent, setChatAgent] = useState<CanvasAgent | null>(null)
   const [showBotModal, setShowBotModal] = useState(false)
   const [editingAgent, setEditingAgent] = useState<CanvasAgent | null>(null)
@@ -195,6 +196,7 @@ function LaunchpadCanvas() {
         onAddList={() => setShowAddList(true)}
         onAddAgent={() => { setEditingAgent(null); setShowBotModal(true) }}
         projectCount={projects.length}
+        onChat={() => setShowGlobalChat(v => !v)}
       />
 
       {/* ── Top navbar ───────────────────────────────────────────────────────── */}
@@ -350,7 +352,7 @@ function LaunchpadCanvas() {
       <AddListModal open={showAddList} onClose={() => setShowAddList(false)} />
       <AddProjectModal open={showAdd} onClose={() => setShowAdd(false)} defaultPosition={newCardPosition} />
 
-      <ChatPanel />
+      <ChatPanel open={showGlobalChat} onClose={() => setShowGlobalChat(false)} />
       <SettingsPanel />
       <BuildStatusWidget />
 

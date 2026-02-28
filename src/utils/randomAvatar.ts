@@ -1,10 +1,13 @@
 import type { AvatarConfig } from '../types'
 
 /**
- * Génère une config avatar aléatoire compatible avec The Tailor / OrionAvatar3D.
- * Utilisé lors de la création d'un agent canvas pour lui donner une apparence unique.
+ * Génère une config avatar compatible avec The Tailor / OrionAvatar3D.
+ *
+ * @param seed - Seed optionnel pour un résultat déterministe (même seed → même avatar).
+ *               Si omis, génère un avatar aléatoire.
+ * @returns AvatarConfig
  */
-export function randomAvatarConfig(): AvatarConfig {
+export function randomAvatarConfig(seed?: number): AvatarConfig {
   const bodyShapes = ['blob', 'star', 'heart', 'ghost', 'crystal', 'flame', 'cloud'] as const
   const eyeStyles = ['cute', 'star', 'sleepy', 'pixel', 'heart', 'cyclops'] as const
   const eyeColors = ['blue', 'green', 'red', 'gold', 'rainbow'] as const
@@ -16,15 +19,22 @@ export function randomAvatarConfig(): AvatarConfig {
   const skinPatterns = ['none', 'glow', 'sparkle'] as const
   const ambianceStyles = ['space', 'sunset', 'forest', 'void'] as const
 
-  const pick = <T>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
+  /** LCG pseudo-random generator seeded by an integer */
+  let s = seed ?? Math.floor(Math.random() * 2147483647)
+  const rng = (): number => {
+    s = (s * 16807 + 0) % 2147483647
+    return (s - 1) / 2147483646
+  }
 
-  const h = Math.floor(Math.random() * 360)
-  const s = 60 + Math.floor(Math.random() * 30) // 60-90%
-  const l = 50 + Math.floor(Math.random() * 20) // 50-70%
+  const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)]
+
+  const h = Math.floor(rng() * 360)
+  const sat = 60 + Math.floor(rng() * 30) // 60-90%
+  const l = 50 + Math.floor(rng() * 20) // 50-70%
 
   return {
     bodyShape: pick(bodyShapes),
-    color: { h, s, l },
+    color: { h, s: sat, l },
     eyes: pick(eyeStyles),
     eyeColor: pick(eyeColors),
     blush: pick(blushStyles),
@@ -35,6 +45,6 @@ export function randomAvatarConfig(): AvatarConfig {
     animation: pick(animationStyles),
     skinPattern: pick(skinPatterns),
     ambiance: pick(ambianceStyles),
-    bodyScale: 0.85 + Math.random() * 0.3, // 0.85 - 1.15
+    bodyScale: 0.85 + rng() * 0.3, // 0.85 - 1.15
   }
 }

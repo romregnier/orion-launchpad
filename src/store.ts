@@ -313,14 +313,22 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         return () => { supabase.removeChannel(ch) }
       },
 
-      /** Add a project optimistically and persist to Supabase */
+      /** Add a project optimistically and persist to Supabase.
+       * Si la position est (0, 0), calcule une position libre pour éviter les chevauchements.
+       */
       addProject: async (project) => {
+        let finalProject = project
+        if (project.position.x === 0 && project.position.y === 0) {
+          const allObjects = getAllCanvasObjectsFromState(get())
+          const freePos = findFreePosition(allObjects)
+          finalProject = { ...project, position: freePos }
+        }
         set((state) => ({
-          projects: [...state.projects, project],
-          deletedIds: state.deletedIds.filter((id) => id !== project.id),
-          deletedProjects: state.deletedProjects.filter((p) => p.id !== project.id),
+          projects: [...state.projects, finalProject],
+          deletedIds: state.deletedIds.filter((id) => id !== finalProject.id),
+          deletedProjects: state.deletedProjects.filter((p) => p.id !== finalProject.id),
         }))
-        await supabase.from('projects').insert(projectToRow(project))
+        await supabase.from('projects').insert(projectToRow(finalProject))
       },
 
       /** Remove a project optimistically and delete from Supabase */
