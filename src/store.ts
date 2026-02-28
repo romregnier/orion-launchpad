@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Project, ListWidget, ListType, CanvasAgent } from './types'
-import { sha256 } from './utils/hash'
 import { supabase } from './lib/supabase'
 
 export interface CanvasObject {
@@ -38,25 +37,19 @@ export interface Group {
 export interface Member {
   id: string
   username: string
-  passwordHash: string // SHA-256 hex
+  passwordHash: string
   role: 'admin' | 'member'
   createdAt: number
 }
-
-const REMOTE_PROJECTS_URL =
-  'https://raw.githubusercontent.com/romregnier/orion-launchpad/main/projects.json'
 
 export interface Idea {
   id: string
   text: string
   author: string
   votes: number
-  votedBy: string[] // session IDs qui ont voté
+  votedBy: string[]
   createdAt: string
 }
-
-// SHA-256 of 'e2DLvDdrbkHZ2Whkimww9QVU'
-const ROMAIN_HASH = 'a2a4bcf7d4cf2f8df876e9134bc71509978782612bcdf0d341d3f112d6c28d90'
 
 /** Tâche build active — dérivée de la table build_tasks */
 export interface ActiveBuildTask {
@@ -70,9 +63,67 @@ export interface ActiveBuildTask {
   project?: string | null
 }
 
+// ── Row types for DB mapping ─────────────────────────────────────────────────
+
+interface ProjectRow {
+  id: string
+  url: string
+  title: string
+  description: string | null
+  image: string | null
+  favicon: string | null
+  added_by: string | null
+  added_at: number | null
+  position_x: number
+  position_y: number
+  color: string | null
+  github: string | null
+  tags: string[] | null
+  group_id: string | null
+}
+
+/** Convert a DB row to a Project */
+function rowToProject(row: ProjectRow): Project {
+  return {
+    id: row.id,
+    url: row.url,
+    title: row.title,
+    description: row.description ?? undefined,
+    image: row.image ?? undefined,
+    favicon: row.favicon ?? undefined,
+    addedBy: row.added_by ?? undefined,
+    addedAt: row.added_at ?? Date.now(),
+    position: { x: row.position_x, y: row.position_y },
+    color: row.color ?? undefined,
+    github: row.github ?? undefined,
+    tags: row.tags ?? [],
+    groupId: row.group_id ?? undefined,
+  }
+}
+
+/** Convert a Project to a DB row */
+function projectToRow(p: Project): Omit<ProjectRow, 'added_at'> & { added_at: number } {
+  return {
+    id: p.id,
+    url: p.url,
+    title: p.title,
+    description: p.description ?? null,
+    image: p.image ?? null,
+    favicon: p.favicon ?? null,
+    added_by: p.addedBy ?? 'human',
+    added_at: p.addedAt,
+    position_x: p.position.x,
+    position_y: p.position.y,
+    color: p.color ?? null,
+    github: p.github ?? null,
+    tags: p.tags ?? [],
+    group_id: p.groupId ?? null,
+  }
+}
+
 interface LaunchpadStore {
   projects: Project[]
-  deletedProjects: Project[]  // projets retirés du canvas (pas supprimés de GitHub)
+  deletedProjects: Project[]
   deletedIds: string[]
   remoteLoaded: boolean
   ideas: Idea[]
@@ -85,14 +136,17 @@ interface LaunchpadStore {
   members: Member[]
   currentUser: { username: string; role: 'admin' | 'member' } | null
   showSettings: boolean
-  addProject: (project: Project) => void
-  removeProject: (id: string) => void
+  /** Fetch all projects from Supabase and update local state */
+  fetchProjects: () => Promise<void>
+  /** Subscribe to Supabase Realtime for projects — returns unsubscribe fn */
+  subscribeToProjects: () => () => void
+  addProject: (project: Project) => Promise<void>
+  removeProject: (id: string) => Promise<void>
   restoreProject: (id: string) => void
   updatePosition: (id: string, x: number, y: number) => void
   syncPositionToDb: (id: string, x: number, y: number, type?: string) => void
   subscribeToPositions: () => (() => void)
-  updateProject: (id: string, updates: Partial<Project>) => void
-  fetchRemote: () => Promise<void>
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>
   addIdea: (text: string, author: string) => void
   deleteIdea: (id: string) => void
   voteIdea: (id: string, sessionId: string) => void
@@ -105,10 +159,8 @@ interface LaunchpadStore {
   setGroupFilter: (groupId: string | null) => void
   setBoardName: (name: string) => void
   setPrivate: (v: boolean) => void
-  addMember: (username: string, passwordHash: string, role: 'admin' | 'member') => void
-  removeMember: (id: string) => void
-  login: (username: string, password: string) => Promise<boolean>
-  logout: () => void
+  login: (email: string, password: string) => Promise<boolean>
+  logout: () => Promise<void>
   setShowSettings: (v: boolean) => void
   clearProjects: () => void
   swapTarget: string | null
@@ -161,28 +213,62 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       boardName: 'Mon Launchpad',
       isPrivate: false,
       currentUser: null,
-      members: [
-        {
-          id: 'member-romain',
-          username: 'romain',
-          passwordHash: ROMAIN_HASH,
-          role: 'admin',
-          createdAt: Date.now(),
-        }
-      ],
+      members: [],
       showSettings: false,
       activeBuildTasks: [],
       canvasAgents: [],
       lists: [],
 
-      addProject: (project) =>
+      /**
+       * Fetch all projects from Supabase and hydrate local state.
+       * Also loads isPrivate from board_settings.
+       */
+      fetchProjects: async () => {
+        // Load isPrivate from Supabase
+        try {
+          const { data: settings } = await supabase.from('board_settings').select('value').eq('key', 'isPrivate').single()
+          if (settings) {
+            const serverPrivate = settings.value === true || settings.value === 'true'
+            if (serverPrivate !== get().isPrivate) set({ isPrivate: serverPrivate })
+          }
+        } catch { /* ignore */ }
+
+        const { data } = await supabase.from('projects').select('*')
+        if (data) {
+          const projects = (data as ProjectRow[]).map(rowToProject)
+          set({ projects, remoteLoaded: true })
+        } else {
+          set({ remoteLoaded: true })
+        }
+      },
+
+      /**
+       * Subscribe to Supabase Realtime for the projects table.
+       * Performs an initial fetch, then re-fetches on any change.
+       * Returns an unsubscribe function.
+       */
+      subscribeToProjects: () => {
+        get().fetchProjects()
+        const ch = supabase.channel('projects_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+            get().fetchProjects()
+          })
+          .subscribe()
+        return () => { supabase.removeChannel(ch) }
+      },
+
+      /** Add a project optimistically and persist to Supabase */
+      addProject: async (project) => {
         set((state) => ({
           projects: [...state.projects, project],
           deletedIds: state.deletedIds.filter((id) => id !== project.id),
           deletedProjects: state.deletedProjects.filter((p) => p.id !== project.id),
-        })),
+        }))
+        await supabase.from('projects').insert(projectToRow(project))
+      },
 
-      removeProject: (id) =>
+      /** Remove a project optimistically and delete from Supabase */
+      removeProject: async (id) => {
         set((state) => {
           const project = state.projects.find((p) => p.id === id)
           return {
@@ -190,7 +276,9 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
             deletedIds: [...state.deletedIds, id],
             deletedProjects: project ? [...state.deletedProjects, project] : state.deletedProjects,
           }
-        }),
+        })
+        await supabase.from('projects').delete().eq('id', id)
+      },
 
       restoreProject: (id) =>
         set((state) => {
@@ -203,55 +291,45 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           }
         }),
 
-      // Direct position set — anti-overlap handled by pushOverlapping() on drop
       updatePosition: (id, x, y) => {
         set((state) => ({
           projects: state.projects.map((p) => p.id === id ? { ...p, position: { x, y } } : p),
         }))
       },
 
-      // Sync position to Supabase (called on drop only, not during drag)
       syncPositionToDb: (id, x, y, type = 'project') => {
         const username = useLaunchpadStore.getState().currentUser?.username ?? 'anon'
         supabase.from('card_positions').upsert({ id, type, position_x: x, position_y: y, updated_by: username, updated_at: new Date().toISOString() })
+        // For projects, also update the projects table
+        if (type === 'project') {
+          supabase.from('projects').update({ position_x: x, position_y: y }).eq('id', id)
+        }
       },
 
-      updateProject: (id, updates) =>
+      /** Update a project optimistically and persist to Supabase */
+      updateProject: async (id, updates) => {
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === id ? { ...p, ...updates } : p
           ),
-        })),
-
-      fetchRemote: async () => {
-        try {
-          // Charger isPrivate depuis Supabase (source de vérité globale)
-          const { data: settings } = await supabase.from('board_settings').select('value').eq('key', 'isPrivate').single()
-          if (settings) {
-            const serverPrivate = settings.value === true || settings.value === 'true'
-            if (serverPrivate !== get().isPrivate) set({ isPrivate: serverPrivate })
-          }
-        } catch { /* ignore */ }
-        try {
-          const res = await fetch(REMOTE_PROJECTS_URL)
-          if (!res.ok) { set({ remoteLoaded: true }); return }
-          const remote: Project[] = await res.json()
-          const { projects: local, deletedIds } = get()
-          const filtered = remote.filter((rp) => !deletedIds.includes(rp.id))
-          const merged = [...filtered]
-          local.forEach((lp) => {
-            if (deletedIds.includes(lp.id)) return
-            if (!merged.find((rp) => rp.id === lp.id)) {
-              merged.push(lp)
-            } else {
-              const idx = merged.findIndex((p) => p.id === lp.id)
-              merged[idx] = { ...merged[idx], position: lp.position }
-            }
-          })
-          set({ projects: merged, remoteLoaded: true })
-        } catch {
-          set({ remoteLoaded: true })
+        }))
+        // Build partial row from updates
+        const rowUpdates: Partial<ProjectRow> = {}
+        if (updates.url !== undefined) rowUpdates.url = updates.url
+        if (updates.title !== undefined) rowUpdates.title = updates.title
+        if (updates.description !== undefined) rowUpdates.description = updates.description ?? null
+        if (updates.image !== undefined) rowUpdates.image = updates.image ?? null
+        if (updates.favicon !== undefined) rowUpdates.favicon = updates.favicon ?? null
+        if (updates.addedBy !== undefined) rowUpdates.added_by = updates.addedBy ?? null
+        if (updates.color !== undefined) rowUpdates.color = updates.color ?? null
+        if (updates.github !== undefined) rowUpdates.github = updates.github ?? null
+        if (updates.tags !== undefined) rowUpdates.tags = updates.tags ?? []
+        if (updates.groupId !== undefined) rowUpdates.group_id = updates.groupId ?? null
+        if (updates.position !== undefined) {
+          rowUpdates.position_x = updates.position.x
+          rowUpdates.position_y = updates.position.y
         }
+        await supabase.from('projects').update(rowUpdates).eq('id', id)
       },
 
       addIdea: (text, author) =>
@@ -300,34 +378,32 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       setBoardName: (name) => set({ boardName: name }),
       setPrivate: (v) => {
-        // Persister dans Supabase pour que tous les clients voient le même état
         supabase.from('board_settings').upsert({ key: 'isPrivate', value: v }).then(() => {})
-        // When enabling private mode, auto-login the first admin so the current session isn't kicked
         if (v && !get().currentUser) {
-          const admin = get().members.find(m => m.role === 'admin')
-          if (admin) {
-            set({ isPrivate: v, currentUser: { username: admin.username, role: admin.role } })
-            return
-          }
+          set({ isPrivate: v })
+          return
         }
         set({ isPrivate: v })
       },
-      addMember: (username, passwordHash, role) => set((state) => ({
-        members: [...state.members, { id: `member-${Date.now()}`, username, passwordHash, role, createdAt: Date.now() }]
-      })),
-      removeMember: (id) => set((state) => ({
-        members: state.members.filter(m => m.id !== id)
-      })),
-      login: async (username, password) => {
-        const hash = await sha256(password)
-        const member = get().members.find(m => m.username === username && m.passwordHash === hash)
-        if (member) {
-          set({ currentUser: { username: member.username, role: member.role } })
-          return true
-        }
-        return false
+
+      /**
+       * Login via Supabase Auth.
+       * Admin role is assigned to romain@launchpad.app.
+       */
+      login: async (email: string, password: string) => {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error || !data.user) return false
+        const role = data.user.email === 'romain@launchpad.app' ? 'admin' : 'member'
+        set({ currentUser: { username: data.user.email ?? '', role } })
+        return true
       },
-      logout: () => set({ currentUser: null }),
+
+      /** Sign out from Supabase Auth */
+      logout: async () => {
+        await supabase.auth.signOut()
+        set({ currentUser: null })
+      },
+
       setShowSettings: (v) => set({ showSettings: v }),
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),
 
@@ -374,7 +450,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       updateAgentPosition: async (id, x, y) => {
-        // Mise à jour optimiste : visuel instantané, Supabase en arrière-plan
         set(state => ({
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, position: { x, y } } : a),
         }))
@@ -440,7 +515,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       setAgentWorkingOn: async (agentId, projectId) => {
         const state = get()
         const agent = state.canvasAgents.find(a => a.id === agentId)
-        // Sauvegarder la home position avant de se déplacer (si pas déjà sauvegardée)
         const homeUpdate: Record<string, unknown> = { working_on_project: projectId }
         if (projectId && agent && !agent.home_x) {
           homeUpdate.home_x = agent.position.x
@@ -454,7 +528,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         await supabase.from('canvas_agents').update(homeUpdate).eq('id', agentId)
       },
 
-      // Retour à la home position après fin de tâche
       returnAgentHome: async (agentId) => {
         const agent = get().canvasAgents.find(a => a.id === agentId)
         if (!agent) return
@@ -552,9 +625,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         }),
       })),
 
-      // Souscription aux positions temps réel — à appeler au montage de l'app
       subscribeToPositions: () => {
-        // Charger les positions depuis Supabase au démarrage
         supabase.from('card_positions').select('*').then(({ data }) => {
           if (!data) return
           set(state => {
@@ -563,7 +634,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
             let lists = state.lists
             let ideaPos = state.ideaWidgetPosition
             for (const row of data) {
-              // Ne pas écraser une position qu'on vient de déposer nous-mêmes
               if (row.updated_by === myUser) continue
               if (row.type === 'project') {
                 projects = projects.map(p => p.id === row.id ? { ...p, position: { x: row.position_x, y: row.position_y } } : p)
@@ -577,7 +647,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           })
         })
 
-        // Écoute les changements en temps réel
         const channel = supabase.channel('card_positions_rt')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'card_positions' }, ({ new: row }) => {
             const myUser = useLaunchpadStore.getState().currentUser?.username ?? 'anon'
@@ -618,10 +687,8 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const CANVAS_PAD = 8
         const MAX_PASSES = 8
 
-        // Include all movable objects: projects + lists + idea + agents
         const objects = getAllCanvasObjectsFromState(state)
 
-        // Build mutable positions map (dragged gets new position)
         const positions = new Map<string, { x: number; y: number }>()
         for (const obj of objects) {
           positions.set(obj.id, { x: obj.x, y: obj.y })
@@ -630,7 +697,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
         const getObj = (id: string) => objects.find(o => o.id === id)
 
-        // Helper: push one object away from another
         const pushPair = (srcId: string, tgtId: string): boolean => {
           const src = getObj(srcId)
           const tgt = getObj(tgtId)
@@ -665,9 +731,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           return true
         }
 
-        // Multi-pass BFS: resolve cascading overlaps up to MAX_PASSES
-        // Pass 0: push objects overlapping with the dragged card (dragged is frozen)
-        // Pass 1+: push objects that now overlap each other due to previous pushes
         const movedInLastPass = new Set<string>([draggedId])
 
         for (let pass = 0; pass < MAX_PASSES; pass++) {
@@ -682,12 +745,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
             }
           }
 
-          if (movedThisPass.size === 0) break // stable — no more overlaps
+          if (movedThisPass.size === 0) break
           movedInLastPass.clear()
           for (const id of movedThisPass) movedInLastPass.add(id)
         }
 
-        // Apply positions — dragged keeps its own position, others get pushed
         const newProjects = state.projects.map(p => {
           if (p.id === draggedId) return p
           const pos = positions.get(p.id)
@@ -700,7 +762,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         })
         const ideaPos = draggedId === 'idea-widget' ? undefined : positions.get('idea-widget')
 
-        // Apply to agents (fire-and-forget Supabase updates for pushed agents)
         const newAgents = state.canvasAgents.map(a => {
           if (a.id === draggedId) return a
           const pos = positions.get(a.id)
@@ -729,7 +790,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         activeGroup: state.activeGroup,
         boardName: state.boardName,
         isPrivate: state.isPrivate,
-        members: state.members,
         currentUser: state.currentUser,
         lists: state.lists,
       }),

@@ -1,38 +1,24 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Trash2 } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
-import { sha256 } from '../utils/hash'
-import { Select } from './Select'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 
 const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
-
-function generatePassword(): string {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
 
 export function SettingsPanel() {
   const {
     showSettings, setShowSettings,
     boardName, setBoardName,
     isPrivate, setPrivate,
-    members, addMember, removeMember,
+    currentUser,
     groups, addGroup, deleteGroup,
     clearProjects,
   } = useLaunchpadStore()
 
   // Board name editing
   const [editingName, setEditingName] = useState(boardName)
-
-  // Member form
-  const [showMemberForm, setShowMemberForm] = useState(false)
-  const [newUsername, setNewUsername] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [newRole, setNewRole] = useState<'admin' | 'member'>('member')
-  const [copiedPassword, setCopiedPassword] = useState(false)
 
   // Group form
   const [showGroupForm, setShowGroupForm] = useState(false)
@@ -43,16 +29,6 @@ export function SettingsPanel() {
   // Danger zone
   const [confirmClear, setConfirmClear] = useState(false)
 
-  const handleAddMember = useCallback(async () => {
-    if (!newUsername.trim() || !newPassword.trim()) return
-    const hash = await sha256(newPassword)
-    addMember(newUsername.trim(), hash, newRole)
-    setNewUsername('')
-    setNewPassword('')
-    setNewRole('member')
-    setShowMemberForm(false)
-  }, [newUsername, newPassword, newRole, addMember])
-
   const handleAddGroup = () => {
     if (!newGroupName.trim()) return
     addGroup({ name: newGroupName.trim(), color: newGroupColor, emoji: newGroupEmoji })
@@ -62,20 +38,8 @@ export function SettingsPanel() {
     setShowGroupForm(false)
   }
 
-  const handleGeneratePassword = () => {
-    const pwd = generatePassword()
-    setNewPassword(pwd)
-  }
-
-  const handleCopyPassword = () => {
-    navigator.clipboard.writeText(newPassword).then(() => {
-      setCopiedPassword(true)
-      setTimeout(() => setCopiedPassword(false), 2000)
-    })
-  }
-
-  // Push notifications — userId = premier membre (admin) ou null
-  const currentUserId = members.length > 0 ? members[0].username : null
+  // Push notifications
+  const currentUserId = currentUser?.username ?? null
   const { permission, subscribed, subscribe } = usePushNotifications(currentUserId)
 
   const handleClearCanvas = () => {
@@ -181,8 +145,8 @@ export function SettingsPanel() {
               {isPrivate && (
                 <Section title="Membres">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {members.map(member => (
-                      <div key={member.id} style={{
+                    {currentUser && (
+                      <div style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '10px 12px',
                         background: 'rgba(255,255,255,0.04)',
@@ -190,128 +154,21 @@ export function SettingsPanel() {
                         border: '1px solid rgba(255,255,255,0.06)',
                       }}>
                         <div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>👤 {member.username}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>👤 {currentUser.username}</span>
                           <span style={{
                             marginLeft: 8, fontSize: 10, fontWeight: 700,
                             padding: '2px 7px', borderRadius: 999,
-                            background: member.role === 'admin' ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.07)',
-                            color: member.role === 'admin' ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+                            background: currentUser.role === 'admin' ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.07)',
+                            color: currentUser.role === 'admin' ? '#E11F7B' : 'rgba(255,255,255,0.5)',
                           }}>
-                            {member.role}
+                            {currentUser.role}
                           </span>
-                        </div>
-                        {member.id !== 'member-romain' && (
-                          <button
-                            onClick={() => removeMember(member.id)}
-                            style={{ background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.7)', cursor: 'pointer', padding: 4 }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-
-                    {!showMemberForm ? (
-                      <button
-                        onClick={() => setShowMemberForm(true)}
-                        style={{
-                          padding: '8px 12px', borderRadius: 10,
-                          background: 'rgba(225,31,123,0.1)',
-                          border: '1px dashed rgba(225,31,123,0.3)',
-                          color: '#E11F7B', fontSize: 12, fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        + Inviter un membre
-                      </button>
-                    ) : (
-                      <div style={{
-                        padding: 12, borderRadius: 10,
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        display: 'flex', flexDirection: 'column', gap: 8,
-                      }}>
-                        <input
-                          value={newUsername}
-                          onChange={e => setNewUsername(e.target.value)}
-                          placeholder="Nom d'utilisateur"
-                          style={inputStyle}
-                        />
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <input
-                            value={newPassword}
-                            onChange={e => setNewPassword(e.target.value)}
-                            placeholder="Mot de passe"
-                            style={{ ...inputStyle, flex: 1 }}
-                          />
-                          <button
-                            onClick={handleGeneratePassword}
-                            style={{
-                              padding: '0 10px', borderRadius: 8,
-                              background: 'rgba(255,255,255,0.07)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                              color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 600,
-                              cursor: 'pointer', whiteSpace: 'nowrap',
-                            }}
-                          >
-                            Générer
-                          </button>
-                        </div>
-                        {newPassword && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <code style={{
-                              flex: 1, padding: '6px 10px', borderRadius: 8,
-                              background: 'rgba(255,255,255,0.05)',
-                              color: '#10B981', fontSize: 11, fontFamily: 'monospace',
-                            }}>
-                              {newPassword}
-                            </code>
-                            <button
-                              onClick={handleCopyPassword}
-                              style={{
-                                padding: '6px 10px', borderRadius: 8,
-                                background: copiedPassword ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.07)',
-                                border: 'none', color: copiedPassword ? '#10B981' : 'rgba(255,255,255,0.5)',
-                                fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                              }}
-                            >
-                              {copiedPassword ? '✓ Copié' : 'Copier'}
-                            </button>
-                          </div>
-                        )}
-                        <Select
-                          value={newRole}
-                          onChange={v => setNewRole(v as 'admin' | 'member')}
-                          options={[
-                            { value: 'member', label: 'Membre' },
-                            { value: 'admin', label: 'Admin' },
-                          ]}
-                        />
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            onClick={handleAddMember}
-                            style={{
-                              flex: 1, padding: '8px', borderRadius: 8,
-                              background: '#E11F7B', color: '#fff',
-                              border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                            }}
-                          >
-                            Ajouter
-                          </button>
-                          <button
-                            onClick={() => { setShowMemberForm(false); setNewUsername(''); setNewPassword('') }}
-                            style={{
-                              padding: '8px 12px', borderRadius: 8,
-                              background: 'rgba(255,255,255,0.05)',
-                              border: 'none', color: 'rgba(255,255,255,0.4)',
-                              fontSize: 12, cursor: 'pointer',
-                            }}
-                          >
-                            Annuler
-                          </button>
                         </div>
                       </div>
                     )}
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+                      Les membres sont gérés via Supabase Auth.
+                    </p>
                   </div>
                 </Section>
               )}

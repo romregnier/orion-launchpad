@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLaunchpadStore } from './store'
+import { supabase } from './lib/supabase'
 import { ProjectCard } from './components/ProjectCard'
 import { AddProjectModal } from './components/AddProjectModal'
 import { Toolbar } from './components/Toolbar'
@@ -26,7 +27,7 @@ const SCALE_STEP = 0.15
 
 // ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -43,15 +44,15 @@ function LaunchpadCanvas() {
 
   useEffect(() => {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
-    fetchRemote()
-  }, [fetchRemote])
+  }, [])
 
   useEffect(() => {
+    const unsubProjects = subscribeToProjects()
     const unsub = subscribeToAgents()
     const unsubPos = subscribeToPositions()
     const unsubTasks = subscribeToBuildTasks()
-    return () => { unsub(); unsubPos(); unsubTasks() }
-  }, [subscribeToAgents, subscribeToPositions, subscribeToBuildTasks])
+    return () => { unsubProjects(); unsub(); unsubPos(); unsubTasks() }
+  }, [subscribeToProjects, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks])
 
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
   const visibleProjects = projects.filter(p => {
@@ -189,7 +190,7 @@ function LaunchpadCanvas() {
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onReset={resetView}
-        onRefresh={() => fetchRemote()}
+        onRefresh={() => subscribeToProjects()}
         onAdd={() => setShowAdd(true)}
         onAddList={() => setShowAddList(true)}
         onAddAgent={() => { setEditingAgent(null); setShowBotModal(true) }}
@@ -376,12 +377,24 @@ function LaunchpadCanvas() {
 
 // ── App root — auth routing uniquement ────────────────────────────────────────
 export default function App() {
-  const { isPrivate, currentUser, fetchRemote } = useLaunchpadStore()
+  const { isPrivate, currentUser, fetchProjects } = useLaunchpadStore()
 
-  // Charger isPrivate depuis Supabase au démarrage
+  // Restore auth session from Supabase and load initial isPrivate
   useEffect(() => {
-    fetchRemote()
-  }, [fetchRemote])
+    fetchProjects()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const store = useLaunchpadStore.getState()
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        const role = session.user.email === 'romain@launchpad.app' ? 'admin' : 'member'
+        store.currentUser ?? useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
+      } else if (event === 'SIGNED_OUT') {
+        useLaunchpadStore.setState({ currentUser: null })
+      }
+    })
+
+    return () => { subscription.unsubscribe() }
+  }, [fetchProjects])
 
   if (isPrivate && !currentUser) return <LoginScreen />
   return <LaunchpadCanvas />

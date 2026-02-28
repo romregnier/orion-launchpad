@@ -4,24 +4,24 @@ import { useLaunchpadStore } from '../store'
 
 export function LoginScreen() {
   const { login, boardName } = useLaunchpadStore()
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!username.trim() || !password) return
+    if (!email.trim() || !password) return
     setLoading(true)
     setError(false)
-    const ok = await login(username.trim(), password)
+    const ok = await login(email.trim(), password)
     setLoading(false)
     if (!ok) {
       setError(true)
     } else {
       window.location.reload()
     }
-  }, [username, password, login])
+  }, [email, password, login])
 
   const borderColor = error ? '#ef4444' : 'rgba(255,255,255,0.1)'
 
@@ -56,11 +56,11 @@ export function LoginScreen() {
 
         <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input
-            type="text"
-            value={username}
-            onChange={e => { setUsername(e.target.value); setError(false) }}
-            placeholder="Nom d'utilisateur"
-            autoComplete="username"
+            type="email"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setError(false) }}
+            placeholder="Adresse email"
+            autoComplete="email"
             style={{
               width: '100%', boxSizing: 'border-box',
               background: 'rgba(255,255,255,0.05)',
