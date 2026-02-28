@@ -12,6 +12,43 @@ export interface CanvasObject {
   height: number
 }
 
+/**
+ * Trouve une position libre sur le canvas en évitant les objets existants.
+ * Parcourt une grille de cellules jusqu'à trouver une position sans chevauchement.
+ *
+ * @param objects - Liste des objets déjà présents sur le canvas
+ * @param width - Largeur de l'objet à placer (défaut 280)
+ * @param height - Hauteur de l'objet à placer (défaut 180)
+ * @param startX - X de départ pour la recherche (défaut 60)
+ * @param startY - Y de départ pour la recherche (défaut 60)
+ * @param padding - Marge entre les objets (défaut 20)
+ * @returns Position libre { x, y }
+ */
+export function findFreePosition(
+  objects: CanvasObject[],
+  width = 280,
+  height = 180,
+  startX = 60,
+  startY = 60,
+  padding = 20
+): { x: number; y: number } {
+  const cellW = width + padding
+  const cellH = height + padding
+  for (let row = 0; row < 20; row++) {
+    for (let col = 0; col < 20; col++) {
+      const x = startX + col * cellW
+      const y = startY + row * cellH
+      const overlaps = objects.some(
+        o =>
+          Math.abs(o.x - x) < width + padding &&
+          Math.abs(o.y - y) < height + padding
+      )
+      if (!overlaps) return { x, y }
+    }
+  }
+  return { x: startX + objects.length * 20, y: startY + objects.length * 20 }
+}
+
 function getAllCanvasObjectsFromState(state: {
   projects: Project[]
   lists: ListWidget[]
@@ -244,6 +281,18 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         if (data) {
           const projects = (data as ProjectRow[]).map(rowToProject)
           set({ projects, remoteLoaded: true })
+          // FIX 1 — card_positions est la source de vérité pour les positions.
+          // On écrase les positions des projets avec celles stockées dans card_positions.
+          const { data: positions } = await supabase.from('card_positions').select('*')
+          if (positions && positions.length > 0) {
+            set(state => ({
+              projects: state.projects.map(p => {
+                const pos = (positions as Array<{ id: string; type: string; position_x: number; position_y: number }>)
+                  .find(cp => cp.id === p.id && cp.type === 'project')
+                return pos ? { ...p, position: { x: pos.position_x, y: pos.position_y } } : p
+              }),
+            }))
+          }
         } else {
           set({ remoteLoaded: true })
         }
@@ -488,9 +537,12 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const { randomAvatarConfig } = await import('./utils/randomAvatar')
         const owner = get().currentUser?.username ?? 'anon'
         const tailorConfig = randomAvatarConfig()
+        // FIX 5 — calculer une position libre pour éviter les chevauchements
+        const allObjects = getAllCanvasObjectsFromState(get())
+        const freePos = findFreePosition(allObjects, 80, 100, 60, 60, 20)
         const { data, error } = await supabase
           .from('canvas_agents')
-          .insert({ name, tailor_url: tailorUrl ?? null, bot_token: botToken ?? null, owner, position_x: 200, position_y: 200, tailor_config: tailorConfig })
+          .insert({ name, tailor_url: tailorUrl ?? null, bot_token: botToken ?? null, owner, position_x: freePos.x, position_y: freePos.y, tailor_config: tailorConfig })
           .select()
           .single()
         if (error || !data) return
@@ -526,6 +578,8 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         set(state => ({
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, position: { x, y } } : a),
         }))
+        // FIX 2 — inclure position_x ET position_y pour déclencher le Realtime sur UPDATE.
+        // Note: updated_at n'existe pas encore sur cette table; position_x/y suffisent.
         supabase.from('canvas_agents').update({ position_x: x, position_y: y }).eq('id', id)
       },
 
@@ -574,8 +628,20 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
               const agent = rowToAgent(payload.new as AgentRow)
               set(state => ({ canvasAgents: [...state.canvasAgents.filter(a => a.id !== agent.id), agent] }))
             } else if (payload.eventType === 'UPDATE') {
+              // FIX 2 — mettre à jour la position ET working_on_project ET tailor_config en temps réel
               const row = payload.new as AgentRow
-              set(state => ({ canvasAgents: state.canvasAgents.map(a => a.id === row.id ? { ...a, position: { x: row.position_x, y: row.position_y } } : a) }))
+              set(state => ({
+                canvasAgents: state.canvasAgents.map(a =>
+                  a.id === row.id
+                    ? {
+                        ...a,
+                        position: { x: row.position_x, y: row.position_y },
+                        working_on_project: row.working_on_project ?? null,
+                        tailor_config: row.tailor_config ?? null,
+                      }
+                    : a
+                ),
+              }))
             } else if (payload.eventType === 'DELETE') {
               set(state => ({ canvasAgents: state.canvasAgents.filter(a => a.id !== (payload.old as AgentRow).id) }))
             }
@@ -616,21 +682,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       addList: (title, type) => set((state) => {
         const SESSION_ID = localStorage.getItem('launchpad_session') ?? 'unknown'
-        const CARD_W = 280, CARD_H = 220, PAD = 16
-        let x = 60, y = 400
-        let attempts = 0
-        const overlaps = (cx: number, cy: number) =>
-          [...state.projects, ...state.lists].some(p =>
-            cx < p.position.x + CARD_W + PAD &&
-            cx + CARD_W + PAD > p.position.x &&
-            cy < p.position.y + CARD_H + PAD &&
-            cy + CARD_H + PAD > p.position.y
-          )
-        while (overlaps(x, y) && attempts < 20) {
-          x += CARD_W + PAD
-          if (attempts % 4 === 3) { x = 60; y += CARD_H + PAD }
-          attempts++
-        }
+        // FIX 5 — utiliser findFreePosition pour éviter les chevauchements
+        const allObjects = getAllCanvasObjectsFromState(state)
+        const freePos = findFreePosition(allObjects, 280, 220, 60, 400, 16)
+        const { x, y } = freePos
         const newList: ListWidget = {
           id: `list-${Date.now()}`,
           title, type,
@@ -699,15 +754,16 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       })),
 
       subscribeToPositions: () => {
+        // FIX 1 — Au démarrage, charger TOUTES les positions (y compris les nôtres) depuis card_positions.
+        // Le filtre "skip own user" s'applique uniquement aux mises à jour realtime temps réel,
+        // pas au chargement initial (sinon nos propres positions sauvegardées ne seraient jamais restaurées).
         supabase.from('card_positions').select('*').then(({ data }) => {
           if (!data) return
           set(state => {
-            const myUser = state.currentUser?.username ?? 'anon'
             let projects = state.projects
             let lists = state.lists
             let ideaPos = state.ideaWidgetPosition
             for (const row of data) {
-              if (row.updated_by === myUser) continue
               if (row.type === 'project') {
                 projects = projects.map(p => p.id === row.id ? { ...p, position: { x: row.position_x, y: row.position_y } } : p)
               } else if (row.type === 'list') {

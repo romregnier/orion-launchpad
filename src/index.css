@@ -42,3 +42,8 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+@keyframes wpb-breathe {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.55; }
+}

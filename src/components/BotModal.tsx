@@ -44,13 +44,19 @@ export function BotModal({ open, onClose, editAgent }: Props) {
   }, [editAgent, open])
 
   // Capture de la config Tailor via postMessage (deux formats supportés)
+  // FIX 4 — En mode édition, persister immédiatement la config en DB dès réception
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       // Format 1 : config JSON complète envoyée par le bouton "Sauvegarder" de The Tailor
       if (e.data?.type === 'tailor-save' && e.data?.config) {
-        setTailorConfigCapture(e.data.config as AvatarConfig)
+        const config = e.data.config as AvatarConfig
+        setTailorConfigCapture(config)
         setConfigSaved(true)
         setTimeout(() => setConfigSaved(false), 3000)
+        // Persistance immédiate en DB si on est en mode édition
+        if (editAgent?.id) {
+          updateCanvasAgent(editAgent.id, { tailor_config: config })
+        }
       }
       // Format 2 : ancienne URL (rétro-compat)
       if (e.data?.type === 'tailor-config' && e.data?.configUrl) {
@@ -59,7 +65,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
     }
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
-  }, [])
+  }, [editAgent?.id, updateCanvasAgent])
 
   const handleSave = async () => {
     if (!name.trim()) return

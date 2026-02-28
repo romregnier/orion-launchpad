@@ -21,7 +21,11 @@ interface BuildTask {
 }
 
 const STORAGE_KEY = 'wpb-pos'
-const DEFAULT_POS = { x: 16, y: window.innerHeight - 220 }
+// FIX 3 — Sur mobile, positionner plus haut pour ne pas chevaucher la Toolbar du bas
+const DEFAULT_POS = {
+  x: 16,
+  y: window.innerWidth < 768 ? window.innerHeight - 280 : window.innerHeight - 220,
+}
 
 function loadPos(): { x: number; y: number } {
   try {
@@ -115,7 +119,7 @@ export function WorkProgressBar() {
         <span style={{ color: current ? '#E11F7B' : 'rgba(255,255,255,0.3)', fontSize: 9 }}>●</span>
         {current
           ? `⚡ ${current.agent_key ?? 'Agent'} · en cours`
-          : '〇 Aucune tâche active'}
+          : '〇 Agents en veille'}
         <span style={{ marginLeft: 4, opacity: 0.4, fontSize: 9 }}>{collapsed ? '▲' : '▼'}</span>
       </button>
 
@@ -164,7 +168,17 @@ export function WorkProgressBar() {
                 )}
               </>
             ) : (
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Aucune tâche en cours</span>
+              /* FIX 6 — état vide : "Agents en veille" avec animation de respiration douce */
+              <span
+                style={{
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.25)',
+                  fontStyle: 'italic',
+                  animation: 'wpb-breathe 3s ease-in-out infinite',
+                }}
+              >
+                😴 Agents en veille
+              </span>
             )}
 
             {activeTasks.length > 1 && (
@@ -173,21 +187,23 @@ export function WorkProgressBar() {
               </span>
             )}
 
-            {/* Progress bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${current?.progress ?? 0}%`,
-                  background: '#E11F7B',
-                  borderRadius: 2,
-                  transition: 'width 0.4s ease',
-                }} />
+            {/* FIX 6 — n'afficher la barre de progression que si une tâche est active */}
+            {current && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${current.progress}%`,
+                    background: '#E11F7B',
+                    borderRadius: 2,
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', minWidth: 28, textAlign: 'right' }}>
+                  {current.progress}%
+                </span>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', minWidth: 28, textAlign: 'right' }}>
-                {current?.progress ?? 0}%
-              </span>
-            </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
