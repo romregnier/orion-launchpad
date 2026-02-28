@@ -9,7 +9,7 @@ const { createClient } = require('@supabase/supabase-js')
 const fs = require('fs')
 
 const SUPABASE_URL = 'https://tpbluellqgehaqmmmunp.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmx1ZWxscWdlaGFxbW1tdW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNzgxOTAsImV4cCI6MjA4Nzc1NDE5MH0.ePDzb1FsZKZPClL6nYSvDqqEsD3IBIMJwl38BlWqYSM'
+const SUPABASE_KEY = process.env.SUPABASE_KEY
 
 async function main() {
   const [,, url, projectId] = process.argv
