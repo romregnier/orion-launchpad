@@ -386,7 +386,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const store = useLaunchpadStore.getState()
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        const role = session.user.email === 'romain@launchpad.app' ? 'admin' : 'member'
+        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
         store.currentUser ?? useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
       } else if (event === 'SIGNED_OUT') {
         useLaunchpadStore.setState({ currentUser: null })

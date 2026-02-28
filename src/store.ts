@@ -388,12 +388,12 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       /**
        * Login via Supabase Auth.
-       * Admin role is assigned to romain@launchpad.app.
+       * Admin role is assigned to romain@rive-studio.com.
        */
       login: async (email: string, password: string) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error || !data.user) return false
-        const role = data.user.email === 'romain@launchpad.app' ? 'admin' : 'member'
+        const role = data.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
         set({ currentUser: { username: data.user.email ?? '', role } })
         return true
       },
