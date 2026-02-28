@@ -1,7 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLaunchpadStore } from './store'
-import { supabase } from './lib/supabase'
 import { ProjectCard } from './components/ProjectCard'
 import { AddProjectModal } from './components/AddProjectModal'
 import { Toolbar } from './components/Toolbar'

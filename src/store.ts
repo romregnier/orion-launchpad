@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Project, ListWidget, ListType, CanvasAgent } from './types'
 import { supabase } from './lib/supabase'
+import { sha256 } from './utils/hash'
 
 export interface CanvasObject {
   id: string
@@ -160,7 +161,7 @@ interface LaunchpadStore {
   setBoardName: (name: string) => void
   setPrivate: (v: boolean) => void
   login: (email: string, password: string) => Promise<boolean>
-  logout: () => Promise<void>
+  logout: () => void
   setShowSettings: (v: boolean) => void
   clearProjects: () => void
   swapTarget: string | null
