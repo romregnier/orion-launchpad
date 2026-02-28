@@ -1,9 +1,43 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { OrionAvatar3D } from './OrionAvatar3D'
 import { useLaunchpadStore } from '../store'
 import type { CanvasAgent } from '../types'
-import { randomAvatarConfig } from '../utils/randomAvatar'
+
+
+// ── Couleurs et emojis par agent ──────────────────────────────────────────────
+const AGENT_META: Record<string, { emoji: string; color: string; glow: string }> = {
+  orion: { emoji: '🌟', color: '#4FC3F7', glow: 'rgba(79,195,247,0.4)' },
+  nova:  { emoji: '✦',  color: '#E11F7B', glow: 'rgba(225,31,123,0.4)' },
+  aria:  { emoji: '🎨', color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+  forge: { emoji: '🔧', color: '#F59E0B', glow: 'rgba(245,158,11,0.4)' },
+  rex:   { emoji: '🛡️', color: '#10B981', glow: 'rgba(16,185,129,0.4)' },
+}
+
+/**
+ * Avatar visuel simple et fiable pour les agents sur le canvas.
+ * Bulle colorée avec emoji — pas de WebGL, toujours visible.
+ */
+function AgentBubble({ name, isWorking }: { name: string; isWorking: boolean }) {
+  const key = name.toLowerCase()
+  const meta = AGENT_META[key] ?? { emoji: '🤖', color: '#fff', glow: 'rgba(255,255,255,0.2)' }
+  return (
+    <motion.div
+      animate={isWorking ? { boxShadow: [`0 0 0 0 ${meta.glow}`, `0 0 0 12px transparent`] } : {}}
+      transition={isWorking ? { repeat: Infinity, duration: 1.2, ease: 'easeOut' } : {}}
+      style={{
+        width: 64, height: 64,
+        borderRadius: '50%',
+        background: `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
+        border: `2px solid ${meta.color}88`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 28,
+        boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
+      }}
+    >
+      {meta.emoji}
+    </motion.div>
+  )
+}
 
 /**
  * Génère une config avatar déterministe basée sur le nom de l'agent.
@@ -12,11 +46,6 @@ import { randomAvatarConfig } from '../utils/randomAvatar'
  * @param name - Nom de l'agent
  * @returns AvatarConfig déterministe
  */
-function seededConfig(name: string) {
-  const knownSeeds: Record<string, number> = { orion: 1, nova: 2, aria: 3, forge: 4, rex: 5 }
-  const seed = knownSeeds[name.toLowerCase()] ?? Math.abs(name.charCodeAt(0))
-  return randomAvatarConfig(seed)
-}
 
 interface CanvasAgentAvatarProps {
   agent: CanvasAgent
@@ -196,9 +225,9 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
         zIndex: isDragging.current ? 500 : 10,
       }}
     >
-      {/* Avatar */}
+      {/* Avatar — emoji visuel fiable (WebGL remplacé pour fiabilité canvas) */}
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
-        <OrionAvatar3D size={64} avatarConfig={(agent.tailor_config ?? seededConfig(agent.name)) as Record<string, unknown>} />
+        <AgentBubble name={agent.name} isWorking={isWorking} />
 
         {/* Owner badge */}
         <div

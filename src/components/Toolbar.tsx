@@ -40,20 +40,23 @@ function MiniProgress() {
   const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([])
 
   useEffect(() => {
-    const load = () => {
-      supabase
+    const load = async () => {
+      const { data } = await supabase
         .from('build_tasks')
         .select('id, agent_key, progress, step_label, status')
         .in('status', ['running', 'pending'])
         .order('started_at', { ascending: false })
-        .then(({ data }) => { if (data) setActiveTasks(data as ActiveTask[]) })
+      if (data) setActiveTasks(data as ActiveTask[])
     }
     load()
+    // Realtime — peut avoir un délai selon la connexion
     const ch = supabase
       .channel('miniprogress_direct')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'build_tasks' }, load)
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    // Polling 2s en fallback — garantit la mise à jour même si Realtime lag
+    const poll = setInterval(load, 2000)
+    return () => { supabase.removeChannel(ch); clearInterval(poll) }
   }, [])
 
   const activeTask = activeTasks[0] ?? null
