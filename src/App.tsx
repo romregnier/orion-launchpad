@@ -226,7 +226,7 @@ function LaunchpadCanvas() {
         {/* Center: board name */}
         <div className="launchpad-navbar__title" style={{ userSelect: 'none' }}>
           <span style={{ fontSize: 17, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '-0.02em' }}>
-            {boardName}
+            {boardName.replace(/[\p{Emoji}]/gu, '').trim()}
           </span>
         </div>
 
