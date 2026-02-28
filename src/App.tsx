@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
+import { supabase } from './lib/supabase'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLaunchpadStore } from './store'
 import { ProjectCard } from './components/ProjectCard'
@@ -377,6 +378,19 @@ function LaunchpadCanvas() {
 // ── App root — auth routing uniquement ────────────────────────────────────────
 export default function App() {
   const { isPrivate, currentUser, fetchProjects } = useLaunchpadStore()
+
+  // Sync Supabase Auth session into store
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
+        useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
+      } else {
+        useLaunchpadStore.setState({ currentUser: null })
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Restore auth session from Supabase and load initial isPrivate
   useEffect(() => {

@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Project, ListWidget, ListType, CanvasAgent } from './types'
 import { supabase } from './lib/supabase'
-import { sha256 } from './utils/hash'
 
 export interface CanvasObject {
   id: string
@@ -134,7 +133,6 @@ interface LaunchpadStore {
   activeGroup: string | null
   boardName: string
   isPrivate: boolean
-  members: Member[]
   currentUser: { username: string; role: 'admin' | 'member' } | null
   showSettings: boolean
   /** Fetch all projects from Supabase and update local state */
@@ -161,7 +159,7 @@ interface LaunchpadStore {
   setBoardName: (name: string) => void
   setPrivate: (v: boolean) => void
   login: (email: string, password: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   setShowSettings: (v: boolean) => void
   clearProjects: () => void
   swapTarget: string | null
@@ -214,7 +212,6 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       boardName: 'Mon Launchpad',
       isPrivate: false,
       currentUser: null,
-      members: [],
       showSettings: false,
       activeBuildTasks: [],
       canvasAgents: [],
@@ -388,26 +385,26 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       },
 
       /**
-       * Login via SHA-256 — hash stocké dans Supabase board_settings (clé admin_hash).
-       * Fallback sur les membres locaux pour les autres users.
+       * Login via Supabase Auth (email + password).
+       * @param email - Adresse email de l'utilisateur
+       * @param password - Mot de passe en clair
+       * @returns true si connexion réussie, false sinon
        */
-      login: async (username: string, password: string) => {
-        const hash = await sha256(password)
-        // Vérifier le hash admin depuis Supabase (pas hardcodé dans le source)
-        const { data: setting } = await supabase.from('board_settings').select('value').eq('key', 'admin_hash').single()
-        const adminHash = setting?.value as string | undefined
-        if (adminHash && username === 'romain' && hash === adminHash) {
-          set({ currentUser: { username: 'romain', role: 'admin' } })
-          return true
-        }
-        // Vérifier les membres locaux
-        const member = get().members.find(m => m.username === username && m.passwordHash === hash)
-        if (!member) return false
-        set({ currentUser: { username: member.username, role: member.role } })
+      login: async (email: string, password: string) => {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error || !data.user) return false
+        const role = data.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
+        set({ currentUser: { username: data.user.email ?? '', role } })
         return true
       },
 
-      logout: () => { set({ currentUser: null }) },
+      /**
+       * Déconnexion via Supabase Auth.
+       */
+      logout: async () => {
+        await supabase.auth.signOut()
+        set({ currentUser: null })
+      },
 
       setShowSettings: (v) => set({ showSettings: v }),
       clearProjects: () => set({ projects: [], deletedIds: [], deletedProjects: [] }),
@@ -797,6 +794,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         isPrivate: state.isPrivate,
         currentUser: state.currentUser,
         lists: state.lists,
+
       }),
     }
   )
