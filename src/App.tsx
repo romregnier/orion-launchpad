@@ -70,8 +70,10 @@ function LaunchpadCanvas() {
   }, [subscribeToProjects, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToIdeas, subscribeToLists, fetchProjectMetadata])
 
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
+  // Safety net : si activeGroup ne matche aucun projet, ignorer le filtre groupe
+  const hasGroupMatch = !activeGroup || projects.some(p => p.groupId === activeGroup)
   const visibleProjects = projects.filter(p => {
-    const groupMatch = !activeGroup || p.groupId === activeGroup
+    const groupMatch = !activeGroup || !hasGroupMatch || p.groupId === activeGroup
     const tagMatch = !activeFilter || (p.tags ?? []).includes(activeFilter)
     return groupMatch && tagMatch
   })
