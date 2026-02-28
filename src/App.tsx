@@ -394,11 +394,15 @@ export default function App() {
           .update({ status: 'active', joined_at: new Date().toISOString() })
           .eq('email', session.user.email ?? '')
           .eq('status', 'pending')
+        // Fetch board members immediately so settings panel is pre-populated
+        await useLaunchpadStore.getState().fetchBoardMembers()
       } else if (event === 'SIGNED_OUT') {
         useLaunchpadStore.setState({ currentUser: null })
       } else if (session?.user) {
         const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
         useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
+        // Also fetch members on session restore (page reload)
+        await useLaunchpadStore.getState().fetchBoardMembers()
       }
     })
     return () => subscription.unsubscribe()
