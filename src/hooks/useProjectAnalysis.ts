@@ -6,7 +6,7 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-const GEMINI_KEY = 'AIzaSyBw3tqV-U0Y1EKuu-Ufgtq7YtzwGrSbbYA'
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY as string
 
 interface AiMeta {
   summary: string

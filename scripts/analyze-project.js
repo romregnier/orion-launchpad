@@ -6,9 +6,14 @@
  */
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://tpbluellqgehaqmmmunp.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmx1ZWxscWdlaGFxbW1tdW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNzgxOTAsImV4cCI6MjA4Nzc1NDE5MH0.ePDzb1FsZKZPClL6nYSvDqqEsD3IBIMJwl38BlWqYSM'
-const GEMINI_KEY = 'AIzaSyBw3tqV-U0Y1EKuu-Ufgtq7YtzwGrSbbYA'
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tpbluellqgehaqmmmunp.supabase.co'
+const SUPABASE_KEY = process.env.SUPABASE_KEY
+const GEMINI_KEY = process.env.GEMINI_KEY
+
+if (!SUPABASE_KEY || !GEMINI_KEY) {
+  console.error('Missing required env vars: SUPABASE_KEY, GEMINI_KEY')
+  process.exit(1)
+}
 
 async function main() {
   const [,, projectId, url] = process.argv
