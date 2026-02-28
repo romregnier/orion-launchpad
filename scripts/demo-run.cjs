@@ -51,7 +51,7 @@ async function run() {
 
   // 1. Récupère les projets (prend les 5 premiers avec une URL)
   const { rows: projects } = await db.query(
-    "SELECT id, title FROM projects WHERE status != 'archived' ORDER BY position_x LIMIT 5"
+    "SELECT id, title FROM projects ORDER BY position_x LIMIT 5"
   )
 
   if (projects.length === 0) {

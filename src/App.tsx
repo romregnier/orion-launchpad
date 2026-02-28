@@ -17,7 +17,7 @@ import { PresenceBar } from './components/PresenceBar'
 import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
 import { AgentChatPanel } from './components/AgentChatPanel'
 import { BotModal } from './components/BotModal'
-import { WorkProgressBar } from './components/WorkProgressBar'
+// WorkProgressBar supprimé — remplacé par BuildStatusWidget (bottom right)
 import type { CanvasAgent } from './types'
 
 
@@ -272,7 +272,7 @@ function LaunchpadCanvas() {
       </header>
 
       {/* ── Work progress bar ────────────────────────────────────────────────── */}
-      <WorkProgressBar />
+      {/* WorkProgressBar supprimé — BuildStatusWidget (bottom right) fait le même rôle */}
 
       {/* ── Group filter bar ─────────────────────────────────────────────────── */}
       <nav
