@@ -27,7 +27,7 @@ const SCALE_STEP = 0.15
 
 // ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -49,11 +49,13 @@ function LaunchpadCanvas() {
 
   useEffect(() => {
     const unsubProjects = subscribeToProjects()
-    const unsub = subscribeToAgents()
+    const unsubAgents = subscribeToAgents()
     const unsubPos = subscribeToPositions()
     const unsubTasks = subscribeToBuildTasks()
-    return () => { unsubProjects(); unsub(); unsubPos(); unsubTasks() }
-  }, [subscribeToProjects, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks])
+    const unsubIdeas = subscribeToIdeas()
+    const unsubLists = subscribeToLists()
+    return () => { unsubProjects(); unsubAgents(); unsubPos(); unsubTasks(); unsubIdeas(); unsubLists() }
+  }, [subscribeToProjects, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToIdeas, subscribeToLists])
 
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
   const visibleProjects = projects.filter(p => {

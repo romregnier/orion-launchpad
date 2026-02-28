@@ -5,11 +5,31 @@
  * Utilisé dans : App.tsx (canvas)
  * Props : project, canvasScale, index?
  */
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink, Trash2, Github, Copy, Check, MessageSquare, Pencil, RefreshCw, Eye } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
+import { supabase } from '../lib/supabase'
+
+/**
+ * Hook to get the comment count for a project from Supabase.
+ */
+function useCommentCount(projectId: string): number {
+  const [count, setCount] = useState(0)
+  // memoize the projectId to avoid stale closure
+  const pid = useMemo(() => projectId, [projectId])
+  useEffect(() => {
+    let cancelled = false
+    supabase
+      .from('launchpad_comments')
+      .select('id', { count: 'exact', head: true })
+      .eq('project_id', pid)
+      .then(({ count: c }) => { if (!cancelled) setCount(c ?? 0) })
+    return () => { cancelled = true }
+  }, [pid])
+  return count
+}
 import { fetchMeta } from '../utils/fetchMeta'
 import { useProjectMeta } from '../hooks/useProjectMeta'
 import { useProjectAnalysis } from '../hooks/useProjectAnalysis'
@@ -101,12 +121,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   const dragStart = useRef({ mouseX: 0, mouseY: 0, cardX: 0, cardY: 0 })
   const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
 
-  const commentCount = (() => {
-    try {
-      const stored = localStorage.getItem(`comments_${project.id}`)
-      return stored ? (JSON.parse(stored) as unknown[]).length : 0
-    } catch { return 0 }
-  })()
+  const commentCount = useCommentCount(project.id)
 
   const handleCopy = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()

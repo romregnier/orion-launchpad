@@ -183,9 +183,13 @@ interface LaunchpadStore {
   syncPositionToDb: (id: string, x: number, y: number, type?: string) => void
   subscribeToPositions: () => (() => void)
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>
-  addIdea: (text: string, author: string) => void
-  deleteIdea: (id: string) => void
-  voteIdea: (id: string, sessionId: string) => void
+  /** Fetch all ideas from Supabase */
+  fetchIdeas: () => Promise<void>
+  /** Subscribe to ideas realtime — returns unsubscribe fn */
+  subscribeToIdeas: () => () => void
+  addIdea: (text: string, author: string) => Promise<void>
+  deleteIdea: (id: string) => Promise<void>
+  voteIdea: (id: string, sessionId: string) => Promise<void>
   setFilter: (tag: string | null) => void
   setIdeaWidgetPosition: (x: number, y: number) => void
   addGroup: (group: Omit<Group, 'id' | 'order'>) => void
@@ -222,13 +226,17 @@ interface LaunchpadStore {
   setAgentWorkingOn: (agentId: string, projectId: string | null) => Promise<void>
   returnAgentHome: (agentId: string) => Promise<void>
   lists: ListWidget[]
-  addList: (title: string, type: ListType) => void
-  removeList: (id: string) => void
-  addListItem: (listId: string, text: string, sessionId: string) => void
-  removeListItem: (listId: string, itemId: string) => void
-  toggleListItem: (listId: string, itemId: string) => void
-  voteListItem: (listId: string, itemId: string, sessionId: string) => void
-  moveListItem: (listId: string, itemId: string, direction: 'up' | 'down') => void
+  /** Fetch all lists from Supabase */
+  fetchLists: () => Promise<void>
+  /** Subscribe to lists realtime — returns unsubscribe fn */
+  subscribeToLists: () => () => void
+  addList: (title: string, type: ListType) => Promise<void>
+  removeList: (id: string) => Promise<void>
+  addListItem: (listId: string, text: string, sessionId: string) => Promise<void>
+  removeListItem: (listId: string, itemId: string) => Promise<void>
+  toggleListItem: (listId: string, itemId: string) => Promise<void>
+  voteListItem: (listId: string, itemId: string, sessionId: string) => Promise<void>
+  moveListItem: (listId: string, itemId: string, direction: 'up' | 'down') => Promise<void>
   updateListPosition: (id: string, x: number, y: number) => void
 }
 
@@ -241,11 +249,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       remoteLoaded: false,
       swapTarget: null,
       ideaWidgetPosition: { x: -300, y: 60 },
-      ideas: [
-        { id: 'idea-1', text: 'Un dashboard analytics pour nos apps 📊', author: 'Orion', votes: 3, votedBy: [], createdAt: new Date().toISOString() },
-        { id: 'idea-2', text: 'Une landing page pour Crumb 🌍', author: 'Nova', votes: 2, votedBy: [], createdAt: new Date().toISOString() },
-        { id: 'idea-3', text: 'Dark UI Kit vendu sur Gumroad 💰', author: 'Aria', votes: 5, votedBy: [], createdAt: new Date().toISOString() },
-      ],
+      ideas: [],
       activeFilter: null,
       groups: [
         { id: 'group-prod', name: 'En prod', color: '#22c55e', emoji: '🚀', order: 0 },
@@ -396,31 +400,68 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         await supabase.from('projects').update(rowUpdates).eq('id', id)
       },
 
-      addIdea: (text, author) =>
-        set((state) => ({
-          ideas: [...state.ideas, {
-            id: `idea-${Date.now()}`,
-            text, author, votes: 0, votedBy: [],
-            createdAt: new Date().toISOString(),
-          }],
-        })),
+      /**
+       * Fetch all ideas from Supabase and hydrate local state.
+       */
+      fetchIdeas: async () => {
+        const { data } = await supabase.from('ideas').select('*').order('created_at', { ascending: true })
+        if (data) {
+          set({
+            ideas: (data as Array<{ id: string; text: string; author: string; votes: number; voted_by: string[]; created_at: string }>).map(r => ({
+              id: r.id, text: r.text, author: r.author, votes: r.votes, votedBy: r.voted_by ?? [], createdAt: r.created_at,
+            })),
+          })
+        }
+      },
 
-      voteIdea: (id, sessionId) =>
-        set((state) => ({
-          ideas: state.ideas.map((idea) => {
-            if (idea.id !== id) return idea
-            const hasVoted = idea.votedBy.includes(sessionId)
-            return {
-              ...idea,
-              votes: hasVoted ? idea.votes - 1 : idea.votes + 1,
-              votedBy: hasVoted
-                ? idea.votedBy.filter((s) => s !== sessionId)
-                : [...idea.votedBy, sessionId],
-            }
-          }),
-        })),
+      /**
+       * Subscribe to Supabase Realtime for ideas.
+       * Performs an initial fetch, then re-fetches on any change.
+       * Returns an unsubscribe function.
+       */
+      subscribeToIdeas: () => {
+        get().fetchIdeas()
+        const ch = supabase.channel('ideas_rt')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => get().fetchIdeas())
+          .subscribe()
+        return () => { supabase.removeChannel(ch) }
+      },
 
-      deleteIdea: (id) => set((state) => ({ ideas: state.ideas.filter(i => i.id !== id) })),
+      /**
+       * Add an idea optimistically and persist to Supabase.
+       */
+      addIdea: async (text, author) => {
+        const idea: Idea = {
+          id: `idea-${Date.now()}`,
+          text, author, votes: 0, votedBy: [],
+          createdAt: new Date().toISOString(),
+        }
+        set(state => ({ ideas: [...state.ideas, idea] }))
+        await supabase.from('ideas').insert({ id: idea.id, text, author, votes: 0, voted_by: [] })
+      },
+
+      /**
+       * Vote on an idea (optimistic + Supabase sync).
+       */
+      voteIdea: async (id, sessionId) => {
+        const idea = get().ideas.find(i => i.id === id)
+        if (!idea || idea.votedBy.includes(sessionId)) return
+        set(state => ({
+          ideas: state.ideas.map(i => i.id === id
+            ? { ...i, votes: i.votes + 1, votedBy: [...i.votedBy, sessionId] }
+            : i
+          ),
+        }))
+        await supabase.from('ideas').update({ votes: idea.votes + 1, voted_by: [...idea.votedBy, sessionId] }).eq('id', id)
+      },
+
+      /**
+       * Delete an idea (optimistic + Supabase sync).
+       */
+      deleteIdea: async (id) => {
+        set(state => ({ ideas: state.ideas.filter(i => i.id !== id) }))
+        await supabase.from('ideas').delete().eq('id', id)
+      },
       setFilter: (tag) => set({ activeFilter: tag }),
       setIdeaWidgetPosition: (x, y) => set({ ideaWidgetPosition: { x, y } }),
 
@@ -688,27 +729,74 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         await supabase.from('canvas_agents').update({ working_on_project: null }).eq('id', agentId)
       },
 
-      addList: (title, type) => set((state) => {
+      /**
+       * Fetch all lists from Supabase and hydrate local state.
+       */
+      fetchLists: async () => {
+        const { data } = await supabase.from('lists').select('*')
+        if (data) {
+          set({
+            lists: (data as Array<{ id: string; title: string; type: string; created_by: string; created_at: number; position_x: number; position_y: number; items: ListWidget['items'] }>).map(r => ({
+              id: r.id,
+              title: r.title,
+              type: r.type as ListType,
+              createdBy: r.created_by,
+              createdAt: r.created_at,
+              position: { x: r.position_x, y: r.position_y },
+              items: r.items ?? [],
+            })),
+          })
+        }
+      },
+
+      /**
+       * Subscribe to Supabase Realtime for lists.
+       * Performs an initial fetch, then re-fetches on any change.
+       * Returns an unsubscribe function.
+       */
+      subscribeToLists: () => {
+        get().fetchLists()
+        const ch = supabase.channel('lists_rt')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'lists' }, () => get().fetchLists())
+          .subscribe()
+        return () => { supabase.removeChannel(ch) }
+      },
+
+      /**
+       * Add a list optimistically and persist to Supabase.
+       */
+      addList: async (title, type) => {
         const SESSION_ID = localStorage.getItem('launchpad_session') ?? 'unknown'
-        // FIX 5 — utiliser findFreePosition pour éviter les chevauchements
-        const allObjects = getAllCanvasObjectsFromState(state)
+        const allObjects = getAllCanvasObjectsFromState(get())
         const freePos = findFreePosition(allObjects, 280, 220, 60, 400, 16)
-        const { x, y } = freePos
         const newList: ListWidget = {
           id: `list-${Date.now()}`,
           title, type,
           createdBy: SESSION_ID,
           createdAt: Date.now(),
-          position: { x, y },
+          position: freePos,
           items: [],
         }
-        return { lists: [...state.lists, newList] }
-      }),
+        set(state => ({ lists: [...state.lists, newList] }))
+        await supabase.from('lists').insert({
+          id: newList.id, title, type, created_by: newList.createdBy,
+          created_at: newList.createdAt, position_x: freePos.x, position_y: freePos.y, items: [],
+        })
+      },
 
-      removeList: (id) => set((state) => ({ lists: state.lists.filter(l => l.id !== id) })),
+      /**
+       * Remove a list and delete from Supabase.
+       */
+      removeList: async (id) => {
+        set(state => ({ lists: state.lists.filter(l => l.id !== id) }))
+        await supabase.from('lists').delete().eq('id', id)
+      },
 
-      addListItem: (listId, text, sessionId) => set((state) => ({
-        lists: state.lists.map(l => l.id !== listId ? l : {
+      /**
+       * Add an item to a list (optimistic + Supabase sync).
+       */
+      addListItem: async (listId, text, sessionId) => {
+        const updatedLists = get().lists.map(l => l.id !== listId ? l : {
           ...l,
           items: [...l.items, {
             id: `item-${Date.now()}`,
@@ -719,23 +807,41 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
             checked: l.type === 'checklist' ? false : undefined,
             order: l.type === 'ranking' ? l.items.length : undefined,
           }],
-        }),
-      })),
+        })
+        set({ lists: updatedLists })
+        const updated = updatedLists.find(l => l.id === listId)
+        if (updated) await supabase.from('lists').update({ items: updated.items }).eq('id', listId)
+      },
 
-      removeListItem: (listId, itemId) => set((state) => ({
-        lists: state.lists.map(l => l.id !== listId ? l : {
+      /**
+       * Remove an item from a list (optimistic + Supabase sync).
+       */
+      removeListItem: async (listId, itemId) => {
+        const updatedLists = get().lists.map(l => l.id !== listId ? l : {
           ...l, items: l.items.filter(i => i.id !== itemId),
-        }),
-      })),
+        })
+        set({ lists: updatedLists })
+        const updated = updatedLists.find(l => l.id === listId)
+        if (updated) await supabase.from('lists').update({ items: updated.items }).eq('id', listId)
+      },
 
-      toggleListItem: (listId, itemId) => set((state) => ({
-        lists: state.lists.map(l => l.id !== listId ? l : {
+      /**
+       * Toggle a checklist item (optimistic + Supabase sync).
+       */
+      toggleListItem: async (listId, itemId) => {
+        const updatedLists = get().lists.map(l => l.id !== listId ? l : {
           ...l, items: l.items.map(i => i.id !== itemId ? i : { ...i, checked: !i.checked }),
-        }),
-      })),
+        })
+        set({ lists: updatedLists })
+        const updated = updatedLists.find(l => l.id === listId)
+        if (updated) await supabase.from('lists').update({ items: updated.items }).eq('id', listId)
+      },
 
-      voteListItem: (listId, itemId, sessionId) => set((state) => ({
-        lists: state.lists.map(l => l.id !== listId ? l : {
+      /**
+       * Vote on a brainstorm list item (optimistic + Supabase sync).
+       */
+      voteListItem: async (listId, itemId, sessionId) => {
+        const updatedLists = get().lists.map(l => l.id !== listId ? l : {
           ...l, items: l.items.map(i => {
             if (i.id !== itemId) return i
             const hasVoted = (i.votedBy ?? []).includes(sessionId)
@@ -745,11 +851,17 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
               votedBy: hasVoted ? (i.votedBy ?? []).filter(s => s !== sessionId) : [...(i.votedBy ?? []), sessionId],
             }
           }),
-        }),
-      })),
+        })
+        set({ lists: updatedLists })
+        const updated = updatedLists.find(l => l.id === listId)
+        if (updated) await supabase.from('lists').update({ items: updated.items }).eq('id', listId)
+      },
 
-      moveListItem: (listId, itemId, direction) => set((state) => ({
-        lists: state.lists.map(l => {
+      /**
+       * Reorder a list item (optimistic + Supabase sync).
+       */
+      moveListItem: async (listId, itemId, direction) => {
+        const updatedLists = get().lists.map(l => {
           if (l.id !== listId) return l
           const items = [...l.items]
           const idx = items.findIndex(i => i.id === itemId)
@@ -758,8 +870,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           if (newIdx < 0 || newIdx >= items.length) return l
           ;[items[idx], items[newIdx]] = [items[newIdx], items[idx]]
           return { ...l, items }
-        }),
-      })),
+        })
+        set({ lists: updatedLists })
+        const updated = updatedLists.find(l => l.id === listId)
+        if (updated) await supabase.from('lists').update({ items: updated.items }).eq('id', listId)
+      },
 
       subscribeToPositions: () => {
         // FIX 1 — Au démarrage, charger TOUTES les positions (y compris les nôtres) depuis card_positions.
@@ -812,9 +927,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         return () => { supabase.removeChannel(channel) }
       },
 
-      updateListPosition: (id, x, y) => set((state) => ({
-        lists: state.lists.map(l => l.id === id ? { ...l, position: { x, y } } : l),
-      })),
+      updateListPosition: (id, x, y) => {
+        set(state => ({ lists: state.lists.map(l => l.id === id ? { ...l, position: { x, y } } : l) }))
+        supabase.from('lists').update({ position_x: x, position_y: y }).eq('id', id)
+        get().syncPositionToDb(id, x, y, 'list')
+      },
 
       pushOverlapping: (draggedId, dragX, dragY) => {
         const state = get()
@@ -922,13 +1039,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         projects: state.projects,
         deletedIds: state.deletedIds,
         deletedProjects: state.deletedProjects,
-        ideas: state.ideas,
         groups: state.groups,
         activeGroup: state.activeGroup,
         boardName: state.boardName,
         isPrivate: state.isPrivate,
         currentUser: state.currentUser,
-        lists: state.lists,
         boardMembers: state.boardMembers,
       }),
     }

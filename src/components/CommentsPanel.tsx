@@ -1,7 +1,7 @@
 /**
  * CommentsPanel
  *
- * Rôle : Panneau de commentaires par projet (localStorage), drawer animé ou mode inline.
+ * Rôle : Panneau de commentaires par projet (Supabase), drawer animé ou mode inline.
  * Utilisé dans : ProjectCard, ProjectPreviewModal
  * Props : projectId, projectTitle, open, onClose, inline?
  */
@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 interface Comment {
   id: string
@@ -43,19 +44,55 @@ function avatarColor(str: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
+/** Row type from launchpad_comments table */
+interface CommentRow {
+  id: string
+  project_id: string
+  author: string
+  text: string
+  created_at: string
+}
+
+/**
+ * Fetch comments for a project from Supabase.
+ */
+async function fetchComments(projectId: string): Promise<Comment[]> {
+  const { data } = await supabase
+    .from('launchpad_comments')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: true })
+  if (!data) return []
+  return (data as CommentRow[]).map(r => ({
+    id: r.id,
+    author: r.author,
+    text: r.text,
+    createdAt: r.created_at,
+  }))
+}
+
 export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }: Props) {
-  const key = `comments_${projectId}`
   const [comments, setComments] = useState<Comment[]>([])
   const [text, setText] = useState('')
 
+  // Fetch comments on open + subscribe to realtime
   useEffect(() => {
-    if (open) {
-      try {
-        const stored = localStorage.getItem(key)
-        setComments(stored ? JSON.parse(stored) : [])
-      } catch { setComments([]) }
+    if (!open) return
+    let cancelled = false
+    fetchComments(projectId).then(c => { if (!cancelled) setComments(c) })
+
+    const ch = supabase
+      .channel(`comments_${projectId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'launchpad_comments', filter: `project_id=eq.${projectId}` },
+        () => { fetchComments(projectId).then(c => { if (!cancelled) setComments(c) }) }
+      )
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(ch)
     }
-  }, [open, key])
+  }, [open, projectId])
 
   useEffect(() => {
     if (!open || inline) return
@@ -64,18 +101,18 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose, inline])
 
-  const publish = () => {
+  const publish = async () => {
     if (!text.trim()) return
-    const comment: Comment = {
-      id: Date.now().toString(),
-      author: 'Toi',
-      text: text.trim(),
-      createdAt: new Date().toISOString(),
-    }
-    const updated = [...comments, comment]
-    setComments(updated)
-    localStorage.setItem(key, JSON.stringify(updated))
+    const newText = text.trim()
     setText('')
+    await supabase.from('launchpad_comments').insert({
+      project_id: projectId,
+      author: 'Toi',
+      text: newText,
+    })
+    // Optimistic: refresh immediately
+    const updated = await fetchComments(projectId)
+    setComments(updated)
   }
 
   const isMobile = window.innerWidth < 500
@@ -140,7 +177,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); publish() } }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void publish() } }}
             placeholder="Ajouter un commentaire…"
             style={{
               flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -151,7 +188,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }
             onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
           />
           <button
-            onClick={publish}
+            onClick={() => void publish()}
             disabled={!text.trim()}
             style={{
               background: text.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)',
@@ -264,7 +301,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); publish() } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void publish() } }}
                 placeholder="Ajouter un commentaire…"
                 style={{
                   flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -276,7 +313,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }
                 autoFocus
               />
               <button
-                onClick={publish}
+                onClick={() => void publish()}
                 disabled={!text.trim()}
                 style={{
                   background: text.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)',
