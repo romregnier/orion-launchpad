@@ -58,6 +58,18 @@ export interface Idea {
 // SHA-256 of 'e2DLvDdrbkHZ2Whkimww9QVU'
 const ROMAIN_HASH = 'a2a4bcf7d4cf2f8df876e9134bc71509978782612bcdf0d341d3f112d6c28d90'
 
+/** Tâche build active — dérivée de la table build_tasks */
+export interface ActiveBuildTask {
+  id: string
+  label: string
+  status: 'pending' | 'running'
+  progress: number
+  agent_key?: string | null
+  step_label?: string | null
+  /** project id ou nom associé à la tâche */
+  project?: string | null
+}
+
 interface LaunchpadStore {
   projects: Project[]
   deletedProjects: Project[]  // projets retirés du canvas (pas supprimés de GitHub)
@@ -103,6 +115,8 @@ interface LaunchpadStore {
   setSwapTarget: (id: string | null) => void
   getAllCanvasObjects: () => CanvasObject[]
   pushOverlapping: (draggedId: string, dragX: number, dragY: number) => void
+  activeBuildTasks: ActiveBuildTask[]
+  subscribeToBuildTasks: () => () => void
   canvasAgents: CanvasAgent[]
   addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string) => Promise<void>
   updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config'>>) => Promise<void>
@@ -157,6 +171,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         }
       ],
       showSettings: false,
+      activeBuildTasks: [],
       canvasAgents: [],
       lists: [],
 
@@ -364,6 +379,25 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, position: { x, y } } : a),
         }))
         supabase.from('canvas_agents').update({ position_x: x, position_y: y }).eq('id', id)
+      },
+
+      subscribeToBuildTasks: () => {
+        const load = () => {
+          supabase
+            .from('build_tasks')
+            .select('id, label, status, progress, agent_key, step_label, project')
+            .in('status', ['running', 'pending'])
+            .order('created_at', { ascending: false })
+            .then(({ data }) => {
+              if (data) set({ activeBuildTasks: data as ActiveBuildTask[] })
+            })
+        }
+        load()
+        const ch = supabase
+          .channel('store_build_tasks')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'build_tasks' }, load)
+          .subscribe()
+        return () => { supabase.removeChannel(ch) }
       },
 
       subscribeToAgents: () => {

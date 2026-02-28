@@ -26,7 +26,7 @@ const SCALE_STEP = 0.15
 
 // ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, fetchRemote, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -49,8 +49,9 @@ function LaunchpadCanvas() {
   useEffect(() => {
     const unsub = subscribeToAgents()
     const unsubPos = subscribeToPositions()
-    return () => { unsub(); unsubPos() }
-  }, [subscribeToAgents, subscribeToPositions])
+    const unsubTasks = subscribeToBuildTasks()
+    return () => { unsub(); unsubPos(); unsubTasks() }
+  }, [subscribeToAgents, subscribeToPositions, subscribeToBuildTasks])
 
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
   const visibleProjects = projects.filter(p => {

@@ -36,8 +36,15 @@ function tagColor(tag: string): string {
 }
 
 export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
-  const { removeProject, groups, updateProject, canvasAgents } = useLaunchpadStore()
+  const { removeProject, groups, updateProject, canvasAgents, activeBuildTasks } = useLaunchpadStore()
+  // Agents travaillant sur ce projet — depuis working_on_project (manuel) OU build_tasks actives (automatique)
   const workingAgents = canvasAgents.filter(a => a.working_on_project === project.id)
+  const taskAgentKeys = activeBuildTasks
+    .filter(t => t.project === project.id || t.project === project.title)
+    .map(t => t.agent_key)
+    .filter((k): k is string => !!k && !workingAgents.some(a => a.agent_key === k))
+  const taskAgents = canvasAgents.filter(a => taskAgentKeys.includes(a.agent_key ?? ''))
+  const allWorkingAgents = [...workingAgents, ...taskAgents]
   const group = groups.find(g => g.id === project.groupId)
   const meta = useProjectMeta(project.id)
   const { analyze, analyzing } = useProjectAnalysis()
@@ -362,31 +369,38 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
           {/* Accent top bar */}
           <div style={{ height: 2, background: accent, opacity: showActions ? 1 : 0.6, transition: 'opacity 0.2s' }} />
 
-          {/* Working agents bandeau */}
-          {workingAgents.length > 0 && (
-            <div
-              data-no-drag
-              style={{
-                position: 'absolute',
-                top: 2,
-                left: 0,
-                right: 0,
-                background: 'rgba(225,31,123,0.15)',
-                borderBottom: '1px solid rgba(225,31,123,0.3)',
-                padding: '3px 10px',
-                fontSize: 10,
-                fontWeight: 700,
-                color: '#E11F7B',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                zIndex: 5,
-                backdropFilter: 'blur(4px)',
-              }}
-            >
-              ⚡ {workingAgents.map(a => a.name).join(', ')} en cours
-            </div>
-          )}
+          {/* Working agents bandeau — automatique via build_tasks ou manuel via working_on_project */}
+          <AnimatePresence>
+            {allWorkingAgents.length > 0 && (
+              <motion.div
+                data-no-drag
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: 0,
+                  right: 0,
+                  background: 'rgba(225,31,123,0.15)',
+                  borderBottom: '1px solid rgba(225,31,123,0.3)',
+                  padding: '3px 10px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#E11F7B',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  zIndex: 5,
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <span style={{ animation: 'pulse 1.5s infinite' }}>⚡</span>
+                {allWorkingAgents.map(a => a.name).join(', ')} · en cours
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Preview */}
           <div style={{ position: 'relative', height: 130, background: `${accent}18` }}>
