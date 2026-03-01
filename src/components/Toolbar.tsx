@@ -225,7 +225,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       </button>
 
       {/* Tidy Up button — réorganise le canvas en grille */}
-      <button onClick={onTidyUp} title="Tidy up — Réorganiser" style={{ ...btnStyle(isMobile), color: 'rgba(255,255,255,0.5)' }}>
+      <button data-testid="btn-tidy-up" onClick={onTidyUp} title="Tidy up — Réorganiser" style={{ ...btnStyle(isMobile), color: 'rgba(255,255,255,0.5)' }}>
         <LayoutGrid size={isMobile ? 12 : 14} />
       </button>
 
