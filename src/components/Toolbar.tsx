@@ -149,8 +149,17 @@ function useChatUnread(): boolean {
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
 export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat }: Props) {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
-  const isVerySmall = typeof window !== 'undefined' && window.innerWidth < 380
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 640)
+  const [isVerySmall, setIsVerySmall] = useState(typeof window !== 'undefined' && window.innerWidth < 380)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640)
+      setIsVerySmall(window.innerWidth < 380)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
   const { showSettings, setShowSettings, currentUser } = useLaunchpadStore()
   const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'member'
   const hasUnread = useChatUnread()
@@ -333,8 +342,8 @@ function btnStyle(isMobile: boolean): React.CSSProperties {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: isMobile ? 28 : 32,
-    height: isMobile ? 28 : 32,
+    width: isMobile ? 40 : 32,
+    height: isMobile ? 40 : 32,
     borderRadius: 8,
     color: 'rgba(255,255,255,0.5)',
     cursor: 'pointer',

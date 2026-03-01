@@ -246,7 +246,7 @@ function LaunchpadCanvas() {
         {/* Right: présence + user info + logout */}
         <div
           className="launchpad-navbar__right"
-          style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, pointerEvents: 'all' }}
+          style={{ flex: '0 1 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, pointerEvents: 'all', overflow: 'hidden', minWidth: 0 }}
         >
           {/* Avatars des users connectés */}
           <PresenceBar currentUser={currentUser} />
@@ -302,8 +302,10 @@ function LaunchpadCanvas() {
           borderRadius: 999,
           zIndex: 40,
           maxWidth: 'calc(100vw - 32px)',
-          overflow: 'hidden',
-        }}
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+        } as React.CSSProperties}
       >
         <GroupBar />
       </nav>

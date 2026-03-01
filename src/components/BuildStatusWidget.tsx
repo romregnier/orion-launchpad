@@ -49,12 +49,18 @@ function isRecent(task: BuildTask): boolean {
 }
 
 const STORAGE_KEY = 'bsw-canvas-pos'
-const DEFAULT_POS = { x: 1050, y: 80 }
+const DEFAULT_POS = { x: 20, y: 80 }
 
 function loadPos(): { x: number; y: number } {
   try {
     const s = localStorage.getItem(STORAGE_KEY)
-    return s ? JSON.parse(s) : DEFAULT_POS
+    if (!s) return DEFAULT_POS
+    const parsed = JSON.parse(s)
+    // Reset if saved position is off-screen (> 80% of viewport width)
+    if (typeof window !== 'undefined' && parsed.x > window.innerWidth * 0.8) {
+      return DEFAULT_POS
+    }
+    return parsed
   } catch { return DEFAULT_POS }
 }
 

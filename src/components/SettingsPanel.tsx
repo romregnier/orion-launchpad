@@ -106,9 +106,9 @@ export function SettingsPanel() {
 
           {/* Panel */}
           <motion.div
-            initial={{ x: 380 }}
+            initial={{ x: '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: 380 }}
+            exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
             style={{
               position: 'fixed', top: 0, right: 0,
@@ -332,7 +332,7 @@ export function SettingsPanel() {
                             key={c}
                             onClick={() => setNewGroupColor(c)}
                             style={{
-                              width: 20, height: 20, borderRadius: '50%', background: c,
+                              width: 28, height: 28, borderRadius: '50%', background: c,
                               border: newGroupColor === c ? '2px solid white' : '2px solid transparent',
                               cursor: 'pointer',
                             }}
