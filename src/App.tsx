@@ -67,7 +67,8 @@ function LaunchpadCanvas() {
     const unsubLists = subscribeToLists()
     fetchProjectMetadata()
     return () => { unsubProjects(); unsubAgents(); unsubPos(); unsubTasks(); unsubIdeas(); unsubLists() }
-  }, [subscribeToProjects, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToIdeas, subscribeToLists, fetchProjectMetadata])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
   // Safety net : si activeGroup ne matche aucun projet, ignorer le filtre groupe
@@ -157,6 +158,8 @@ function LaunchpadCanvas() {
   return (
     <div
       style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', touchAction: 'none' }}
+      data-projects={projects.length}
+      data-agents={canvasAgents.length}
       onMouseDown={onMouseDown}
       onWheel={onWheel}
       onTouchStart={onTouchStart}
@@ -400,9 +403,9 @@ function LaunchpadCanvas() {
 
 // ── App root — auth routing uniquement ────────────────────────────────────────
 export default function App() {
-  const { isPrivate, currentUser, fetchProjects } = useLaunchpadStore()
+  const { isPrivate, currentUser } = useLaunchpadStore()
   // authReady : true quand on sait si l'utilisateur est connecté ou non
-  const [authReady, setAuthReady] = useState(false)
+  const [, setAuthReady] = useState(false)  // authReady retiré — plus utilisé (overlay pattern)
 
   useEffect(() => {
     // Timeout de sécurité : si getSession prend trop longtemps, on débloque quand même
@@ -414,6 +417,7 @@ export default function App() {
         const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
         useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
         useLaunchpadStore.getState().fetchBoardMembers()
+        useLaunchpadStore.getState().fetchProjects()
       }
       clearTimeout(timeout)
       setAuthReady(true)
@@ -429,23 +433,29 @@ export default function App() {
           .eq('email', session.user.email ?? '')
           .eq('status', 'pending')
         await useLaunchpadStore.getState().fetchBoardMembers()
-      } else if (event === 'SIGNED_OUT') {
-        useLaunchpadStore.setState({ currentUser: null })
+        // Re-fetch projects after login (initial fetch may have failed due to RLS)
+        await useLaunchpadStore.getState().fetchProjects()
       }
+      // NOTE : on n'efface PAS currentUser sur SIGNED_OUT automatique.
+      // Supabase fire SIGNED_OUT durant les refresh de session (faux positif).
+      // Le vrai logout passe par le bouton Déconnexion → logout() explicite.
     })
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    fetchProjects()
-  }, [fetchProjects])
+  // LaunchpadCanvas est TOUJOURS monté — les subscriptions tournent en fond.
+  // Le LoginScreen est un overlay z-[1000] au-dessus du canvas, pas un remplacement.
+  // Cela évite l'unmount/remount qui réinitialisait tout l'état Zustand.
+  const showLoginOverlay = isPrivate && !currentUser
 
-  // Attendre que l'auth soit résolue avant de rendre quoi que ce soit
-  if (!authReady) return (
-    <div style={{ width: '100vw', height: '100vh', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontSize: 32, animation: 'spin 1s linear infinite' }}>⚡</div>
-    </div>
+  return (
+    <>
+      <LaunchpadCanvas />
+      {showLoginOverlay && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0B090D' }}>
+          <LoginScreen />
+        </div>
+      )}
+    </>
   )
-  if (isPrivate && !currentUser) return <LoginScreen />
-  return <LaunchpadCanvas />
 }

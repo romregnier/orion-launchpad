@@ -23,7 +23,8 @@ export function useProjectMeta(projectId: string) {
   const [meta, setMeta] = useState<ProjectMeta | null>(null)
 
   useEffect(() => {
-    supabase.from('project_metadata').select('*').eq('project_id', projectId).single()
+    // maybeSingle() évite le 406 si aucune ligne n'existe (table vide)
+    supabase.from('project_metadata').select('*').eq('project_id', projectId).maybeSingle()
       .then(({ data }) => { if (data) setMeta(data) })
 
     const channel = supabase.channel(`meta-${projectId}`)

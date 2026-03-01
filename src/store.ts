@@ -1,7 +1,19 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { Project, ListWidget, ListType, CanvasAgent, BoardMember } from './types'
 import { supabase } from './lib/supabase'
+
+// Lecture synchrone localStorage (pas de rehydration async)
+const STORAGE_KEY = 'orion-launchpad-v3'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _stored: { groups?: any[]; activeGroup?: string | null; boardName?: string; isPrivate?: boolean; deletedIds?: string[] } = {}
+try {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  if (raw) {
+    const parsed = JSON.parse(raw)
+    // Compatible avec l'ancien format Zustand persist (state.state.xxx) ET nouveau format direct
+    _stored = parsed?.state ?? parsed ?? {}
+  }
+} catch { /* ignore */ }
 
 export interface CanvasObject {
   id: string
@@ -261,26 +273,27 @@ interface ProjectMeta {
   ai_analyzed_at?: string | null
 }
 
+const DEFAULT_GROUPS = [
+  { id: 'group-prod', name: 'En prod', color: '#22c55e', emoji: '🚀', order: 0 },
+  { id: 'group-dev', name: 'En dev', color: '#3b82f6', emoji: '🔧', order: 1 },
+  { id: 'group-ideas', name: 'Idées', color: '#f59e0b', emoji: '💡', order: 2 },
+  { id: 'group-archived', name: 'Archivé', color: '#6b7280', emoji: '📦', order: 3 },
+]
+
 export const useLaunchpadStore = create<LaunchpadStore>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       projects: [],
       deletedProjects: [],
-      deletedIds: [],
+      deletedIds: _stored.deletedIds ?? [],
       remoteLoaded: false,
       swapTarget: null,
       ideaWidgetPosition: { x: -300, y: 60 },
       ideas: [],
       activeFilter: null,
-      groups: [
-        { id: 'group-prod', name: 'En prod', color: '#22c55e', emoji: '🚀', order: 0 },
-        { id: 'group-dev', name: 'En dev', color: '#3b82f6', emoji: '🔧', order: 1 },
-        { id: 'group-ideas', name: 'Idées', color: '#f59e0b', emoji: '💡', order: 2 },
-        { id: 'group-archived', name: 'Archivé', color: '#6b7280', emoji: '📦', order: 3 },
-      ],
-      activeGroup: null,
-      boardName: 'Mon Launchpad',
-      isPrivate: false,
+      groups: _stored.groups ?? DEFAULT_GROUPS,
+      activeGroup: _stored.activeGroup ?? null,
+      boardName: _stored.boardName ?? 'Mon Launchpad',
+      isPrivate: true,  // Toujours true au démarrage — DB est source de vérité
       currentUser: null,
       showSettings: false,
       activeBuildTasks: [],
@@ -294,6 +307,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
        * Also loads isPrivate from board_settings.
        */
       fetchProjects: async () => {
+
         // Load isPrivate from Supabase
         try {
           const { data: settings } = await supabase.from('board_settings').select('value').eq('key', 'isPrivate').single()
@@ -304,9 +318,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         } catch { /* ignore */ }
 
         const { data } = await supabase.from('projects').select('*')
+
         if (data) {
           const projects = (data as ProjectRow[]).map(rowToProject)
           set({ projects, remoteLoaded: true })
+
           // FIX 1 — card_positions est la source de vérité pour les positions.
           // On écrase les positions des projets avec celles stockées dans card_positions.
           const { data: positions } = await supabase.from('card_positions').select('*')
@@ -1131,15 +1147,20 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         })
       },
     }),
-    {
-      name: 'orion-launchpad-v3',
-      partialize: (state) => ({
-        deletedIds: state.deletedIds,
-        groups: state.groups,
-        activeGroup: state.activeGroup,
-        boardName: state.boardName,
-        isPrivate: state.isPrivate,
-      }),
-    }
-  )
 )
+
+// Persist manuel — sauvegarde synchrone sur changement
+let _lastSaved = ''
+useLaunchpadStore.subscribe((state) => {
+  const toSave = JSON.stringify({
+    groups: state.groups,
+    activeGroup: state.activeGroup,
+    boardName: state.boardName,
+    isPrivate: state.isPrivate,
+    deletedIds: state.deletedIds,
+  })
+  if (toSave !== _lastSaved) {
+    _lastSaved = toSave
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ state: JSON.parse(toSave) })) } catch { /* ignore */ }
+  }
+})

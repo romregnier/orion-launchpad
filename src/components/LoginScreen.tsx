@@ -18,9 +18,8 @@ export function LoginScreen() {
     setLoading(false)
     if (!ok) {
       setError(true)
-    } else {
-      window.location.reload()
     }
+    // No reload needed — the overlay disappears automatically when currentUser is set
   }, [email, password, login])
 
   const borderColor = error ? '#ef4444' : 'rgba(255,255,255,0.1)'
