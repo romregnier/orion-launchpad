@@ -8,6 +8,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { DoraWidget } from './DoraWidget'
 
 export interface BuildTask {
   id: string
@@ -72,6 +73,7 @@ interface Props {
 export function BuildStatusWidget({ canvasScale }: Props) {
   const [tasks, setTasks] = useState<BuildTask[]>([])
   const [collapsed, setCollapsed] = useState(false)
+  const [showDora, setShowDora] = useState(false)
   const [pos, setPos]     = useState<{ x: number; y: number }>(loadPos)
   const [isDragging, setIsDragging] = useState(false)
   const dragStart = useRef({ mouseX: 0, mouseY: 0, wx: 0, wy: 0 })
@@ -177,23 +179,48 @@ export function BuildStatusWidget({ canvasScale }: Props) {
       }}
     >
       {/* Header — drag handle */}
-      <button
-        data-no-drag
-        onClick={() => setCollapsed(c => !c)}
+      <div
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', padding: '9px 12px',
           background: 'rgba(255,255,255,0.03)',
-          border: 'none', cursor: 'pointer',
           borderBottom: collapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
-          pointerEvents: 'all',
         }}
       >
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.06em' }}>
-          ⚡ BUILD STATUS
-        </span>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{collapsed ? '▲' : '▼'}</span>
-      </button>
+        <button
+          data-no-drag
+          aria-label="Réduire/Déployer le widget Build Status"
+          onClick={() => setCollapsed(c => !c)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, padding: 0,
+            pointerEvents: 'all',
+          }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.06em' }}>
+            ⚡ BUILD STATUS
+          </span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{collapsed ? '▲' : '▼'}</span>
+        </button>
+        {/* Stats toggle button — DoraWidget */}
+        <button
+          data-no-drag
+          aria-label="Afficher les métriques DORA"
+          onClick={() => setShowDora(prev => !prev)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '2px 8px', borderRadius: 6,
+            fontSize: 10, fontWeight: 600,
+            cursor: 'pointer', pointerEvents: 'all',
+            transition: 'all 0.2s',
+            background: showDora ? 'rgba(225,31,123,0.2)' : 'rgba(62,55,66,0.8)',
+            color: showDora ? '#E11F7B' : '#6b7280',
+            border: showDora ? '1px solid rgba(225,31,123,0.3)' : '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          📊 Stats
+        </button>
+      </div>
 
       {/* Task list */}
       <AnimatePresence>
@@ -244,6 +271,22 @@ export function BuildStatusWidget({ canvasScale }: Props) {
                 )
               })}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DORA Metrics Panel */}
+      <AnimatePresence>
+        {showDora && !collapsed && (
+          <motion.div
+            key="dora-panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <DoraWidget />
           </motion.div>
         )}
       </AnimatePresence>
