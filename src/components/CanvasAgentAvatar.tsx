@@ -14,12 +14,14 @@ const AGENT_META: Record<string, { emoji: string; color: string; glow: string }>
 }
 
 /**
- * Avatar visuel simple et fiable pour les agents sur le canvas.
- * Bulle colorée avec emoji — pas de WebGL, toujours visible.
+ * Avatar visuel pour les agents sur le canvas.
+ * - Si `tailorUrl` est défini : affiche le screenshot 3D capturé depuis The Tailor
+ * - Sinon : fallback bulle colorée avec emoji
  */
-function AgentBubble({ name, isWorking }: { name: string; isWorking: boolean }) {
+function AgentBubble({ name, isWorking, tailorUrl }: { name: string; isWorking: boolean; tailorUrl?: string }) {
   const key = name.toLowerCase()
   const meta = AGENT_META[key] ?? { emoji: '🤖', color: '#fff', glow: 'rgba(255,255,255,0.2)' }
+
   return (
     <motion.div
       animate={isWorking ? { boxShadow: [`0 0 0 0 ${meta.glow}`, `0 0 0 12px transparent`] } : {}}
@@ -27,14 +29,26 @@ function AgentBubble({ name, isWorking }: { name: string; isWorking: boolean }) 
       style={{
         width: 64, height: 64,
         borderRadius: '50%',
-        background: `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
+        overflow: 'hidden',
+        background: tailorUrl
+          ? 'transparent'
+          : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
         border: `2px solid ${meta.color}88`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 28,
         boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
       }}
     >
-      {meta.emoji}
+      {tailorUrl ? (
+        <img
+          src={tailorUrl}
+          alt={name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+      ) : (
+        meta.emoji
+      )}
     </motion.div>
   )
 }
@@ -225,9 +239,9 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
         zIndex: isDragging.current ? 500 : 10,
       }}
     >
-      {/* Avatar — emoji visuel fiable (WebGL remplacé pour fiabilité canvas) */}
+      {/* Avatar — screenshot Tailor si disponible, sinon emoji */}
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
-        <AgentBubble name={agent.name} isWorking={isWorking} />
+        <AgentBubble name={agent.name} isWorking={isWorking} tailorUrl={agent.tailorUrl} />
 
         {/* Owner badge */}
         <div

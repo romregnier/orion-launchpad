@@ -50,12 +50,17 @@ export function BotModal({ open, onClose, editAgent }: Props) {
       // Format 1 : config JSON complète envoyée par le bouton "Sauvegarder" de The Tailor
       if (e.data?.type === 'tailor-save' && e.data?.config) {
         const config = e.data.config as AvatarConfig
+        const screenshot = e.data.screenshot as string | null | undefined
         setTailorConfigCapture(config)
+        if (screenshot) setTailorUrl(screenshot)
         setConfigSaved(true)
         setTimeout(() => setConfigSaved(false), 3000)
         // Persistance immédiate en DB si on est en mode édition
         if (editAgent?.id) {
-          updateCanvasAgent(editAgent.id, { tailor_config: config })
+          updateCanvasAgent(editAgent.id, {
+            tailor_config: config,
+            ...(screenshot ? { tailorUrl: screenshot } : {}),
+          })
         }
       }
       // Format 2 : ancienne URL (rétro-compat)

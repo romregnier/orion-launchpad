@@ -179,8 +179,7 @@ function LaunchpadCanvas() {
           <ListWidgetCard key={list.id} list={list} canvasScale={scale} sessionId={sessionId} isAdmin={currentUser?.role === 'admin'} />
         ))}
         {/* IdeaWidget retiré — utiliser "+ Liste" dans la toolbar pour créer des listes d'idées */}
-        {/* BuildStatusWidget — flottant sur le canvas, draggable */}
-        <BuildStatusWidget canvasScale={scale} />
+        {/* BuildStatusWidget déplacé hors du canvas — voir rendu fixe ci-dessous */}
         {canvasAgents.map(agent => (
           <CanvasAgentAvatar
             key={agent.id} agent={agent} canvasScale={scale}
@@ -451,6 +450,8 @@ export default function App() {
   return (
     <>
       <LaunchpadCanvas />
+      {/* BuildStatusWidget fixe sur le viewport — indépendant du canvas pan/zoom */}
+      {currentUser && <BuildStatusWidget canvasScale={1} />}
       {showLoginOverlay && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0B090D' }}>
           <LoginScreen />

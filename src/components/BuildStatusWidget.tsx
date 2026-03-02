@@ -112,8 +112,8 @@ export function BuildStatusWidget({ canvasScale }: Props) {
 
     const onMove = (ev: MouseEvent) => {
       // Le mouvement souris est en pixels écran → diviser par scale pour canvas
-      const nx = dragStart.current.wx + (ev.clientX - dragStart.current.mouseX) / canvasScale
-      const ny = dragStart.current.wy + (ev.clientY - dragStart.current.mouseY) / canvasScale
+      const nx = dragStart.current.wx + (ev.clientX - dragStart.current.mouseX)
+      const ny = dragStart.current.wy + (ev.clientY - dragStart.current.mouseY)
       setPos({ x: nx, y: ny })
     }
     const onUp = () => {
@@ -132,7 +132,7 @@ export function BuildStatusWidget({ canvasScale }: Props) {
       className="build-status-widget"
       onMouseDown={onMouseDown}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         left: 0,
         top: 0,
         zIndex: 40,
@@ -162,7 +162,7 @@ export function BuildStatusWidget({ canvasScale }: Props) {
       transition={{ type: 'spring', stiffness: 350, damping: 28 }}
       onMouseDown={onMouseDown}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         left: 0,
         top: 0,
         zIndex: 40,
