@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { ModalShell } from './ModalShell'
@@ -163,7 +164,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
 
   return (
     <>
-      {tailorFullscreen}
+      {createPortal(tailorFullscreen, document.body)}
       <ModalShell
         open={open && !showTailor}
         emoji="🤖"
