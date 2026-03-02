@@ -23,6 +23,8 @@ export function BotModal({ open, onClose, editAgent }: Props) {
   const [configSaved, setConfigSaved] = useState(false)
   const [workingOn, setWorkingOn] = useState<string | null>(null)
   const tailorRef = useRef<HTMLIFrameElement>(null)
+  // Config à injecter dans The Tailor une fois l'iframe chargée
+  const pendingConfigRef = useRef<AvatarConfig | null>(null)
 
   const isEdit = !!editAgent
 
@@ -92,6 +94,25 @@ export function BotModal({ open, onClose, editAgent }: Props) {
     onClose()
   }
 
+  // Quand on ouvre The Tailor, mémoriser la config à injecter
+  const handleOpenTailor = () => {
+    pendingConfigRef.current = tailorConfigCapture ?? (editAgent?.tailor_config ?? null)
+    setShowTailor(true)
+  }
+
+  // Injecter la config dans l'iframe après son chargement
+  const handleTailorLoad = () => {
+    if (pendingConfigRef.current && tailorRef.current?.contentWindow) {
+      // Petit délai pour que le store Zustand de The Tailor soit prêt
+      setTimeout(() => {
+        tailorRef.current?.contentWindow?.postMessage(
+          { type: 'tailor-load-config', config: pendingConfigRef.current },
+          'https://the-tailor.surge.sh'
+        )
+      }, 300)
+    }
+  }
+
   const tailorSrc = 'https://the-tailor.surge.sh'
 
   // When showTailor is active, use a separate fullscreen overlay
@@ -155,6 +176,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
               style={{ width: '100%', height: '100%', border: 'none' }}
               title="The Tailor — avatar editor"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+              onLoad={handleTailorLoad}
             />
           </div>
         </motion.div>
@@ -229,7 +251,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
           {/* Avatar Tailor */}
           <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 8, letterSpacing: '0.08em' }}>AVATAR</label>
           <button
-            onClick={() => setShowTailor(t => !t)}
+            onClick={handleOpenTailor}
             style={{
               width: '100%', padding: '10px 14px', borderRadius: 10,
               background: 'rgba(255,255,255,0.06)',
