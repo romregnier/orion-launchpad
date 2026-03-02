@@ -181,7 +181,7 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
   }, [open])
 
   const items = [
-    { emoji: '🗂️', label: 'Projet', onClick: onAdd, adminOnly: false },
+    { emoji: '🗂️', label: 'Projet', onClick: onAdd, adminOnly: false, testId: 'btn-add-projet-item' },
     { emoji: '📋', label: 'Liste', onClick: onAddList, adminOnly: false },
     { emoji: '🤖', label: 'Agent', onClick: onAddAgent, adminOnly: true },
   ].filter((item) => !item.adminOnly || isAdmin)
@@ -249,6 +249,7 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
                 <button
                   key={item.label}
                   onClick={() => handleItem(item.onClick)}
+                  data-testid={(item as { testId?: string }).testId}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     width: '100%', padding: '12px 14px',
