@@ -226,8 +226,8 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
             </span>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{collapsed ? '▲' : '▼'}</span>
           </button>
-          {/* Quality Score badge */}
-          {avgQualityScore !== null && (
+          {/* Quality Score badge — TK-0006 */}
+          {avgQualityScore !== null ? (
             <span
               title="Score qualité moyen des projets (IA)"
               style={{
@@ -245,6 +245,27 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
             >
               🛡 {avgQualityScore}/100
             </span>
+          ) : (
+            <button
+              data-widget-nodrag
+              onMouseDown={e => e.stopPropagation()}
+              onClick={() => {
+                // Scroll to a project card and trigger analysis
+                const analyzeBtn = document.querySelector<HTMLButtonElement>('[data-analyze-btn]')
+                if (analyzeBtn) analyzeBtn.click()
+              }}
+              title="Aucun score qualité — cliquer pour analyser un projet"
+              style={{
+                fontSize: 10, fontWeight: 600,
+                padding: '2px 7px', borderRadius: 999,
+                background: 'rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.4)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              🛡 Analyser →
+            </button>
           )}
         </div>
         {/* Stats toggle button — DoraWidget */}

@@ -287,6 +287,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                   onMouseDown={e => e.stopPropagation()}
                   onClick={e => { e.stopPropagation(); analyze(project.id, project.url) }}
                   title="Analyser le projet avec l'IA"
+                  data-analyze-btn
                   disabled={analyzing === project.id}
                   style={{
                     ...actionBtn,
