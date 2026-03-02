@@ -51,42 +51,66 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         dirLight.position.set(-1, 2, 1)
         scene.add(ambient, dirLight)
 
-        // ── Couleur corps depuis tailor_config.color (HSL) ──
+        // ── Couleur corps depuis tailor_config.color — {h,s,l} sont en 0-100/360 ──
         const hsl = tailorConfig.color
-        const colorHex = hsl
-          ? `hsl(${hsl.h}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%)`
-          : fallbackColor
-        const bodyColor = new THREE.Color(colorHex)
+        // s et l sont déjà en 0-100 (pas 0-1), h en 0-360
+        const colorCss = hsl ? `hsl(${hsl.h},${hsl.s}%,${hsl.l}%)` : fallbackColor
+        const bodyColor = new THREE.Color(colorCss)
         const bodyScale = tailorConfig.bodyScale ?? 1
 
-        // ── Corps principal ──
-        const bodyGeo = new THREE.SphereGeometry(0.38 * bodyScale, 24, 24)
+        // ── Corps principal — forme selon bodyShape ──
+        let bodyGeo: import('three').BufferGeometry
+        const bs = tailorConfig.bodyShape ?? 'blob'
+        if (bs === 'heart') {
+          // cœur approximé avec 2 sphères + 1 cône
+          bodyGeo = new THREE.SphereGeometry(0.32 * bodyScale, 20, 20)
+        } else if (bs === 'star') {
+          bodyGeo = new THREE.OctahedronGeometry(0.38 * bodyScale, 0)
+        } else if (bs === 'ghost') {
+          bodyGeo = new THREE.CapsuleGeometry(0.22 * bodyScale, 0.28 * bodyScale, 6, 16)
+        } else {
+          bodyGeo = new THREE.SphereGeometry(0.38 * bodyScale, 24, 24)
+        }
         const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor })
         const body = new THREE.Mesh(bodyGeo, bodyMat)
         body.position.y = -0.05
 
-        // ── Yeux — couleur depuis eyeColor (string CSS) ──
-        const eyeColorVal = tailorConfig.eyeColor ?? '#1a1aff'
-        const eyeType = tailorConfig.eyes ?? 'round'
-        const eyeSize = eyeType === 'wide' ? 0.10 : eyeType === 'small' ? 0.06 : 0.08
-        const eyeGeo = new THREE.SphereGeometry(eyeSize, 12, 12)
+        // ── Yeux — taille/forme selon eyeStyle + couleur selon eyeColor ──
+        const eyeColorMap: Record<string, number> = {
+          blue: 0x3b82f6, green: 0x22c55e, red: 0xef4444,
+          gold: 0xfbbf24, rainbow: 0xe11f7b,
+        }
+        const eyeCol = eyeColorMap[tailorConfig.eyeColor ?? 'blue'] ?? 0x3b82f6
+        const eyeStyle = tailorConfig.eyes ?? 'cute'
+        const eyeSize = eyeStyle === 'pixel' ? 0.07 : eyeStyle === 'star' ? 0.10 : 0.08
+        const eyeGeo = eyeStyle === 'pixel'
+          ? new THREE.BoxGeometry(eyeSize, eyeSize, eyeSize)
+          : new THREE.SphereGeometry(eyeSize, 12, 12)
         const eyeWhiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-        const eyePupilMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(eyeColorVal) })
+        const eyePupilMat = new THREE.MeshLambertMaterial({ color: eyeCol })
         const eyeL = new THREE.Mesh(eyeGeo, eyeWhiteMat)
         const eyeR = new THREE.Mesh(eyeGeo, eyeWhiteMat)
-        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(eyeSize * 0.5, 8, 8), eyePupilMat)
-        const pupilR = new THREE.Mesh(new THREE.SphereGeometry(eyeSize * 0.5, 8, 8), eyePupilMat)
-        eyeL.position.set(-0.14, 0.12, 0.32)
-        eyeR.position.set(0.14, 0.12, 0.32)
-        pupilL.position.set(-0.14, 0.12, 0.38)
-        pupilR.position.set(0.14, 0.12, 0.38)
+        const pupilL = new THREE.Mesh(
+          eyeStyle === 'pixel' ? new THREE.BoxGeometry(eyeSize * 0.6, eyeSize * 0.6, eyeSize) : new THREE.SphereGeometry(eyeSize * 0.5, 8, 8),
+          eyePupilMat
+        )
+        const pupilR = pupilL.clone()
+        const eyeY = eyeStyle === 'sleepy' ? 0.06 : 0.12
+        eyeL.position.set(-0.14, eyeY, 0.32)
+        eyeR.position.set(0.14, eyeY, 0.32)
+        pupilL.position.set(-0.14, eyeY, 0.38)
+        pupilR.position.set(0.14, eyeY, 0.38)
+        if (eyeStyle === 'sleepy') {
+          eyeL.scale.y = 0.5; eyeR.scale.y = 0.5
+        }
 
         const meshGroup = new THREE.Group()
         meshGroup.add(body, eyeL, eyeR, pupilL, pupilR)
 
-        // ── Blush (joues roses) si activé ──
-        if (tailorConfig.blush) {
-          const blushMat = new THREE.MeshLambertMaterial({ color: 0xff8fa3, transparent: true, opacity: 0.55 })
+        // ── Blush (joues) selon style ──
+        if (tailorConfig.blush && tailorConfig.blush !== 'none') {
+          const blushColor = tailorConfig.blush === 'hearts' ? 0xff4d88 : 0xff8fa3
+          const blushMat = new THREE.MeshLambertMaterial({ color: blushColor, transparent: true, opacity: 0.6 })
           const blushGeo = new THREE.SphereGeometry(0.07, 8, 8)
           const blushL = new THREE.Mesh(blushGeo, blushMat)
           const blushR = new THREE.Mesh(blushGeo, blushMat)
@@ -95,33 +119,80 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
           meshGroup.add(blushL, blushR)
         }
 
-        // ── Armor (plaque frontale) si présent ──
+        // ── Armor — couleur et forme selon style ──
         if (tailorConfig.armor && tailorConfig.armor !== 'none') {
-          const armorMat = new THREE.MeshLambertMaterial({ color: 0x666688 })
-          const armorGeo = new THREE.BoxGeometry(0.28, 0.18, 0.08)
-          const armor = new THREE.Mesh(armorGeo, armorMat)
-          armor.position.set(0, -0.12, 0.36)
-          meshGroup.add(armor)
+          const armorColors: Record<string, number> = {
+            space: 0x334155, knight: 0x78716c, casual: 0x3b82f6, wizard: 0x7c3aed
+          }
+          const armorMat = new THREE.MeshLambertMaterial({ color: armorColors[tailorConfig.armor] ?? 0x666688 })
+          if (tailorConfig.armor === 'knight') {
+            // bouclier large
+            const ag = new THREE.BoxGeometry(0.32, 0.22, 0.07)
+            const a = new THREE.Mesh(ag, armorMat); a.position.set(0, -0.1, 0.37)
+            meshGroup.add(a)
+          } else if (tailorConfig.armor === 'wizard') {
+            // robe (cone bas)
+            const ag = new THREE.ConeGeometry(0.22, 0.3, 8)
+            const a = new THREE.Mesh(ag, armorMat); a.position.set(0, -0.38, 0)
+            meshGroup.add(a)
+          } else {
+            // plaque space / casual
+            const ag = new THREE.BoxGeometry(0.28, 0.18, 0.08)
+            const a = new THREE.Mesh(ag, armorMat); a.position.set(0, -0.12, 0.36)
+            meshGroup.add(a)
+          }
         }
 
-        // ── Headgear (petit cône sur le dessus) si présent ──
+        // ── Headgear ──
         if (tailorConfig.headgear && tailorConfig.headgear !== 'none') {
-          const hgMat = new THREE.MeshLambertMaterial({ color: 0xffd700 })
-          const hgGeo = new THREE.ConeGeometry(0.1, 0.22, 8)
-          const hg = new THREE.Mesh(hgGeo, hgMat)
-          hg.position.set(0, 0.42 * bodyScale, 0)
-          meshGroup.add(hg)
+          const hgColors: Record<string, number> = {
+            crown: 0xffd700, antennae: 0x60a5fa, halo: 0xfef08a, 'wizard-hat': 0x7c3aed
+          }
+          const hgMat = new THREE.MeshLambertMaterial({ color: hgColors[tailorConfig.headgear] ?? 0xffd700 })
+          const topY = 0.38 * bodyScale
+          if (tailorConfig.headgear === 'crown') {
+            const cg = new THREE.CylinderGeometry(0.18, 0.22, 0.14, 6, 1, true)
+            const c = new THREE.Mesh(cg, hgMat); c.position.set(0, topY + 0.07, 0)
+            meshGroup.add(c)
+          } else if (tailorConfig.headgear === 'wizard-hat') {
+            const cg = new THREE.ConeGeometry(0.18, 0.35, 8)
+            const c = new THREE.Mesh(cg, hgMat); c.position.set(0, topY + 0.17, 0)
+            meshGroup.add(c)
+          } else if (tailorConfig.headgear === 'halo') {
+            const rg = new THREE.TorusGeometry(0.2, 0.03, 8, 24)
+            const r = new THREE.Mesh(rg, hgMat); r.position.set(0, topY + 0.18, 0)
+            meshGroup.add(r)
+          } else if (tailorConfig.headgear === 'antennae') {
+            const sg = new THREE.SphereGeometry(0.05, 8, 8)
+            const sm = new THREE.MeshLambertMaterial({ color: 0x60a5fa })
+            const cyl = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 6)
+            const cylm = new THREE.MeshLambertMaterial({ color: 0x94a3b8 })
+            const stickL = new THREE.Mesh(cyl, cylm); stickL.position.set(-0.12, topY + 0.1, 0)
+            const stickR = new THREE.Mesh(cyl, cylm); stickR.position.set(0.12, topY + 0.1, 0)
+            const ballL = new THREE.Mesh(sg, sm); ballL.position.set(-0.12, topY + 0.22, 0)
+            const ballR = new THREE.Mesh(sg, sm); ballR.position.set(0.12, topY + 0.22, 0)
+            meshGroup.add(stickL, stickR, ballL, ballR)
+          }
         }
 
-        // ── Ear piece (petits cubes latéraux) ──
+        // ── Ear piece ──
         if (tailorConfig.earPiece && tailorConfig.earPiece !== 'none') {
-          const epMat = new THREE.MeshLambertMaterial({ color: 0x888899 })
-          const epGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08)
-          const epL = new THREE.Mesh(epGeo, epMat)
-          const epR = new THREE.Mesh(epGeo, epMat)
-          epL.position.set(-0.38 * bodyScale, 0.1, 0)
-          epR.position.set(0.38 * bodyScale, 0.1, 0)
-          meshGroup.add(epL, epR)
+          const epColors: Record<string, number> = {
+            tech: 0x64748b, headphones: 0x1e293b, 'cat-ears': 0xfbbf24
+          }
+          const epMat = new THREE.MeshLambertMaterial({ color: epColors[tailorConfig.earPiece] ?? 0x888899 })
+          const x = 0.4 * bodyScale
+          if (tailorConfig.earPiece === 'cat-ears') {
+            const cg = new THREE.ConeGeometry(0.07, 0.14, 4)
+            const eL = new THREE.Mesh(cg, epMat); eL.position.set(-x, 0.28, 0)
+            const eR = new THREE.Mesh(cg, epMat); eR.position.set(x, 0.28, 0)
+            meshGroup.add(eL, eR)
+          } else {
+            const eg = new THREE.BoxGeometry(0.07, 0.1, 0.07)
+            const eL = new THREE.Mesh(eg, epMat); eL.position.set(-x, 0.08, 0)
+            const eR = new THREE.Mesh(eg, epMat); eR.position.set(x, 0.08, 0)
+            meshGroup.add(eL, eR)
+          }
         }
 
         scene.add(meshGroup)
