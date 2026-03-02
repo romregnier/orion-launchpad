@@ -500,7 +500,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         // La mise à jour de `projects` déclenche le Realtime → fetchProjects() qui relit
         // card_positions AVANT que l'upsert soit commité → position écrasée.
         // card_positions est la seule source de vérité pour les positions en session.
-        supabase.from('card_positions').upsert({ id, type, position_x: x, position_y: y, updated_by: username, updated_at: new Date().toISOString() })
+        supabase.from('card_positions').upsert({ id, type, position_x: x, position_y: y, updated_by: username, updated_at: new Date().toISOString() }).then(() => {})
       },
 
       /** Réorganise tous les projets et agents en grille propre et sauvegarde en DB */
@@ -827,7 +827,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         }))
         // FIX 2 — inclure position_x ET position_y pour déclencher le Realtime sur UPDATE.
         // Note: updated_at n'existe pas encore sur cette table; position_x/y suffisent.
-        supabase.from('canvas_agents').update({ position_x: x, position_y: y }).eq('id', id)
+        supabase.from('canvas_agents').update({ position_x: x, position_y: y }).eq('id', id).then(() => {})
       },
 
       subscribeToBuildTasks: () => {
@@ -1147,7 +1147,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       updateListPosition: (id, x, y) => {
         set(state => ({ lists: state.lists.map(l => l.id === id ? { ...l, position: { x, y } } : l) }))
-        supabase.from('lists').update({ position_x: x, position_y: y }).eq('id', id)
+        supabase.from('lists').update({ position_x: x, position_y: y }).eq('id', id).then(() => {})
         get().syncPositionToDb(id, x, y, 'list')
       },
 

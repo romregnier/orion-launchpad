@@ -41,15 +41,29 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         renderer.shadowMap.enabled = false
 
         const scene = new THREE.Scene()
+        // Caméra identique à The Tailor (position [0,0,4], fov 45)
         const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
-        camera.position.set(0, 0.2, 2.5)
+        camera.position.set(0, 0, 4)
         camera.lookAt(0, 0, 0)
 
-        // Éclairage ambiant + directionnel
-        const ambient = new THREE.AmbientLight(0xffffff, 0.8)
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0)
-        dirLight.position.set(-1, 2, 1)
-        scene.add(ambient, dirLight)
+        // Éclairage identique à The Tailor : ambientLight + 2 pointLights
+        const ambiancePointColors: Record<string, string> = {
+          space: '#4488ff', forest: '#86efac', sunset: '#fb923c',
+          neon: '#e879f9', retro: '#fcd34d', void: '#ffffff',
+        }
+        const ambianceAmbient: Record<string, number> = {
+          space: 0.4, forest: 0.5, sunset: 0.8, neon: 0.6, retro: 0.7, void: 0.6,
+        }
+        const ambianceKey = tailorConfig.ambiance ?? 'space'
+        const ambientIntensity = ambianceAmbient[ambianceKey] ?? 0.5
+        const pointColor = ambiancePointColors[ambianceKey] ?? '#4488ff'
+
+        const ambient = new THREE.AmbientLight(0xffffff, ambientIntensity)
+        const pointLight1 = new THREE.PointLight(0xffffff, 1.5)
+        pointLight1.position.set(3, 3, 3)
+        const pointLight2 = new THREE.PointLight(new THREE.Color(pointColor), 0.5)
+        pointLight2.position.set(-2, -1, 2)
+        scene.add(ambient, pointLight1, pointLight2)
 
         // ── Couleur corps depuis tailor_config.color — {h,s,l} sont en 0-100/360 ──
         const hsl = tailorConfig.color
@@ -71,7 +85,15 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         } else {
           bodyGeo = new THREE.SphereGeometry(0.38 * bodyScale, 24, 24)
         }
-        const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor })
+        // MeshStandardMaterial identique à The Tailor (PBR vs Lambert = rendu plus fidèle)
+        const isGlow = tailorConfig.skinPattern === 'glow'
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: bodyColor,
+          emissive: isGlow ? bodyColor : new THREE.Color(0x000000),
+          emissiveIntensity: isGlow ? 0.4 : 0,
+          roughness: 0.7,
+          metalness: 0.05,
+        })
         const body = new THREE.Mesh(bodyGeo, bodyMat)
         body.position.y = -0.05
 
@@ -86,8 +108,8 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         const eyeGeo = eyeStyle === 'pixel'
           ? new THREE.BoxGeometry(eyeSize, eyeSize, eyeSize)
           : new THREE.SphereGeometry(eyeSize, 12, 12)
-        const eyeWhiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-        const eyePupilMat = new THREE.MeshLambertMaterial({ color: eyeCol })
+        const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0 })
+        const eyePupilMat = new THREE.MeshStandardMaterial({ color: eyeCol, roughness: 0.5, metalness: 0.1 })
         const eyeL = new THREE.Mesh(eyeGeo, eyeWhiteMat)
         const eyeR = new THREE.Mesh(eyeGeo, eyeWhiteMat)
         const pupilL = new THREE.Mesh(
@@ -110,7 +132,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         // ── Blush (joues) selon style ──
         if (tailorConfig.blush && tailorConfig.blush !== 'none') {
           const blushColor = tailorConfig.blush === 'hearts' ? 0xff4d88 : 0xff8fa3
-          const blushMat = new THREE.MeshLambertMaterial({ color: blushColor, transparent: true, opacity: 0.6 })
+          const blushMat = new THREE.MeshStandardMaterial({ color: blushColor, transparent: true, opacity: 0.6, roughness: 0.9 })
           const blushGeo = new THREE.SphereGeometry(0.07, 8, 8)
           const blushL = new THREE.Mesh(blushGeo, blushMat)
           const blushR = new THREE.Mesh(blushGeo, blushMat)
@@ -124,7 +146,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
           const armorColors: Record<string, number> = {
             space: 0x334155, knight: 0x78716c, casual: 0x3b82f6, wizard: 0x7c3aed
           }
-          const armorMat = new THREE.MeshLambertMaterial({ color: armorColors[tailorConfig.armor] ?? 0x666688 })
+          const armorMat = new THREE.MeshStandardMaterial({ color: armorColors[tailorConfig.armor] ?? 0x666688, roughness: 0.5, metalness: 0.3 })
           if (tailorConfig.armor === 'knight') {
             // bouclier large
             const ag = new THREE.BoxGeometry(0.32, 0.22, 0.07)
@@ -148,7 +170,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
           const hgColors: Record<string, number> = {
             crown: 0xffd700, antennae: 0x60a5fa, halo: 0xfef08a, 'wizard-hat': 0x7c3aed
           }
-          const hgMat = new THREE.MeshLambertMaterial({ color: hgColors[tailorConfig.headgear] ?? 0xffd700 })
+          const hgMat = new THREE.MeshStandardMaterial({ color: hgColors[tailorConfig.headgear] ?? 0xffd700, roughness: 0.4, metalness: 0.2 })
           const topY = 0.38 * bodyScale
           if (tailorConfig.headgear === 'crown') {
             const cg = new THREE.CylinderGeometry(0.18, 0.22, 0.14, 6, 1, true)
@@ -180,7 +202,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
           const epColors: Record<string, number> = {
             tech: 0x64748b, headphones: 0x1e293b, 'cat-ears': 0xfbbf24
           }
-          const epMat = new THREE.MeshLambertMaterial({ color: epColors[tailorConfig.earPiece] ?? 0x888899 })
+          const epMat = new THREE.MeshStandardMaterial({ color: epColors[tailorConfig.earPiece] ?? 0x888899, roughness: 0.6, metalness: 0.2 })
           const x = 0.4 * bodyScale
           if (tailorConfig.earPiece === 'cat-ears') {
             const cg = new THREE.ConeGeometry(0.07, 0.14, 4)
@@ -197,13 +219,29 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
 
         scene.add(meshGroup)
 
+        const animType = tailorConfig.animation ?? 'rotate'
         let t = 0
         const animate = () => {
           if (disposed) return
           frameId = requestAnimationFrame(animate)
           t += 0.016
-          meshGroup.rotation.y += 0.005
-          meshGroup.position.y = Math.sin(t * 1.5) * 0.05
+          // Animations identiques à The Tailor (useFrame)
+          meshGroup.rotation.y = 0
+          meshGroup.position.y = 0
+          meshGroup.rotation.z = 0
+          if (animType === 'rotate') {
+            meshGroup.rotation.y += 0.005
+          } else if (animType === 'bounce') {
+            meshGroup.position.y = Math.sin(t * 2) * 0.15
+          } else if (animType === 'float') {
+            meshGroup.position.y = Math.sin(t * 0.8) * 0.1
+            meshGroup.rotation.y += 0.001
+          } else if (animType === 'wiggle') {
+            meshGroup.rotation.z = Math.sin(t * 3) * 0.15
+          } else {
+            // default: rotate
+            meshGroup.rotation.y += 0.005
+          }
           renderer.render(scene, camera)
         }
         animate()
