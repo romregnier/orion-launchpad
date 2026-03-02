@@ -1,16 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+// Les clés Supabase anon sont publiques par conception (conçues pour le client).
+// Fallback hardcodé pour garantir le fonctionnement même si .env manque lors du build (ex: CI/worktree).
+const SUPABASE_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
+  'https://dkctapjhtyjmieolyfqk.supabase.co'
 
-// Détection build sans variables d'env (évite l'écran noir silencieux)
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0B090D;color:#E11F7B;font-family:sans-serif;font-size:16px;text-align:center;padding:24px">
-    ⚠️ Erreur de configuration — variables d'environnement manquantes.<br><br>
-    <span style="color:rgba(255,255,255,0.4);font-size:13px">Hard refresh (Cmd+Shift+R) pour recharger la dernière version.</span>
-  </div>`
-  throw new Error('VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquants dans le build')
-}
+const SUPABASE_ANON_KEY =
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrY3RhcGpodHlqbWllb2x5ZnFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyODQ3MjUsImV4cCI6MjA4Nzg2MDcyNX0.AySNbRt3lgE5vtLMzJHkBgaPgJZI-4cL6EK6EyQ9y8E'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
