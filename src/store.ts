@@ -339,8 +339,18 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
             const m = Object.fromEntries(s.map(r => [r.key, r.value]))
             if (m.isPrivate !== undefined) set({ isPrivate: m.isPrivate === true || m.isPrivate === 'true' })
             if (m.boardName) set({ boardName: m.boardName as string })
-            if (Array.isArray(m.groups)) set({ groups: m.groups as Group[] })
-            else if (get().groups.length > 0) supabase.from('board_settings').upsert({ key: 'groups', value: get().groups }).then(() => {})
+            if (Array.isArray(m.groups)) {
+              // Merge : garder les groupes DB + ajouter les defaults manquants (évite la perte au premier chargement)
+              const dbGroups = m.groups as Group[]
+              const missing = DEFAULT_GROUPS.filter(d => !dbGroups.some(g => g.id === d.id))
+              const merged = missing.length > 0 ? [...dbGroups, ...missing] : dbGroups
+              set({ groups: merged })
+              // Si des groupes manquaient en DB, les sauvegarder
+              if (missing.length > 0) supabase.from('board_settings').upsert({ key: 'groups', value: merged }).then(() => {})
+            } else {
+              // Pas de groupes en DB → conservation des groupes actuels (pas d'écrasement)
+              console.warn('[store] board_settings: pas de groupes en DB, conservation des groupes actuels')
+            }
           })
 
           const { data } = await supabase.from('projects').select('*')

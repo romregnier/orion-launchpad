@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
-import type { CanvasAgent } from '../types'
+import type { CanvasAgent, AvatarConfig } from '../types'
 
 
 // ── Couleurs et emojis par agent ──────────────────────────────────────────────
@@ -14,13 +14,141 @@ const AGENT_META: Record<string, { emoji: string; color: string; glow: string }>
 }
 
 /**
- * Avatar visuel pour les agents sur le canvas.
- * - Si `tailorUrl` est défini : affiche le screenshot 3D capturé depuis The Tailor
- * - Sinon : fallback bulle colorée avec emoji
+ * TailorCanvas — Avatar Three.js animé 64×64px.
+ * Rendu basé sur tailor_config (couleur + forme).
+ * Fallback automatique si WebGL indisponible ou erreur.
+ *
+ * @param tailorConfig - Config avatar issue de la DB (couleur HSL, forme, etc.)
+ * @param fallbackColor - Couleur hex de fallback si tailor_config sans couleur
  */
-function AgentBubble({ name, isWorking, tailorUrl }: { name: string; isWorking: boolean; tailorUrl?: string }) {
+function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarConfig; fallbackColor: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    let frameId: number
+    let disposed = false
+
+    const init = async () => {
+      try {
+        const THREE = await import('three')
+
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
+        renderer.setSize(64, 64)
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.shadowMap.enabled = false
+
+        const scene = new THREE.Scene()
+
+        // Caméra 1:1 (canvas carré)
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
+        camera.position.set(0, 0.2, 2.5)
+        camera.lookAt(0, 0, 0)
+
+        // Éclairage
+        const ambient = new THREE.AmbientLight(0xffffff, 0.8)
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0)
+        dirLight.position.set(-1, 2, 1)
+        dirLight.castShadow = false
+        scene.add(ambient, dirLight)
+
+        // Couleur depuis tailor_config
+        const hsl = tailorConfig.color
+        const colorHex = hsl
+          ? `hsl(${hsl.h}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%)`
+          : fallbackColor
+        const color = new THREE.Color(colorHex)
+
+        // Corps principal (capsule Kirby-style)
+        const bodyScale = tailorConfig.bodyScale ?? 1
+        const bodyGeo = new THREE.SphereGeometry(0.38 * bodyScale, 24, 24)
+        const bodyMat = new THREE.MeshLambertMaterial({ color })
+        const body = new THREE.Mesh(bodyGeo, bodyMat)
+        body.position.y = -0.05
+
+        // Yeux (deux petites sphères blanches)
+        const eyeGeo = new THREE.SphereGeometry(0.08, 12, 12)
+        const eyeMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+        const eyePupilMat = new THREE.MeshLambertMaterial({ color: 0x111111 })
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat)
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat)
+        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyePupilMat)
+        const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyePupilMat)
+
+        eyeL.position.set(-0.14, 0.12, 0.32)
+        eyeR.position.set(0.14, 0.12, 0.32)
+        pupilL.position.set(-0.14, 0.12, 0.38)
+        pupilR.position.set(0.14, 0.12, 0.38)
+
+        // Groupe maître
+        const meshGroup = new THREE.Group()
+        meshGroup.add(body, eyeL, eyeR, pupilL, pupilR)
+        scene.add(meshGroup)
+
+        let t = 0
+        const animate = () => {
+          if (disposed) return
+          frameId = requestAnimationFrame(animate)
+          t += 0.016
+          meshGroup.rotation.y += 0.005
+          meshGroup.position.y = Math.sin(t * 1.5) * 0.05
+          renderer.render(scene, camera)
+        }
+        animate()
+
+        return () => {
+          disposed = true
+          cancelAnimationFrame(frameId)
+          renderer.dispose()
+        }
+      } catch {
+        // Three.js indisponible — canvas reste vide, le parent affichera le fallback
+      }
+    }
+
+    const cleanup = init()
+    return () => { disposed = true; cancelAnimationFrame(frameId); cleanup.then(fn => fn?.()) }
+  }, [tailorConfig, fallbackColor])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={64}
+      height={64}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        borderRadius: '50%',
+        pointerEvents: 'none',
+      }}
+    />
+  )
+}
+
+/**
+ * Avatar visuel pour les agents sur le canvas.
+ * Priorité : TailorCanvas (Three.js) > img PNG > emoji > initiales
+ */
+function AgentBubble({
+  name,
+  isWorking,
+  tailorUrl,
+  tailorConfig,
+}: {
+  name: string
+  isWorking: boolean
+  tailorUrl?: string
+  tailorConfig?: AvatarConfig | null
+}) {
   const key = name.toLowerCase()
   const meta = AGENT_META[key] ?? { emoji: '🤖', color: '#fff', glow: 'rgba(255,255,255,0.2)' }
+
+  const isMobile = typeof navigator !== 'undefined'
+    && (navigator.maxTouchPoints > 0 || window.innerWidth < 768)
+
+  const showTailor = !isMobile && !!tailorConfig
 
   return (
     <motion.div
@@ -30,7 +158,8 @@ function AgentBubble({ name, isWorking, tailorUrl }: { name: string; isWorking: 
         width: 64, height: 64,
         borderRadius: '50%',
         overflow: 'hidden',
-        background: tailorUrl
+        position: 'relative',
+        background: (showTailor || tailorUrl)
           ? 'transparent'
           : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
         border: `2px solid ${meta.color}88`,
@@ -39,7 +168,9 @@ function AgentBubble({ name, isWorking, tailorUrl }: { name: string; isWorking: 
         boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
       }}
     >
-      {tailorUrl ? (
+      {showTailor ? (
+        <TailorCanvas tailorConfig={tailorConfig!} fallbackColor={meta.color} />
+      ) : tailorUrl ? (
         <img
           src={tailorUrl}
           alt={name}
@@ -241,7 +372,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
     >
       {/* Avatar — screenshot Tailor si disponible, sinon emoji */}
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
-        <AgentBubble name={agent.name} isWorking={isWorking} tailorUrl={agent.tailorUrl} />
+        <AgentBubble name={agent.name} isWorking={isWorking} tailorUrl={agent.tailorUrl} tailorConfig={agent.tailor_config} />
 
         {/* Owner badge */}
         <div

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
+import { NebulaBackground } from './NebulaBackground'
 
 export function LoginScreen() {
   const { login, boardName } = useLaunchpadStore()
@@ -27,10 +28,11 @@ export function LoginScreen() {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: '#0B090D',
       zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
+      <NebulaBackground />
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -116,6 +118,7 @@ export function LoginScreen() {
           Accès restreint — contactez l'administrateur pour obtenir vos identifiants
         </p>
       </motion.div>
+      </div>
     </div>
   )
 }

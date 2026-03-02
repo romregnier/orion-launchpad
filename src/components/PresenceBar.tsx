@@ -44,6 +44,7 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
   const [tooltipUser, setTooltipUser] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!currentUser) return
     let channel: RealtimeChannel | null = null
 
     const userKey = currentUser?.username ?? `anon-${Math.random().toString(36).slice(2, 8)}`
