@@ -64,7 +64,7 @@ function LoadingTimeout() {
 }
 
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, refreshAll } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, refreshAll } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -96,6 +96,7 @@ function LaunchpadCanvas() {
   }, [remoteLoaded])
 
   useEffect(() => {
+    fetchPublicSettings() // boardName + isPrivate sans auth (pour la page de login)
     const unsubProjects = subscribeToProjects()
     const unsubAgents = subscribeToAgents()
     const unsubPos = subscribeToPositions()

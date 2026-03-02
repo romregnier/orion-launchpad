@@ -202,6 +202,7 @@ interface LaunchpadStore {
   showSettings: boolean
   /** Fetch all projects from Supabase and update local state */
   fetchProjects: () => Promise<void>
+  fetchPublicSettings: () => Promise<void>
   /** Re-fetch projects and agents without creating new Realtime channels */
   refreshAll: () => Promise<void>
   /** Subscribe to Supabase Realtime for projects — returns unsubscribe fn */
@@ -381,6 +382,18 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
        * Performs an initial fetch, then re-fetches on any change.
        * Returns an unsubscribe function.
        */
+      /**
+       * Charge boardName et isPrivate depuis board_settings sans authentification.
+       * Appelé au démarrage pour afficher le bon nom sur la page de login.
+       */
+      fetchPublicSettings: async () => {
+        const { data } = await supabase.from('board_settings').select('key,value').in('key', ['boardName', 'isPrivate'])
+        if (!data) return
+        const m = Object.fromEntries(data.map(r => [r.key, r.value]))
+        if (m.boardName) set({ boardName: m.boardName as string })
+        if (m.isPrivate !== undefined) set({ isPrivate: m.isPrivate === true || m.isPrivate === 'true' })
+      },
+
       subscribeToProjects: () => {
         // Pas de fetchProjects() ici — l'auth (onAuthStateChange) est le seul déclencheur.
         // Realtime uniquement pour les mises à jour en cours de session.
