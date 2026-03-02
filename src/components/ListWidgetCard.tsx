@@ -15,9 +15,10 @@ interface Props {
   list: ListWidget
   canvasScale: number
   sessionId: string
+  isAdmin?: boolean
 }
 
-export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
+export function ListWidgetCard({ list, canvasScale, sessionId, isAdmin = false }: Props) {
   const { removeList, addListItem, removeListItem, toggleListItem, voteListItem, moveListItem, updateListPosition, syncPositionToDb, pushOverlapping, swapTarget } = useLaunchpadStore()
   const config = TYPE_CONFIG[list.type]
   const [collapsed, setCollapsed] = useState(false)
@@ -156,7 +157,7 @@ export function ListWidgetCard({ list, canvasScale, sessionId }: Props) {
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            {sessionId === list.createdBy && (
+            {(sessionId === list.createdBy || isAdmin) && (
               confirmDelete ? (
                 <div data-no-drag="" style={{ display: 'flex', gap: 4 }}>
                   <button

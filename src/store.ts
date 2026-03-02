@@ -308,12 +308,28 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
        */
       fetchProjects: async () => {
 
-        // Load isPrivate from Supabase
+        // Charger isPrivate ET groups depuis board_settings (source de vérité DB)
         try {
-          const { data: settings } = await supabase.from('board_settings').select('value').eq('key', 'isPrivate').single()
-          if (settings) {
-            const serverPrivate = settings.value === true || settings.value === 'true'
-            if (serverPrivate !== get().isPrivate) set({ isPrivate: serverPrivate })
+          const { data: allSettings } = await supabase.from('board_settings').select('key,value')
+          if (allSettings) {
+            const settingsMap = Object.fromEntries(allSettings.map(r => [r.key, r.value]))
+            if (settingsMap.isPrivate !== undefined) {
+              const serverPrivate = settingsMap.isPrivate === true || settingsMap.isPrivate === 'true'
+              if (serverPrivate !== get().isPrivate) set({ isPrivate: serverPrivate })
+            }
+            if (settingsMap.boardName && settingsMap.boardName !== get().boardName) {
+              set({ boardName: settingsMap.boardName as string })
+            }
+            if (settingsMap.groups && Array.isArray(settingsMap.groups)) {
+              // Groupes depuis DB — source de vérité pour la collaboration
+              set({ groups: settingsMap.groups as Group[] })
+            } else {
+              // Migration one-shot : pousser les groupes locaux en DB si pas encore présents
+              const currentGroups = get().groups
+              if (currentGroups.length > 0) {
+                supabase.from('board_settings').upsert({ key: 'groups', value: currentGroups }).then(() => {})
+              }
+            }
           }
         } catch { /* ignore */ }
 
@@ -565,23 +581,35 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       setFilter: (tag) => set({ activeFilter: tag }),
       setIdeaWidgetPosition: (x, y) => set({ ideaWidgetPosition: { x, y } }),
 
-      addGroup: (group) => set((state) => ({
-        groups: [...state.groups, { ...group, id: `group-${Date.now()}`, order: state.groups.length }]
-      })),
-      deleteGroup: (id) => set((state) => ({
-        groups: state.groups.filter(g => g.id !== id),
-        projects: state.projects.map(p => p.groupId === id ? { ...p, groupId: undefined } : p),
-        activeGroup: state.activeGroup === id ? null : state.activeGroup,
-      })),
-      updateGroup: (id, updates) => set((state) => ({
-        groups: state.groups.map(g => g.id === id ? { ...g, ...updates } : g)
-      })),
+      addGroup: (group) => {
+        const newGroup = { ...group, id: `group-${Date.now()}`, order: get().groups.length }
+        const newGroups = [...get().groups, newGroup]
+        set({ groups: newGroups })
+        supabase.from('board_settings').upsert({ key: 'groups', value: newGroups }).then(() => {})
+      },
+      deleteGroup: (id) => {
+        const newGroups = get().groups.filter(g => g.id !== id)
+        set((state) => ({
+          groups: newGroups,
+          projects: state.projects.map(p => p.groupId === id ? { ...p, groupId: undefined } : p),
+          activeGroup: state.activeGroup === id ? null : state.activeGroup,
+        }))
+        supabase.from('board_settings').upsert({ key: 'groups', value: newGroups }).then(() => {})
+      },
+      updateGroup: (id, updates) => {
+        const newGroups = get().groups.map(g => g.id === id ? { ...g, ...updates } : g)
+        set({ groups: newGroups })
+        supabase.from('board_settings').upsert({ key: 'groups', value: newGroups }).then(() => {})
+      },
       setProjectGroup: (projectId, groupId) => set((state) => ({
         projects: state.projects.map(p => p.id === projectId ? { ...p, groupId: groupId ?? undefined } : p)
       })),
       setGroupFilter: (groupId) => set({ activeGroup: groupId }),
 
-      setBoardName: (name) => set({ boardName: name }),
+      setBoardName: (name) => {
+        set({ boardName: name })
+        supabase.from('board_settings').upsert({ key: 'boardName', value: name }).then(() => {})
+      },
       setPrivate: (v) => {
         supabase.from('board_settings').upsert({ key: 'isPrivate', value: v }).then(() => {})
         if (v && !get().currentUser) {
@@ -1152,12 +1180,15 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 // Persist manuel — sauvegarde synchrone sur changement
 let _lastSaved = ''
 useLaunchpadStore.subscribe((state) => {
+  // On ne persiste plus que la préférence UI locale (activeGroup).
+  // groups, boardName, isPrivate → Supabase board_settings (source de vérité collaborative)
+  // deletedIds → redondant (les projets supprimés disparaissent de la DB)
   const toSave = JSON.stringify({
-    groups: state.groups,
     activeGroup: state.activeGroup,
+    // Fallback : groupes et boardName gardés en cache pour le chargement rapide initial
+    groups: state.groups,
     boardName: state.boardName,
     isPrivate: state.isPrivate,
-    deletedIds: state.deletedIds,
   })
   if (toSave !== _lastSaved) {
     _lastSaved = toSave

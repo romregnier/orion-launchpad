@@ -6,7 +6,7 @@ import { ProjectCard } from './components/ProjectCard'
 import { AddProjectModal } from './components/AddProjectModal'
 import { Toolbar } from './components/Toolbar'
 import { ChatPanel } from './components/ChatPanel'
-import { IdeaWidget } from './components/IdeaWidget'
+// IdeaWidget supprimé — le système de listes remplace les idées fixes
 import { ListWidgetCard } from './components/ListWidgetCard'
 import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
@@ -176,9 +176,9 @@ function LaunchpadCanvas() {
           ))}
         </AnimatePresence>
         {lists.map((list) => (
-          <ListWidgetCard key={list.id} list={list} canvasScale={scale} sessionId={sessionId} />
+          <ListWidgetCard key={list.id} list={list} canvasScale={scale} sessionId={sessionId} isAdmin={currentUser?.role === 'admin'} />
         ))}
-        <IdeaWidget canvasScale={scale} index={visibleProjects.length} />
+        {/* IdeaWidget retiré — utiliser "+ Liste" dans la toolbar pour créer des listes d'idées */}
         {/* BuildStatusWidget — flottant sur le canvas, draggable */}
         <BuildStatusWidget canvasScale={scale} />
         {canvasAgents.map(agent => (
