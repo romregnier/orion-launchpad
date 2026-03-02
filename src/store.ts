@@ -2,15 +2,31 @@ import { create } from 'zustand'
 import type { Project, ListWidget, ListType, CanvasAgent, BoardMember } from './types'
 import { supabase } from './lib/supabase'
 
-// Lecture synchrone localStorage (pas de rehydration async)
-const STORAGE_KEY = 'orion-launchpad-v3'
+// ── Cache versionné — se vide automatiquement à chaque nouveau déploiement ──
+declare const __BUILD_VERSION__: string
+const STORAGE_KEY = 'orion-launchpad-v4'
+const VERSION_KEY = 'orion-launchpad-version'
+const BUILD_VERSION = typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : 'dev'
+
+// Si la version stockée != version actuelle → vider le cache stale
+try {
+  const storedVersion = localStorage.getItem(VERSION_KEY)
+  if (storedVersion && storedVersion !== BUILD_VERSION) {
+    // Nouvelle version déployée : nettoyer les anciennes clés
+    ;['orion-launchpad-v3', 'orion-launchpad-v4', 'bsw-canvas-pos'].forEach(k => {
+      try { localStorage.removeItem(k) } catch { /* ignore */ }
+    })
+  }
+  localStorage.setItem(VERSION_KEY, BUILD_VERSION)
+} catch { /* ignore */ }
+
+// Lecture synchrone du cache local (groupes, boardName — fallback rapide)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _stored: { groups?: any[]; activeGroup?: string | null; boardName?: string; isPrivate?: boolean; deletedIds?: string[] } = {}
+let _stored: { groups?: any[]; boardName?: string; isPrivate?: boolean } = {}
 try {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (raw) {
     const parsed = JSON.parse(raw)
-    // Compatible avec l'ancien format Zustand persist (state.state.xxx) ET nouveau format direct
     _stored = parsed?.state ?? parsed ?? {}
   }
 } catch { /* ignore */ }
@@ -284,14 +300,14 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
   (set, get) => ({
       projects: [],
       deletedProjects: [],
-      deletedIds: _stored.deletedIds ?? [],
+      deletedIds: [],
       remoteLoaded: false,
       swapTarget: null,
       ideaWidgetPosition: { x: -300, y: 60 },
       ideas: [],
       activeFilter: null,
       groups: _stored.groups ?? DEFAULT_GROUPS,
-      activeGroup: _stored.activeGroup ?? null,
+      activeGroup: null, // toujours null au démarrage — évite le canvas vide sur groupe orphelin
       boardName: _stored.boardName ?? 'Mon Launchpad',
       isPrivate: true,  // Toujours true au démarrage — DB est source de vérité
       currentUser: null,
@@ -307,53 +323,46 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
        * Also loads isPrivate from board_settings.
        */
       fetchProjects: async () => {
+        // Guard : un seul fetch à la fois — évite les race conditions
+        if ((get() as { _fetching?: boolean })._fetching) return
+        ;(get() as { _fetching?: boolean })._fetching = true
 
-        // Charger isPrivate ET groups depuis board_settings (source de vérité DB)
+        const timeout = setTimeout(() => {
+          (get() as { _fetching?: boolean })._fetching = false
+          if (!get().remoteLoaded) set({ remoteLoaded: true })
+        }, 10000)
+
         try {
-          const { data: allSettings } = await supabase.from('board_settings').select('key,value')
-          if (allSettings) {
-            const settingsMap = Object.fromEntries(allSettings.map(r => [r.key, r.value]))
-            if (settingsMap.isPrivate !== undefined) {
-              const serverPrivate = settingsMap.isPrivate === true || settingsMap.isPrivate === 'true'
-              if (serverPrivate !== get().isPrivate) set({ isPrivate: serverPrivate })
-            }
-            if (settingsMap.boardName && settingsMap.boardName !== get().boardName) {
-              set({ boardName: settingsMap.boardName as string })
-            }
-            if (settingsMap.groups && Array.isArray(settingsMap.groups)) {
-              // Groupes depuis DB — source de vérité pour la collaboration
-              set({ groups: settingsMap.groups as Group[] })
-            } else {
-              // Migration one-shot : pousser les groupes locaux en DB si pas encore présents
-              const currentGroups = get().groups
-              if (currentGroups.length > 0) {
-                supabase.from('board_settings').upsert({ key: 'groups', value: currentGroups }).then(() => {})
-              }
-            }
-          }
-        } catch { /* ignore */ }
+          // Settings en arrière-plan (non bloquant)
+          supabase.from('board_settings').select('key,value').then(({ data: s }) => {
+            if (!s) return
+            const m = Object.fromEntries(s.map(r => [r.key, r.value]))
+            if (m.isPrivate !== undefined) set({ isPrivate: m.isPrivate === true || m.isPrivate === 'true' })
+            if (m.boardName) set({ boardName: m.boardName as string })
+            if (Array.isArray(m.groups)) set({ groups: m.groups as Group[] })
+            else if (get().groups.length > 0) supabase.from('board_settings').upsert({ key: 'groups', value: get().groups }).then(() => {})
+          })
 
-        const { data } = await supabase.from('projects').select('*')
+          const { data } = await supabase.from('projects').select('*')
+          const projects = data ? (data as ProjectRow[]).map(rowToProject) : []
 
-        if (data) {
-          const projects = (data as ProjectRow[]).map(rowToProject)
-          set({ projects, remoteLoaded: true })
-
-          // FIX 1 — card_positions est la source de vérité pour les positions.
-          // On écrase les positions des projets avec celles stockées dans card_positions.
+          // Charger les positions en parallèle
           const { data: positions } = await supabase.from('card_positions').select('*')
-          if (positions && positions.length > 0) {
-            set(state => ({
-              projects: state.projects.map(p => {
-                const pos = (positions as Array<{ id: string; type: string; position_x: number; position_y: number }>)
-                  .find(cp => cp.id === p.id && cp.type === 'project')
-                return pos ? { ...p, position: { x: pos.position_x, y: pos.position_y } } : p
-              }),
-            }))
-          }
-          // Anti-overlap retiré du load — positions from DB sont source de vérité
-        } else {
+          const posMap = new Map((positions ?? []).map((p: { id: string; type: string; position_x: number; position_y: number }) => [p.id, p]))
+
+          set({
+            projects: projects.map(p => {
+              const pos = posMap.get(p.id)
+              return pos ? { ...p, position: { x: pos.position_x, y: pos.position_y } } : p
+            }),
+            remoteLoaded: true,
+          })
+        } catch {
           set({ remoteLoaded: true })
+        } finally {
+          clearTimeout(timeout)
+          ;(get() as { _fetching?: boolean })._fetching = false
+          if (!get().remoteLoaded) set({ remoteLoaded: true })
         }
       },
 
@@ -363,9 +372,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
        * Returns an unsubscribe function.
        */
       subscribeToProjects: () => {
-        get().fetchProjects()
+        // Pas de fetchProjects() ici — l'auth (onAuthStateChange) est le seul déclencheur.
+        // Realtime uniquement pour les mises à jour en cours de session.
         const ch = supabase.channel('projects_realtime')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+            ;(get() as { _fetching?: boolean })._fetching = false // reset guard pour permettre le refresh
             get().fetchProjects()
           })
           .subscribe()
@@ -374,6 +385,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       /** Re-fetch projects and agents without creating new Realtime channels */
       refreshAll: async () => {
+        ;(get() as { _fetching?: boolean })._fetching = false // reset guard pour forcer le refresh
         await get().fetchProjects()
         const { data } = await supabase.from('canvas_agents').select('*')
         if (data) {
@@ -782,7 +794,26 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
             .in('status', ['running', 'pending'])
             .order('created_at', { ascending: false })
             .then(({ data }) => {
-              if (data) set({ activeBuildTasks: data as ActiveBuildTask[] })
+              const tasks = (data ?? []) as ActiveBuildTask[]
+              set({ activeBuildTasks: tasks })
+
+              // ── Synchroniser working_on_project des agents avec les tâches actives ──
+              // Construire une map agent_key → project_id pour les tâches running
+              const activeByKey: Record<string, string> = {}
+              tasks.forEach(t => { if (t.agent_key && t.project) activeByKey[t.agent_key] = t.project })
+
+              set(state => ({
+                canvasAgents: state.canvasAgents.map(agent => {
+                  const targetProject = agent.agent_key ? (activeByKey[agent.agent_key] ?? null) : null
+                  if (agent.working_on_project === targetProject) return agent
+                  // Mettre à jour en DB aussi (fire-and-forget)
+                  supabase.from('canvas_agents')
+                    .update({ working_on_project: targetProject })
+                    .eq('id', agent.id)
+                    .then(() => {})
+                  return { ...agent, working_on_project: targetProject }
+                }),
+              }))
             })
         }
         load()
@@ -1183,9 +1214,9 @@ useLaunchpadStore.subscribe((state) => {
   // On ne persiste plus que la préférence UI locale (activeGroup).
   // groups, boardName, isPrivate → Supabase board_settings (source de vérité collaborative)
   // deletedIds → redondant (les projets supprimés disparaissent de la DB)
+  // activeGroup retiré du localStorage — un groupe orphelin rendait le canvas vide
+  // groups/boardName/isPrivate gardés comme cache de démarrage rapide uniquement
   const toSave = JSON.stringify({
-    activeGroup: state.activeGroup,
-    // Fallback : groupes et boardName gardés en cache pour le chargement rapide initial
     groups: state.groups,
     boardName: state.boardName,
     isPrivate: state.isPrivate,

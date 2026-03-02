@@ -70,7 +70,7 @@ interface Props {
   canvasScale: number
 }
 
-export function BuildStatusWidget({ canvasScale }: Props) {
+export function BuildStatusWidget({ canvasScale: _canvasScale }: Props) {
   const [tasks, setTasks] = useState<BuildTask[]>([])
   const [collapsed, setCollapsed] = useState(false)
   const [showDora, setShowDora] = useState(false)
@@ -102,19 +102,25 @@ export function BuildStatusWidget({ canvasScale }: Props) {
     return () => { supabase.removeChannel(channel); clearInterval(interval) }
   }, [])
 
-  // ── Drag (coordonnées canvas, compensées par scale) ───────────────────────
+  // ── Drag viewport-coordinates ─────────────────────────────────────────────
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('[data-no-drag]')) return
+    // Bloquer uniquement sur les éléments interactifs internes (boutons, scroll)
+    const target = e.target as HTMLElement
+    if (target.closest('[data-widget-nodrag]')) return
     e.stopPropagation()
     e.preventDefault()
     setIsDragging(true)
     dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, wx: pos.x, wy: pos.y }
 
     const onMove = (ev: MouseEvent) => {
-      // Le mouvement souris est en pixels écran → diviser par scale pour canvas
       const nx = dragStart.current.wx + (ev.clientX - dragStart.current.mouseX)
       const ny = dragStart.current.wy + (ev.clientY - dragStart.current.mouseY)
-      setPos({ x: nx, y: ny })
+      // Garder dans les limites du viewport
+      const clamped = {
+        x: Math.max(0, Math.min(nx, window.innerWidth - 280)),
+        y: Math.max(0, Math.min(ny, window.innerHeight - 60)),
+      }
+      setPos(clamped)
     }
     const onUp = () => {
       setIsDragging(false)
@@ -124,17 +130,16 @@ export function BuildStatusWidget({ canvasScale }: Props) {
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [pos, canvasScale])
+  }, [pos])
 
   if (tasks.length === 0) return (
     <div
-      data-no-drag
       className="build-status-widget"
       onMouseDown={onMouseDown}
       style={{
         position: 'fixed',
-        left: 0,
-        top: 0,
+        left: pos.x,
+        top: pos.y,
         zIndex: 40,
         background: 'rgba(22,18,26,0.85)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -143,7 +148,6 @@ export function BuildStatusWidget({ canvasScale }: Props) {
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none',
         backdropFilter: 'blur(16px)',
-        transform: `translate(${pos.x}px, ${pos.y}px)`,
       }}
     >
       <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>
@@ -154,17 +158,13 @@ export function BuildStatusWidget({ canvasScale }: Props) {
   )
 
   return (
-    <motion.div
-      data-no-drag
+    <div
       className="build-status-widget"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1, x: pos.x, y: pos.y }}
-      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
       onMouseDown={onMouseDown}
       style={{
         position: 'fixed',
-        left: 0,
-        top: 0,
+        left: pos.x,
+        top: pos.y,
         zIndex: 40,
         background: 'rgba(22,18,26,0.96)',
         border: '1px solid rgba(255,255,255,0.10)',
@@ -178,7 +178,7 @@ export function BuildStatusWidget({ canvasScale }: Props) {
         userSelect: 'none',
       }}
     >
-      {/* Header — drag handle */}
+      {/* Header — la zone entière sert de drag handle, les boutons stoppent la propagation */}
       <div
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -187,25 +187,30 @@ export function BuildStatusWidget({ canvasScale }: Props) {
           borderBottom: collapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <button
-          data-no-drag
-          aria-label="Réduire/Déployer le widget Build Status"
-          onClick={() => setCollapsed(c => !c)}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6, padding: 0,
-            pointerEvents: 'all',
-          }}
-        >
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.06em' }}>
-            ⚡ BUILD STATUS
-          </span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{collapsed ? '▲' : '▼'}</span>
-        </button>
+        {/* Poignée drag + label collapse */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, cursor: 'inherit' }}>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', lineHeight: 1 }}>⠿</span>
+          <button
+            data-widget-nodrag
+            aria-label="Réduire/Déployer le widget Build Status"
+            onClick={() => setCollapsed(c => !c)}
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, padding: 0,
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.06em' }}>
+              ⚡ BUILD STATUS
+            </span>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{collapsed ? '▲' : '▼'}</span>
+          </button>
+        </div>
         {/* Stats toggle button — DoraWidget */}
         <button
-          data-no-drag
+          data-widget-nodrag
           aria-label="Afficher les métriques DORA"
+          onMouseDown={e => e.stopPropagation()}
           onClick={() => setShowDora(prev => !prev)}
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
@@ -232,7 +237,7 @@ export function BuildStatusWidget({ canvasScale }: Props) {
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
             style={{ overflow: 'hidden' }}
           >
-            <div data-no-drag style={{ padding: '4px 0', maxHeight: 220, overflowY: 'auto', pointerEvents: 'all' }}>
+            <div data-widget-nodrag style={{ padding: '4px 0', maxHeight: 220, overflowY: 'auto', pointerEvents: 'all' }}>
               {tasks.map(task => {
                 const agentColor = AGENT_COLORS[task.agent] ?? '#fff'
                 const isRunning = task.status === 'running'
@@ -290,6 +295,6 @@ export function BuildStatusWidget({ canvasScale }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   )
 }

@@ -26,6 +26,43 @@ const MAX_SCALE = 2.5
 const SCALE_STEP = 0.15
 
 // ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
+/**
+ * Affiché quand remoteLoaded reste false après 8s (état corrompu / cache stale).
+ * Propose un reset automatique du localStorage local.
+ */
+/**
+ * Affiché si remoteLoaded reste false après 6s une fois connecté.
+ * Force remoteLoaded=true et relance fetchProjects sans reload de page.
+ */
+function LoadingTimeout() {
+  const { fetchProjects } = useLaunchpadStore()
+  const [tick, setTick] = useState(6)
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t - 1), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Auto-retry à 0
+  useEffect(() => {
+    if (tick <= 0) {
+      useLaunchpadStore.setState({ remoteLoaded: false })
+      fetchProjects()
+    }
+  }, [tick, fetchProjects])
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, pointerEvents: 'none' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🌟</div>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+          {tick > 0 ? 'Chargement des projets…' : 'Connexion…'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function LaunchpadCanvas() {
   const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, refreshAll } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
@@ -196,7 +233,8 @@ function LaunchpadCanvas() {
         )}
       </div>
 
-      {!remoteLoaded && (
+      {!remoteLoaded && currentUser && <LoadingTimeout />}
+      {!remoteLoaded && !currentUser && (
         <motion.div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🌟</div>
@@ -248,7 +286,7 @@ function LaunchpadCanvas() {
         {/* Right: présence + user info + logout */}
         <div
           className="launchpad-navbar__right"
-          style={{ flex: '0 1 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, pointerEvents: 'all', overflow: 'hidden', minWidth: 0 }}
+          style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, pointerEvents: 'all', overflow: 'hidden', minWidth: 0 }}
         >
           {/* Avatars des users connectés */}
           <PresenceBar currentUser={currentUser} />
@@ -404,40 +442,22 @@ function LaunchpadCanvas() {
 export default function App() {
   const { isPrivate, currentUser } = useLaunchpadStore()
   // authReady : true quand on sait si l'utilisateur est connecté ou non
-  const [, setAuthReady] = useState(false)  // authReady retiré — plus utilisé (overlay pattern)
+  // authReady retiré — plus utilisé (overlay pattern)
 
   useEffect(() => {
-    // Timeout de sécurité : si getSession prend trop longtemps, on débloque quand même
-    const timeout = setTimeout(() => setAuthReady(true), 3000)
-
-    // 1. Vérifier la session existante immédiatement (évite le flash)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
-        useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
-        useLaunchpadStore.getState().fetchBoardMembers()
-        useLaunchpadStore.getState().fetchProjects()
-      }
-      clearTimeout(timeout)
-      setAuthReady(true)
-    }).catch(() => { clearTimeout(timeout); setAuthReady(true) })
-
-    // 2. Écouter les changements d'auth ultérieurs
+    // Un seul point d'entrée auth → fetch.
+    // onAuthStateChange est la source de vérité (Supabase le fire toujours au démarrage).
+    // getSession() sert uniquement à débloquer l'UI rapidement si la session existe déjà.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
         useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
-        await supabase.from('board_members')
-          .update({ status: 'active', joined_at: new Date().toISOString() })
-          .eq('email', session.user.email ?? '')
-          .eq('status', 'pending')
-        await useLaunchpadStore.getState().fetchBoardMembers()
-        // Re-fetch projects after login (initial fetch may have failed due to RLS)
-        await useLaunchpadStore.getState().fetchProjects()
+        // Un seul fetchProjects par session — le guard _fetching évite les doublons
+        useLaunchpadStore.getState().fetchProjects()
+        if (event === 'SIGNED_IN') {
+          useLaunchpadStore.getState().fetchBoardMembers()
+        }
       }
-      // NOTE : on n'efface PAS currentUser sur SIGNED_OUT automatique.
-      // Supabase fire SIGNED_OUT durant les refresh de session (faux positif).
-      // Le vrai logout passe par le bouton Déconnexion → logout() explicite.
     })
     return () => subscription.unsubscribe()
   }, [])
