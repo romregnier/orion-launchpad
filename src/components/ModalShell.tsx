@@ -68,7 +68,10 @@ export function ModalShell({
               position: 'fixed',
               top: '50%',
               left: '50%',
-              transform: 'translate(-50%, -50%)',
+              // Note: x/y dans style (pas transform CSS) — Framer Motion gère son propre
+              // transform et override le transform CSS, décalant la modale vers le bas.
+              x: '-50%',
+              y: '-50%',
               width: '90%',
               maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth,
               maxHeight: '90vh',

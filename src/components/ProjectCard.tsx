@@ -521,6 +521,20 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 {meta.ai_meta.summary}
               </p>
             )}
+            {/* Rapport d'amélioration IA — suggestions */}
+            {meta?.ai_meta?.suggestions && meta.ai_meta.suggestions.length > 0 && (
+              <div className="project-card__ai-improvements" style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>
+                  💡 Pistes d'amélioration
+                </div>
+                {meta.ai_meta.suggestions.slice(0, 3).map((s, i) => (
+                  <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, marginBottom: 2, display: 'flex', gap: 5 }}>
+                    <span style={{ color: '#E11F7B', flexShrink: 0 }}>→</span>
+                    <span>{s}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       </motion.div>

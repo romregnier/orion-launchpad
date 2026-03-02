@@ -251,7 +251,7 @@ interface LaunchpadStore {
   activeBuildTasks: ActiveBuildTask[]
   subscribeToBuildTasks: () => () => void
   canvasAgents: CanvasAgent[]
-  addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string) => Promise<void>
+  addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string, tailorConfig?: import('./types').AvatarConfig) => Promise<void>
   updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config'>>) => Promise<void>
   removeCanvasAgent: (id: string) => Promise<void>
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
@@ -480,11 +480,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       syncPositionToDb: (id, x, y, type = 'project') => {
         const username = useLaunchpadStore.getState().currentUser?.username ?? 'anon'
+        // NOTE: on n'update PAS projects.position_x/y ici pour éviter la race condition.
+        // La mise à jour de `projects` déclenche le Realtime → fetchProjects() qui relit
+        // card_positions AVANT que l'upsert soit commité → position écrasée.
+        // card_positions est la seule source de vérité pour les positions en session.
         supabase.from('card_positions').upsert({ id, type, position_x: x, position_y: y, updated_by: username, updated_at: new Date().toISOString() })
-        // For projects, also update the projects table
-        if (type === 'project') {
-          supabase.from('projects').update({ position_x: x, position_y: y }).eq('id', id)
-        }
       },
 
       /** Réorganise tous les projets et agents en grille propre et sauvegarde en DB */
@@ -763,10 +763,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       getAllCanvasObjects: () => getAllCanvasObjectsFromState(get()),
 
-      addCanvasAgent: async (name, tailorUrl, botToken) => {
+      addCanvasAgent: async (name, tailorUrl, botToken, tailorConfig) => {
         const { randomAvatarConfig } = await import('./utils/randomAvatar')
         const owner = get().currentUser?.username ?? 'anon'
-        const tailorConfig = randomAvatarConfig()
+        // Utiliser la config Tailor capturée si disponible, sinon générer un avatar aléatoire
+        if (!tailorConfig) tailorConfig = randomAvatarConfig()
         // FIX 5 — calculer une position libre pour éviter les chevauchements
         const allObjects = getAllCanvasObjectsFromState(get())
         const freePos = findFreePosition(allObjects, 80, 100, 60, 60, 20)

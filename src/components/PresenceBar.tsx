@@ -65,6 +65,8 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
         const seen = new Set<string>()
         for (const presences of Object.values(state)) {
           for (const p of presences) {
+            // Filtrer les entrées anonymes/placeholder sans username valide
+            if (!p.username || p.username === 'Visiteur' || p.username.startsWith('anon-')) continue
             if (!seen.has(p.username)) {
               seen.add(p.username)
               users.push(p)

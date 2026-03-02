@@ -11,6 +11,11 @@ import { supabase } from '../lib/supabase'
 import { DoraWidget } from './DoraWidget'
 import { TicketsWidget } from './TicketsWidget'
 
+interface ProjectMetaRow {
+  project_id: string
+  ai_meta?: { health_score?: number } | null
+}
+
 export interface BuildTask {
   id: string
   agent: string
@@ -78,9 +83,21 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
   const [collapsed, setCollapsed] = useState(false)
   const [showDora, setShowDora] = useState(false)
   const [showTickets, setShowTickets] = useState(false)
+  const [avgQualityScore, setAvgQualityScore] = useState<number | null>(null)
   const [pos, setPos]     = useState<{ x: number; y: number }>(loadPos)
   const [isDragging, setIsDragging] = useState(false)
   const dragStart = useRef({ mouseX: 0, mouseY: 0, wx: 0, wy: 0 })
+
+  // ── Quality score moyen des projets ─────────────────────────────────────
+  useEffect(() => {
+    supabase.from('project_metadata').select('project_id, ai_meta').then(({ data }) => {
+      if (!data) return
+      const scores = (data as ProjectMetaRow[])
+        .map(r => r.ai_meta?.health_score)
+        .filter((s): s is number => typeof s === 'number' && s > 0)
+      if (scores.length > 0) setAvgQualityScore(Math.round(scores.reduce((a, b) => a + b, 0) / scores.length))
+    })
+  }, [])
 
   // ── Supabase subscription ─────────────────────────────────────────────────
   useEffect(() => {
@@ -209,6 +226,26 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
             </span>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{collapsed ? '▲' : '▼'}</span>
           </button>
+          {/* Quality Score badge */}
+          {avgQualityScore !== null && (
+            <span
+              title="Score qualité moyen des projets (IA)"
+              style={{
+                fontSize: 10, fontWeight: 700,
+                padding: '2px 7px', borderRadius: 999,
+                background: avgQualityScore >= 75
+                  ? 'rgba(16,185,129,0.2)'
+                  : avgQualityScore >= 50
+                  ? 'rgba(245,158,11,0.2)'
+                  : 'rgba(239,68,68,0.2)',
+                color: avgQualityScore >= 75 ? '#10B981' : avgQualityScore >= 50 ? '#F59E0B' : '#EF4444',
+                border: `1px solid ${avgQualityScore >= 75 ? 'rgba(16,185,129,0.3)' : avgQualityScore >= 50 ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                flexShrink: 0,
+              }}
+            >
+              🛡 {avgQualityScore}/100
+            </span>
+          )}
         </div>
         {/* Stats toggle button — DoraWidget */}
         <button

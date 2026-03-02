@@ -87,7 +87,7 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
             style={{
               position: 'fixed', zIndex: 500,
               left: '50%', top: '50%',
-              transform: 'translate(-50%, -50%)',
+              x: '-50%', y: '-50%',
               width: 'min(460px, 94vw)',
               background: 'rgba(18,15,24,0.99)',
               borderRadius: 20,

@@ -5,12 +5,11 @@ import { useLaunchpadStore } from '../store'
 const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
 export function GroupBar() {
-  const { groups, activeGroup, setGroupFilter, addGroup, deleteGroup } = useLaunchpadStore()
+  const { groups, activeGroup, setGroupFilter, addGroup } = useLaunchpadStore()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newEmoji, setNewEmoji] = useState('✨')
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(COLOR_PALETTE[0])
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
   // Close create form on Escape or click outside
@@ -38,18 +37,6 @@ export function GroupBar() {
     setNewName('')
     setNewColor(COLOR_PALETTE[0])
     setShowCreateForm(false)
-  }
-
-  const handleDeleteClick = (e: React.MouseEvent, groupId: string) => {
-    e.stopPropagation()
-    if (confirmDeleteId === groupId) {
-      deleteGroup(groupId)
-      setConfirmDeleteId(null)
-    } else {
-      setConfirmDeleteId(groupId)
-      // Auto-cancel after 2.5s
-      setTimeout(() => setConfirmDeleteId(prev => prev === groupId ? null : prev), 2500)
-    }
   }
 
   return (
@@ -145,66 +132,33 @@ export function GroupBar() {
       {/* Group pills */}
       {groups.map(group => {
         const isActive = activeGroup === group.id
-        const isConfirming = confirmDeleteId === group.id
         return (
-          <motion.div
+          <motion.button
             key={group.id}
-            style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
-            initial={false}
-            whileHover="hovered"
+            onClick={() => setGroupFilter(isActive ? null : group.id)}
+            whileTap={{ scale: 0.95 }}
+            title={isActive ? 'Désactiver le filtre' : `Filtrer par ${group.name}`}
+            style={{
+              height: 28,
+              borderRadius: 999,
+              padding: '4px 12px',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: `1px solid ${group.color}`,
+              background: isActive ? group.color : `${group.color}33`,
+              color: isActive ? '#fff' : group.color,
+              boxShadow: isActive ? `0 0 12px ${group.color}66` : 'none',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
           >
-            <motion.button
-              onClick={() => setGroupFilter(isActive ? null : group.id)}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                height: 28,
-                borderRadius: 999,
-                padding: isConfirming ? '4px 8px 4px 12px' : '4px 12px',
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: `1px solid ${isConfirming ? '#ef4444' : group.color}`,
-                background: isConfirming
-                  ? 'rgba(239,68,68,0.2)'
-                  : isActive
-                  ? group.color
-                  : `${group.color}33`,
-                color: isConfirming ? '#ef4444' : isActive ? '#fff' : group.color,
-                boxShadow: isActive && !isConfirming ? `0 0 12px ${group.color}66` : 'none',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                paddingRight: isConfirming ? 4 : undefined,
-              }}
-            >
-              <span>{group.emoji}</span>
-              <span>{group.name}</span>
-              {/* Delete button — visible on hover or confirming */}
-              <motion.button
-                variants={{ hovered: { opacity: 1, scale: 1 } }}
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={isConfirming ? { opacity: 1, scale: 1 } : undefined}
-                onClick={(e) => handleDeleteClick(e, group.id)}
-                title={isConfirming ? 'Confirmer la suppression' : 'Supprimer le groupe'}
-                style={{
-                  width: 16, height: 16, borderRadius: '50%',
-                  border: 'none',
-                  background: isConfirming ? '#ef4444' : 'rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700,
-                  marginLeft: 2,
-                  flexShrink: 0,
-                  transition: 'background 0.15s',
-                }}
-              >
-                {isConfirming ? '✓' : '×'}
-              </motion.button>
-            </motion.button>
-          </motion.div>
+            <span>{group.emoji}</span>
+            <span>{group.name}</span>
+          </motion.button>
         )
       })}
     </div>
