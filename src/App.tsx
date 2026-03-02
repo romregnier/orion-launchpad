@@ -472,7 +472,7 @@ export default function App() {
     <>
       <LaunchpadCanvas />
       {/* BuildStatusWidget fixe sur le viewport — indépendant du canvas pan/zoom */}
-      {currentUser && <BuildStatusWidget canvasScale={1} />}
+      {currentUser && <BuildStatusWidget canvasScale={1} currentUser={currentUser} />}
       {showLoginOverlay && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0B090D' }}>
           <LoginScreen />

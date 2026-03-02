@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { supabase } from '../lib/supabase'
 
-interface ActiveTask { id: string; agent_key?: string | null; progress: number; step_label?: string | null }
 
 interface Props {
   scale: number
@@ -26,88 +25,6 @@ interface Props {
   projectCount: number
   /** Appelé au clic sur le bouton 💬 — pour ouvrir le panel de chat global */
   onChat?: () => void
-}
-
-// ── MiniProgress ─────────────────────────────────────────────────────────────
-
-/**
- * Mini indicateur de tâches dans la Toolbar.
- * Subscription Supabase directe (indépendant du store Zustand) pour garantir la réactivité.
- * - Idle : "Agents en veille"
- * - Actif : ⚡ agent · progress% + mini barre rose
- */
-function MiniProgress() {
-  const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([])
-
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from('build_tasks')
-        .select('id, agent_key, progress, step_label, status')
-        .in('status', ['running', 'pending'])
-        .order('started_at', { ascending: false })
-      if (data) setActiveTasks(data as ActiveTask[])
-    }
-    load()
-    // Realtime — peut avoir un délai selon la connexion
-    const ch = supabase
-      .channel('miniprogress_direct')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'build_tasks' }, load)
-      .subscribe()
-    // Polling 2s en fallback — garantit la mise à jour même si Realtime lag
-    const poll = setInterval(load, 2000)
-    return () => { supabase.removeChannel(ch); clearInterval(poll) }
-  }, [])
-
-  const activeTask = activeTasks[0] ?? null
-  const taskCount = activeTasks.length
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 12, borderRight: '1px solid rgba(255,255,255,0.08)', minWidth: 0 }}>
-      <AnimatePresence mode="wait">
-        {!activeTask ? (
-          <motion.div
-            key="idle"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block' }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
-              Agents en veille
-            </span>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="active"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: 3 }}
-          >
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
-              ⚡ {activeTask.agent_key ?? 'agent'} · {Math.round(activeTask.progress)}%
-              {taskCount > 1 && <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}> +{taskCount - 1}</span>}
-            </span>
-            <div style={{ width: 72, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${Math.min(100, activeTask.progress)}%`,
-                  height: '100%',
-                  background: '#E11F7B',
-                  borderRadius: 2,
-                  transition: 'width 0.4s ease',
-                }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
 }
 
 // ── useChatUnread ─────────────────────────────────────────────────────────────
@@ -365,12 +282,6 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
         boxSizing: 'border-box',
       }}
     >
-      {/* Mini progress — desktop uniquement */}
-      {!isMobile && <MiniProgress />}
-
-      {/* Mobile: compact task indicator */}
-      {isMobile && <MiniProgress />}
-
       {/* Zoom controls */}
       <button className="launchpad-toolbar__btn" onClick={onZoomOut} title="Zoom arrière" style={btnStyle(isMobile)}>
         <ZoomOut size={isMobile ? 13 : 15} />
