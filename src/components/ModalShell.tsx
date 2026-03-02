@@ -71,7 +71,7 @@ export function ModalShell({
               transform: 'translate(-50%, -50%)',
               width: '90%',
               maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth,
-              maxHeight: '80vh',
+              maxHeight: '90vh',
               overflowY: 'auto',
               background: '#1A171C',
               border: '1px solid rgba(255,255,255,0.08)',
