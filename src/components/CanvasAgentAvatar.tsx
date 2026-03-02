@@ -148,7 +148,12 @@ function AgentBubble({
   const isMobile = typeof navigator !== 'undefined'
     && (navigator.maxTouchPoints > 0 || window.innerWidth < 768)
 
-  const showTailor = !isMobile && !!tailorConfig
+  // Priorité :
+  // 1. tailorUrl (screenshot PNG réel de l'avatar The Tailor) — toujours affiché si présent
+  // 2. TailorCanvas (rendu 3D simplifié) — si pas de tailorUrl mais tailorConfig existe
+  // 3. emoji — fallback
+  const showPng = !!tailorUrl
+  const showTailor = !showPng && !isMobile && !!tailorConfig
 
   return (
     <motion.div
@@ -159,7 +164,7 @@ function AgentBubble({
         borderRadius: '50%',
         overflow: 'hidden',
         position: 'relative',
-        background: (showTailor || tailorUrl)
+        background: (showPng || showTailor)
           ? 'transparent'
           : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
         border: `2px solid ${meta.color}88`,
@@ -168,15 +173,15 @@ function AgentBubble({
         boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
       }}
     >
-      {showTailor ? (
-        <TailorCanvas tailorConfig={tailorConfig!} fallbackColor={meta.color} />
-      ) : tailorUrl ? (
+      {showPng ? (
         <img
           src={tailorUrl}
           alt={name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
         />
+      ) : showTailor ? (
+        <TailorCanvas tailorConfig={tailorConfig!} fallbackColor={meta.color} />
       ) : (
         meta.emoji
       )}

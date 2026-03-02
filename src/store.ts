@@ -357,17 +357,33 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           const { data } = await supabase.from('projects').select('*')
           const projects = data ? (data as ProjectRow[]).map(rowToProject) : []
 
-          // Charger les positions en parallèle
-          const { data: positions } = await supabase.from('card_positions').select('*')
-          const posMap = new Map((positions ?? []).map((p: { id: string; type: string; position_x: number; position_y: number }) => [p.id, p]))
+          const alreadyLoaded = get().remoteLoaded
+          const existingProjects = get().projects
 
-          set({
-            projects: projects.map(p => {
-              const pos = posMap.get(p.id)
-              return pos ? { ...p, position: { x: pos.position_x, y: pos.position_y } } : p
-            }),
-            remoteLoaded: true,
-          })
+          if (alreadyLoaded && existingProjects.length > 0) {
+            // Rechargement secondaire (Realtime metadata) — conserver les positions locales.
+            // Les positions sont la responsabilité de card_positions + syncPositionToDb.
+            // On ne les écrase JAMAIS depuis projects table lors d'un reload secondaire.
+            const localPosMap = new Map(existingProjects.map(p => [p.id, p.position]))
+            set({
+              projects: projects.map(p => {
+                const localPos = localPosMap.get(p.id)
+                return localPos ? { ...p, position: localPos } : p
+              }),
+              remoteLoaded: true,
+            })
+          } else {
+            // Premier chargement — charger les positions depuis card_positions (source de vérité)
+            const { data: positions } = await supabase.from('card_positions').select('*')
+            const posMap = new Map((positions ?? []).map((p: { id: string; type: string; position_x: number; position_y: number }) => [p.id, p]))
+            set({
+              projects: projects.map(p => {
+                const pos = posMap.get(p.id)
+                return pos ? { ...p, position: { x: pos.position_x, y: pos.position_y } } : p
+              }),
+              remoteLoaded: true,
+            })
+          }
         } catch {
           set({ remoteLoaded: true })
         } finally {
