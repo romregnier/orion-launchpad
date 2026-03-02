@@ -630,6 +630,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           activeGroup: state.activeGroup === id ? null : state.activeGroup,
         }))
         supabase.from('board_settings').upsert({ key: 'groups', value: newGroups }).then(() => {})
+        const affectedIds = get().projects.filter(p => p.groupId === id).map(p => p.id)
+        if (affectedIds.length > 0) {
+          supabase.from('projects').update({ group_id: null }).in('id', affectedIds).then(() => {})
+        }
       },
       updateGroup: (id, updates) => {
         const newGroups = get().groups.map(g => g.id === id ? { ...g, ...updates } : g)
@@ -883,6 +887,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
                         position: { x: row.position_x, y: row.position_y },
                         working_on_project: row.working_on_project ?? null,
                         tailor_config: row.tailor_config ?? null,
+                        tailorUrl: row.tailor_url ?? undefined,
                       }
                     : a
                 ),
