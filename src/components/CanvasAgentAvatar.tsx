@@ -35,56 +35,95 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
       try {
         const THREE = await import('three')
 
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true })
         renderer.setSize(64, 64)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         renderer.shadowMap.enabled = false
 
         const scene = new THREE.Scene()
-
-        // Caméra 1:1 (canvas carré)
         const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
         camera.position.set(0, 0.2, 2.5)
         camera.lookAt(0, 0, 0)
 
-        // Éclairage
+        // Éclairage ambiant + directionnel
         const ambient = new THREE.AmbientLight(0xffffff, 0.8)
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.0)
         dirLight.position.set(-1, 2, 1)
-        dirLight.castShadow = false
         scene.add(ambient, dirLight)
 
-        // Couleur depuis tailor_config
+        // ── Couleur corps depuis tailor_config.color (HSL) ──
         const hsl = tailorConfig.color
         const colorHex = hsl
           ? `hsl(${hsl.h}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%)`
           : fallbackColor
-        const color = new THREE.Color(colorHex)
-
-        // Corps principal (capsule Kirby-style)
+        const bodyColor = new THREE.Color(colorHex)
         const bodyScale = tailorConfig.bodyScale ?? 1
+
+        // ── Corps principal ──
         const bodyGeo = new THREE.SphereGeometry(0.38 * bodyScale, 24, 24)
-        const bodyMat = new THREE.MeshLambertMaterial({ color })
+        const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor })
         const body = new THREE.Mesh(bodyGeo, bodyMat)
         body.position.y = -0.05
 
-        // Yeux (deux petites sphères blanches)
-        const eyeGeo = new THREE.SphereGeometry(0.08, 12, 12)
-        const eyeMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-        const eyePupilMat = new THREE.MeshLambertMaterial({ color: 0x111111 })
-        const eyeL = new THREE.Mesh(eyeGeo, eyeMat)
-        const eyeR = new THREE.Mesh(eyeGeo, eyeMat)
-        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyePupilMat)
-        const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyePupilMat)
-
+        // ── Yeux — couleur depuis eyeColor (string CSS) ──
+        const eyeColorVal = tailorConfig.eyeColor ?? '#1a1aff'
+        const eyeType = tailorConfig.eyes ?? 'round'
+        const eyeSize = eyeType === 'wide' ? 0.10 : eyeType === 'small' ? 0.06 : 0.08
+        const eyeGeo = new THREE.SphereGeometry(eyeSize, 12, 12)
+        const eyeWhiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+        const eyePupilMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(eyeColorVal) })
+        const eyeL = new THREE.Mesh(eyeGeo, eyeWhiteMat)
+        const eyeR = new THREE.Mesh(eyeGeo, eyeWhiteMat)
+        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(eyeSize * 0.5, 8, 8), eyePupilMat)
+        const pupilR = new THREE.Mesh(new THREE.SphereGeometry(eyeSize * 0.5, 8, 8), eyePupilMat)
         eyeL.position.set(-0.14, 0.12, 0.32)
         eyeR.position.set(0.14, 0.12, 0.32)
         pupilL.position.set(-0.14, 0.12, 0.38)
         pupilR.position.set(0.14, 0.12, 0.38)
 
-        // Groupe maître
         const meshGroup = new THREE.Group()
         meshGroup.add(body, eyeL, eyeR, pupilL, pupilR)
+
+        // ── Blush (joues roses) si activé ──
+        if (tailorConfig.blush) {
+          const blushMat = new THREE.MeshLambertMaterial({ color: 0xff8fa3, transparent: true, opacity: 0.55 })
+          const blushGeo = new THREE.SphereGeometry(0.07, 8, 8)
+          const blushL = new THREE.Mesh(blushGeo, blushMat)
+          const blushR = new THREE.Mesh(blushGeo, blushMat)
+          blushL.position.set(-0.22, -0.02, 0.28)
+          blushR.position.set(0.22, -0.02, 0.28)
+          meshGroup.add(blushL, blushR)
+        }
+
+        // ── Armor (plaque frontale) si présent ──
+        if (tailorConfig.armor && tailorConfig.armor !== 'none') {
+          const armorMat = new THREE.MeshLambertMaterial({ color: 0x666688 })
+          const armorGeo = new THREE.BoxGeometry(0.28, 0.18, 0.08)
+          const armor = new THREE.Mesh(armorGeo, armorMat)
+          armor.position.set(0, -0.12, 0.36)
+          meshGroup.add(armor)
+        }
+
+        // ── Headgear (petit cône sur le dessus) si présent ──
+        if (tailorConfig.headgear && tailorConfig.headgear !== 'none') {
+          const hgMat = new THREE.MeshLambertMaterial({ color: 0xffd700 })
+          const hgGeo = new THREE.ConeGeometry(0.1, 0.22, 8)
+          const hg = new THREE.Mesh(hgGeo, hgMat)
+          hg.position.set(0, 0.42 * bodyScale, 0)
+          meshGroup.add(hg)
+        }
+
+        // ── Ear piece (petits cubes latéraux) ──
+        if (tailorConfig.earPiece && tailorConfig.earPiece !== 'none') {
+          const epMat = new THREE.MeshLambertMaterial({ color: 0x888899 })
+          const epGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08)
+          const epL = new THREE.Mesh(epGeo, epMat)
+          const epR = new THREE.Mesh(epGeo, epMat)
+          epL.position.set(-0.38 * bodyScale, 0.1, 0)
+          epR.position.set(0.38 * bodyScale, 0.1, 0)
+          meshGroup.add(epL, epR)
+        }
+
         scene.add(meshGroup)
 
         let t = 0
@@ -148,12 +187,12 @@ function AgentBubble({
   const isMobile = typeof navigator !== 'undefined'
     && (navigator.maxTouchPoints > 0 || window.innerWidth < 768)
 
-  // Priorité :
-  // 1. tailorUrl (screenshot PNG réel de l'avatar The Tailor) — toujours affiché si présent
-  // 2. TailorCanvas (rendu 3D simplifié) — si pas de tailorUrl mais tailorConfig existe
-  // 3. emoji — fallback
-  const showPng = !!tailorUrl
-  const showTailor = !showPng && !isMobile && !!tailorConfig
+  // Priorité (intentionnelle) :
+  // 1. TailorCanvas 3D lightweight — si tailorConfig existe et desktop
+  // 2. tailorUrl PNG — fallback si pas de config (ancien format) ou mobile
+  // 3. emoji — dernier recours
+  const showTailor = !isMobile && !!tailorConfig
+  const showPng = !showTailor && !!tailorUrl
 
   return (
     <motion.div
@@ -164,7 +203,7 @@ function AgentBubble({
         borderRadius: '50%',
         overflow: 'hidden',
         position: 'relative',
-        background: (showPng || showTailor)
+        background: (showTailor || showPng)
           ? 'transparent'
           : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
         border: `2px solid ${meta.color}88`,
@@ -173,15 +212,15 @@ function AgentBubble({
         boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
       }}
     >
-      {showPng ? (
+      {showTailor ? (
+        <TailorCanvas tailorConfig={tailorConfig!} fallbackColor={meta.color} />
+      ) : showPng ? (
         <img
           src={tailorUrl}
           alt={name}
           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
         />
-      ) : showTailor ? (
-        <TailorCanvas tailorConfig={tailorConfig!} fallbackColor={meta.color} />
       ) : (
         meta.emoji
       )}
