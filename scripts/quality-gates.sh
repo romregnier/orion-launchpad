@@ -49,7 +49,7 @@ echo "=== Gate 3: Secrets Scan ===" >&2
 SECRETS_FOUND=0
 C1=$(grep -rn 'ghp_[A-Za-z0-9]\{36\}' "$REPO_DIR/src/" 2>/dev/null | wc -l | tr -d ' ')
 C2=$(grep -rn '[0-9]\{8,10\}:AAF[A-Za-z0-9_-]\{35\}' "$REPO_DIR/src/" 2>/dev/null | wc -l | tr -d ' ')
-C3=$(grep -rn 'ff76844a18a0a46b59bad88b5d5d1060' "$REPO_DIR/src/" 2>/dev/null | wc -l | tr -d ' ')
+C3=$(grep -rn 'VITE_SUPABASE_URL' "$REPO_DIR/src/" 2>/dev/null | wc -l | tr -d ' ')
 C4=$(grep -rn 'BEGIN PRIVATE KEY\|BEGIN RSA PRIVATE' "$REPO_DIR/src/" 2>/dev/null | wc -l | tr -d ' ')
 SECRETS_FOUND=$(( ${C1:-0} + ${C2:-0} + ${C3:-0} + ${C4:-0} ))
 if [ "$SECRETS_FOUND" -eq 0 ]; then

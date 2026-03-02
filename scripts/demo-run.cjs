@@ -19,7 +19,7 @@ const DB = {
   port: 5432,
   database: 'postgres',
   user: 'postgres',
-  password: process.env.SUPABASE_DB_PASSWORD ?? 'pA@e?xjRX9dLz5z8',
+  password: process.env.SUPABASE_DB_PASSWORD ?? '',
   ssl: { rejectUnauthorized: false },
 }
 

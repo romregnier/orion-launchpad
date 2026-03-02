@@ -39,6 +39,6 @@ cp projects.json dist/projects.json 2>/dev/null || true
 
 # ── Déploiement ───────────────────────────────────────────────────────────────
 echo "🚀 Déploiement sur orion-launchpad.surge.sh..."
-SURGE_TOKEN=ff76844a18a0a46b59bad88b5d5d1060 ~/.local/node_modules/.bin/surge dist --domain orion-launchpad.surge.sh
+SURGE_TOKEN=$SURGE_TOKEN ~/.local/node_modules/.bin/surge dist --domain orion-launchpad.surge.sh
 
 echo "✅ Déployé sur https://orion-launchpad.surge.sh"
