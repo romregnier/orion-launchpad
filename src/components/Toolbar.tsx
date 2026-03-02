@@ -5,7 +5,7 @@
  * Utilisé dans : App.tsx
  * Props : scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount, onChat?
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings, MessageCircle, LayoutGrid } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
@@ -146,16 +146,187 @@ function useChatUnread(): boolean {
   return hasUnread
 }
 
+// ── AddMenu ──────────────────────────────────────────────────────────────────
+
+interface AddMenuProps {
+  onAdd: () => void
+  onAddList: () => void
+  onAddAgent: () => void
+  isAdmin?: boolean
+  isMobile?: boolean
+}
+
+function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuProps) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close on click outside
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [open])
+
+  const items = [
+    { emoji: '🗂️', label: 'Projet', onClick: onAdd, adminOnly: false },
+    { emoji: '📋', label: 'Liste', onClick: onAddList, adminOnly: false },
+    { emoji: '🤖', label: 'Agent', onClick: onAddAgent, adminOnly: true },
+  ].filter((item) => !item.adminOnly || isAdmin)
+
+  const handleItem = (fn: () => void) => {
+    fn()
+    setOpen(false)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      {/* Main button */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Ajouter…"
+        data-testid="btn-add-project"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? 4 : 6,
+          height: isMobile ? 30 : 34,
+          paddingInline: isMobile ? 10 : 14,
+          borderRadius: 10,
+          background: open
+            ? 'linear-gradient(135deg, #c41a6a, #E11F7B)'
+            : 'linear-gradient(135deg, #E11F7B, #c41a6a)',
+          color: '#fff',
+          fontSize: isMobile ? 12 : 13,
+          fontWeight: 600,
+          cursor: 'pointer',
+          border: 'none',
+          boxShadow: '0 2px 12px rgba(225,31,123,0.4)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <Plus size={isMobile ? 13 : 15} />
+        {!isMobile && 'Ajouter'}
+      </button>
+
+      {/* Submenu */}
+      <AnimatePresence>
+        {open && (
+          isMobile ? (
+            // Mobile: bottom sheet (portal not needed, positioned fixed)
+            <motion.div
+              key="addmenu-sheet"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: 'rgba(26,23,28,0.98)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '16px 16px 0 0',
+                padding: 16,
+                zIndex: 60,
+              }}
+            >
+              {items.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => handleItem(item.onClick)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    width: '100%', padding: '12px 14px',
+                    borderRadius: 10, border: 'none',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: 15, cursor: 'pointer',
+                    transition: 'background 0.12s',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                  <span style={{ fontWeight: 600 }}>{item.label}</span>
+                </button>
+              ))}
+            </motion.div>
+          ) : (
+            // Desktop: floating submenu above toolbar
+            <motion.div
+              key="addmenu-float"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              style={{
+                position: 'absolute',
+                bottom: 'calc(100% + 8px)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(26,23,28,0.92)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 12,
+                padding: 6,
+                minWidth: 160,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                zIndex: 60,
+              }}
+            >
+              {items.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => handleItem(item.onClick)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    width: '100%', padding: '10px 14px',
+                    borderRadius: 8, border: 'none',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: 14, cursor: 'pointer',
+                    transition: 'background 0.12s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  <span>{item.emoji}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </motion.div>
+          )
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
 export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat }: Props) {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 640)
-  const [isVerySmall, setIsVerySmall] = useState(typeof window !== 'undefined' && window.innerWidth < 380)
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 640)
-      setIsVerySmall(window.innerWidth < 380)
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
@@ -270,68 +441,15 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
 
       <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)', marginInline: isMobile ? 2 : 4 }} />
 
-      {/* Add agent button — canEdit only, hidden on very small screens */}
-      {canEdit && !isVerySmall && (
-        <button
-          onClick={onAddAgent}
-          title="Ajouter un agent sur le canvas"
-          style={{
-            display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6,
-            height: isMobile ? 30 : 34, paddingInline: isMobile ? 10 : 14,
-            borderRadius: 10, background: 'rgba(245,158,11,0.15)',
-            color: '#F59E0B', fontSize: isMobile ? 12 : 13, fontWeight: 600,
-            cursor: 'pointer', border: '1px solid rgba(245,158,11,0.3)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          ＋{!isMobile && ' Agent'}
-        </button>
-      )}
-
-      {/* Add list button — canEdit only, hidden on very small screens */}
-      {canEdit && !isVerySmall && (
-        <button
-          onClick={onAddList}
-          title="Nouvelle liste"
-          style={{
-            display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6,
-            height: isMobile ? 30 : 34, paddingInline: isMobile ? 10 : 14,
-            borderRadius: 10, background: 'rgba(139,92,246,0.2)',
-            color: '#8B5CF6', fontSize: isMobile ? 12 : 13, fontWeight: 600,
-            cursor: 'pointer', border: '1px solid rgba(139,92,246,0.3)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          📋{!isMobile && ' Liste'}
-        </button>
-      )}
-
-      {/* Add button — canEdit only */}
+      {/* Unified Add menu — canEdit only */}
       {canEdit && (
-        <button
-          onClick={onAdd}
-          title="Ajouter un projet"
-          data-testid="btn-add-project"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: isMobile ? 4 : 6,
-            height: isMobile ? 30 : 34,
-            paddingInline: isMobile ? 10 : 14,
-            borderRadius: 10,
-            background: 'linear-gradient(135deg, #E11F7B, #c41a6a)',
-            color: '#fff',
-            fontSize: isMobile ? 12 : 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            border: 'none',
-            boxShadow: '0 2px 12px rgba(225,31,123,0.4)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Plus size={isMobile ? 13 : 15} />
-          {!isMobile && 'Ajouter'}
-        </button>
+        <AddMenu
+          onAdd={onAdd}
+          onAddList={onAddList}
+          onAddAgent={onAddAgent}
+          isAdmin={currentUser?.role === 'admin'}
+          isMobile={isMobile}
+        />
       )}
     </div>
   )
