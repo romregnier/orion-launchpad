@@ -33,7 +33,7 @@ function useCommentCount(projectId: string): number {
 import { fetchMeta } from '../utils/fetchMeta'
 import { useProjectMeta } from '../hooks/useProjectMeta'
 import { useProjectAnalysis } from '../hooks/useProjectAnalysis'
-import { triggerScreenshot } from '../lib/triggerScreenshot'
+
 import { CommentsPanel } from './CommentsPanel'
 import { GroupContextMenu } from './GroupContextMenu'
 import { EditProjectModal } from './EditProjectModal'
@@ -280,13 +280,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
               >
                 <Eye size={13} />
               </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); if (screenshotUrl) triggerScreenshot(project.id, project.url) }}
-                title={screenshotUrl ? '📸 Screenshot' : 'Screenshot non disponible'}
-                style={{ ...actionBtn, fontSize: 11, opacity: screenshotUrl ? 1 : 0.3, cursor: screenshotUrl ? 'pointer' : 'not-allowed' }}
-              >
-                📸
-              </button>
+
               {project.url && (
                 <button
                   className="project-card__action-btn"

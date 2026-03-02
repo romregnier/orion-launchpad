@@ -320,8 +320,6 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
     window.addEventListener('mouseup', onUp)
   }, [agent.id, agent.position.x, agent.position.y, canvasScale, updateAgentPosition, pushOverlapping, isWorking])
 
-  const ownerInitial = agent.owner.slice(0, 1).toUpperCase()
-
   // Void reference to prevent unused variable warning
   void setAgentWorkingOn
 
@@ -374,28 +372,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
         <AgentBubble name={agent.name} isWorking={isWorking} tailorUrl={agent.tailorUrl} tailorConfig={agent.tailor_config} />
 
-        {/* Owner badge */}
-        <div
-          className="canvas-agent-avatar__badge"
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            right: 0,
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
-            background: '#E11F7B',
-            border: '2px solid #0B090D',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 9,
-            fontWeight: 700,
-            color: '#fff',
-          }}
-        >
-          {ownerInitial}
-        </div>
+
 
         {/* Indicateur visuel de déplacement */}
         {isMoving && isWorking && (
