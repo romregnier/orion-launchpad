@@ -9,6 +9,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { DoraWidget } from './DoraWidget'
+import { TicketsWidget } from './TicketsWidget'
 
 export interface BuildTask {
   id: string
@@ -68,12 +69,15 @@ function loadPos(): { x: number; y: number } {
 interface Props {
   /** Scale du canvas — utilisé pour normaliser le drag */
   canvasScale: number
+  /** Utilisateur courant — pour afficher le toggle Tickets (admin only) */
+  currentUser?: { username: string; role: string } | null
 }
 
-export function BuildStatusWidget({ canvasScale: _canvasScale }: Props) {
+export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Props) {
   const [tasks, setTasks] = useState<BuildTask[]>([])
   const [collapsed, setCollapsed] = useState(false)
   const [showDora, setShowDora] = useState(false)
+  const [showTickets, setShowTickets] = useState(false)
   const [pos, setPos]     = useState<{ x: number; y: number }>(loadPos)
   const [isDragging, setIsDragging] = useState(false)
   const dragStart = useRef({ mouseX: 0, mouseY: 0, wx: 0, wy: 0 })
@@ -225,6 +229,27 @@ export function BuildStatusWidget({ canvasScale: _canvasScale }: Props) {
         >
           📊 Stats
         </button>
+        {/* Tickets toggle — admin only */}
+        {currentUser?.role === 'admin' && (
+          <button
+            data-widget-nodrag
+            aria-label="Afficher les tickets"
+            onMouseDown={e => e.stopPropagation()}
+            onClick={() => setShowTickets(prev => !prev)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '2px 8px', borderRadius: 6,
+              fontSize: 10, fontWeight: 600,
+              cursor: 'pointer', pointerEvents: 'all',
+              transition: 'all 0.2s',
+              background: showTickets ? 'rgba(139,92,246,0.2)' : 'rgba(62,55,66,0.8)',
+              color: showTickets ? '#A78BFA' : '#6b7280',
+              border: showTickets ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            🎫 Tickets
+          </button>
+        )}
       </div>
 
       {/* Task list */}
@@ -292,6 +317,22 @@ export function BuildStatusWidget({ canvasScale: _canvasScale }: Props) {
             style={{ overflow: 'hidden' }}
           >
             <DoraWidget />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tickets Panel — admin only */}
+      <AnimatePresence>
+        {showTickets && currentUser?.role === 'admin' && !collapsed && (
+          <motion.div
+            key="tickets-panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <TicketsWidget />
           </motion.div>
         )}
       </AnimatePresence>
