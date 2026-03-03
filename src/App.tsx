@@ -221,7 +221,7 @@ function LaunchpadCanvas() {
         {canvasAgents.map(agent => (
           <CanvasAgentAvatar
             key={agent.id} agent={agent} canvasScale={scale}
-            onChat={setChatAgent}
+            onChat={currentUser?.role === 'admin' ? setChatAgent : undefined}
             onEdit={a => { setEditingAgent(a); setShowBotModal(true) }}
           />
         ))}
