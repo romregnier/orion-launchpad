@@ -36,7 +36,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         const THREE = await import('three')
 
         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true })
-        renderer.setSize(64, 64)
+        renderer.setSize(80, 80)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         renderer.shadowMap.enabled = false
 
@@ -263,8 +263,8 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
   return (
     <canvas
       ref={canvasRef}
-      width={64}
-      height={64}
+      width={80}
+      height={80}
       style={{
         position: 'absolute',
         inset: 0,
@@ -297,18 +297,18 @@ function AgentBubble({
     && (navigator.maxTouchPoints > 0 || window.innerWidth < 768)
 
   // Priorité (intentionnelle) :
-  // 1. TailorCanvas 3D lightweight — si tailorConfig existe et desktop
-  // 2. tailorUrl PNG — fallback si pas de config (ancien format) ou mobile
+  // 1. tailorUrl PNG — capture exacte depuis The Tailor (rendu identique garanti)
+  // 2. TailorCanvas 3D lightweight — si tailorConfig existe, pas de PNG, desktop
   // 3. emoji — dernier recours
-  const showTailor = !isMobile && !!tailorConfig
-  const showPng = !showTailor && !!tailorUrl
+  const showPng = !!tailorUrl
+  const showTailor = !showPng && !isMobile && !!tailorConfig
 
   return (
     <motion.div
       animate={isWorking ? { boxShadow: [`0 0 0 0 ${meta.glow}`, `0 0 0 12px transparent`] } : {}}
       transition={isWorking ? { repeat: Infinity, duration: 1.2, ease: 'easeOut' } : {}}
       style={{
-        width: 64, height: 64,
+        width: 80, height: 80,
         borderRadius: '50%',
         overflow: 'hidden',
         position: 'relative',
@@ -317,7 +317,7 @@ function AgentBubble({
           : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
         border: `2px solid ${meta.color}88`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 28,
+        fontSize: 32,
         boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
       }}
     >
