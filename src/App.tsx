@@ -314,6 +314,7 @@ function LaunchpadCanvas() {
               <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
               <button
                 onClick={logout}
+                data-testid="btn-logout"
                 style={{
                   background: 'none', border: 'none',
                   color: '#E11F7B', fontSize: 11, fontWeight: 700,
