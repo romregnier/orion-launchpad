@@ -12,7 +12,7 @@ import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { LoginScreen } from './components/LoginScreen'
-import { BuildStatusWidget } from './components/BuildStatusWidget'
+import { BuildStatusFAB } from './components/BuildStatusFAB'
 import { PresenceBar } from './components/PresenceBar'
 import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
 import { AgentChatPanel } from './components/AgentChatPanel'
@@ -471,8 +471,8 @@ export default function App() {
   return (
     <>
       <LaunchpadCanvas />
-      {/* BuildStatusWidget fixe sur le viewport — indépendant du canvas pan/zoom */}
-      {currentUser && <BuildStatusWidget canvasScale={1} currentUser={currentUser} />}
+      {/* BuildStatusFAB — bouton fixe bottom-right, indépendant du canvas pan/zoom */}
+      {currentUser && <BuildStatusFAB currentUser={currentUser} />}
       {showLoginOverlay && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0B090D' }}>
           <LoginScreen />

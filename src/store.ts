@@ -843,10 +843,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
               const tasks = (data ?? []) as ActiveBuildTask[]
               set({ activeBuildTasks: tasks })
 
-              // ── Synchroniser working_on_project des agents avec les tâches actives ──
-              // Construire une map agent_key → project_id pour les tâches running
+              // ── Synchroniser working_on_project — uniquement les tâches running ──
               const activeByKey: Record<string, string> = {}
-              tasks.forEach(t => { if (t.agent_key && t.project) activeByKey[t.agent_key] = t.project })
+              tasks
+                .filter(t => t.status === 'running')
+                .forEach(t => { if (t.agent_key && t.project) activeByKey[t.agent_key] = t.project })
 
               set(state => ({
                 canvasAgents: state.canvasAgents.map(agent => {
@@ -863,11 +864,13 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
             })
         }
         load()
+        // Poll toutes les 5s pour fiabilité (realtime seul insuffisant)
+        const interval = setInterval(load, 5000)
         const ch = supabase
-          .channel('store_build_tasks')
+          .channel('store_build_tasks_v2')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'build_tasks' }, load)
           .subscribe()
-        return () => { supabase.removeChannel(ch) }
+        return () => { clearInterval(interval); supabase.removeChannel(ch) }
       },
 
       subscribeToAgents: () => {
