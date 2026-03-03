@@ -14,8 +14,8 @@ const AGENT_META: Record<string, { emoji: string; color: string; glow: string }>
 }
 
 /**
- * TailorCanvas — Avatar Three.js animé 64×64px.
- * Rendu basé sur tailor_config (couleur + forme).
+ * TailorCanvas — Avatar Three.js animé 112×112px.
+ * Géométrie exacte portée depuis Avatar3D.tsx (React Three Fiber → vanilla Three.js).
  * Fallback automatique si WebGL indisponible ou erreur.
  *
  * @param tailorConfig - Config avatar issue de la DB (couleur HSL, forme, etc.)
@@ -36,7 +36,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         const THREE = await import('three')
 
         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true })
-        renderer.setSize(80, 80)
+        renderer.setSize(112, 112)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         renderer.shadowMap.enabled = false
 
@@ -46,7 +46,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         camera.position.set(0, 0, 4)
         camera.lookAt(0, 0, 0)
 
-        // Éclairage identique à The Tailor : ambientLight + 2 pointLights
+        // ── Éclairage identique à The Tailor (AvatarScene) ──
         const ambiancePointColors: Record<string, string> = {
           space: '#4488ff', forest: '#86efac', sunset: '#fb923c',
           neon: '#e879f9', retro: '#fcd34d', void: '#ffffff',
@@ -65,27 +65,13 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         pointLight2.position.set(-2, -1, 2)
         scene.add(ambient, pointLight1, pointLight2)
 
-        // ── Couleur corps depuis tailor_config.color — {h,s,l} sont en 0-100/360 ──
+        // ── Couleur corps depuis tailor_config.color ──
         const hsl = tailorConfig.color
-        // s et l sont déjà en 0-100 (pas 0-1), h en 0-360
         const colorCss = hsl ? `hsl(${hsl.h},${hsl.s}%,${hsl.l}%)` : fallbackColor
         const bodyColor = new THREE.Color(colorCss)
         const bodyScale = tailorConfig.bodyScale ?? 1
 
-        // ── Corps principal — forme selon bodyShape ──
-        let bodyGeo: import('three').BufferGeometry
-        const bs = tailorConfig.bodyShape ?? 'blob'
-        if (bs === 'heart') {
-          // cœur approximé avec 2 sphères + 1 cône
-          bodyGeo = new THREE.SphereGeometry(0.32 * bodyScale, 20, 20)
-        } else if (bs === 'star') {
-          bodyGeo = new THREE.OctahedronGeometry(0.38 * bodyScale, 0)
-        } else if (bs === 'ghost') {
-          bodyGeo = new THREE.CapsuleGeometry(0.22 * bodyScale, 0.28 * bodyScale, 6, 16)
-        } else {
-          bodyGeo = new THREE.SphereGeometry(0.38 * bodyScale, 24, 24)
-        }
-        // MeshStandardMaterial identique à The Tailor (PBR vs Lambert = rendu plus fidèle)
+        // Matériaux réutilisables
         const isGlow = tailorConfig.skinPattern === 'glow'
         const bodyMat = new THREE.MeshStandardMaterial({
           color: bodyColor,
@@ -94,141 +80,278 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
           roughness: 0.7,
           metalness: 0.05,
         })
-        const body = new THREE.Mesh(bodyGeo, bodyMat)
-        body.position.y = -0.05
+        const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.1, metalness: 0.1 })
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.2 })
+        const darkOutlineMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.5, metalness: 0 })
 
-        // ── Yeux — taille/forme selon eyeStyle + couleur selon eyeColor ──
-        const eyeColorMap: Record<string, number> = {
-          blue: 0x3b82f6, green: 0x22c55e, red: 0xef4444,
-          gold: 0xfbbf24, rainbow: 0xe11f7b,
+        // EyeColor map identique à Avatar3D (EYE_COLOR_MAP)
+        const eyeColorMap: Record<string, string> = {
+          blue: '#00BFFF', green: '#00FF88', red: '#FF4444',
+          gold: '#FFD700', rainbow: '#FF69B4',
         }
-        const eyeCol = eyeColorMap[tailorConfig.eyeColor ?? 'blue'] ?? 0x3b82f6
-        const eyeStyle = tailorConfig.eyes ?? 'cute'
-        const eyeSize = eyeStyle === 'pixel' ? 0.07 : eyeStyle === 'star' ? 0.10 : 0.08
-        const eyeGeo = eyeStyle === 'pixel'
-          ? new THREE.BoxGeometry(eyeSize, eyeSize, eyeSize)
-          : new THREE.SphereGeometry(eyeSize, 12, 12)
-        const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0 })
-        const eyePupilMat = new THREE.MeshStandardMaterial({ color: eyeCol, roughness: 0.5, metalness: 0.1 })
-        const eyeL = new THREE.Mesh(eyeGeo, eyeWhiteMat)
-        const eyeR = new THREE.Mesh(eyeGeo, eyeWhiteMat)
-        const pupilL = new THREE.Mesh(
-          eyeStyle === 'pixel' ? new THREE.BoxGeometry(eyeSize * 0.6, eyeSize * 0.6, eyeSize) : new THREE.SphereGeometry(eyeSize * 0.5, 8, 8),
-          eyePupilMat
-        )
-        const pupilR = pupilL.clone()
-        const eyeY = eyeStyle === 'sleepy' ? 0.06 : 0.12
-        eyeL.position.set(-0.14, eyeY, 0.32)
-        eyeR.position.set(0.14, eyeY, 0.32)
-        pupilL.position.set(-0.14, eyeY, 0.38)
-        pupilR.position.set(0.14, eyeY, 0.38)
-        if (eyeStyle === 'sleepy') {
-          eyeL.scale.y = 0.5; eyeR.scale.y = 0.5
-        }
+        const eyeColorHex = eyeColorMap[tailorConfig.eyeColor ?? 'blue'] ?? '#00BFFF'
+        const eyeColor = new THREE.Color(eyeColorHex)
+        const eyeGlowMat = new THREE.MeshStandardMaterial({
+          color: eyeColor, emissive: eyeColor, emissiveIntensity: 2.0, roughness: 0, metalness: 0,
+        })
 
+        // ── Groupe principal (scale = bodyScale, comme <group scale={bodyScale}> dans Avatar3D) ──
         const meshGroup = new THREE.Group()
-        meshGroup.add(body, eyeL, eyeR, pupilL, pupilR)
-
-        // ── Blush (joues) selon style ──
-        if (tailorConfig.blush && tailorConfig.blush !== 'none') {
-          const blushColor = tailorConfig.blush === 'hearts' ? 0xff4d88 : 0xff8fa3
-          const blushMat = new THREE.MeshStandardMaterial({ color: blushColor, transparent: true, opacity: 0.6, roughness: 0.9 })
-          const blushGeo = new THREE.SphereGeometry(0.07, 8, 8)
-          const blushL = new THREE.Mesh(blushGeo, blushMat)
-          const blushR = new THREE.Mesh(blushGeo, blushMat)
-          blushL.position.set(-0.22, -0.02, 0.28)
-          blushR.position.set(0.22, -0.02, 0.28)
-          meshGroup.add(blushL, blushR)
-        }
-
-        // ── Armor — couleur et forme selon style ──
-        if (tailorConfig.armor && tailorConfig.armor !== 'none') {
-          const armorColors: Record<string, number> = {
-            space: 0x334155, knight: 0x78716c, casual: 0x3b82f6, wizard: 0x7c3aed
-          }
-          const armorMat = new THREE.MeshStandardMaterial({ color: armorColors[tailorConfig.armor] ?? 0x666688, roughness: 0.5, metalness: 0.3 })
-          if (tailorConfig.armor === 'knight') {
-            // bouclier large
-            const ag = new THREE.BoxGeometry(0.32, 0.22, 0.07)
-            const a = new THREE.Mesh(ag, armorMat); a.position.set(0, -0.1, 0.37)
-            meshGroup.add(a)
-          } else if (tailorConfig.armor === 'wizard') {
-            // robe (cone bas)
-            const ag = new THREE.ConeGeometry(0.22, 0.3, 8)
-            const a = new THREE.Mesh(ag, armorMat); a.position.set(0, -0.38, 0)
-            meshGroup.add(a)
-          } else {
-            // plaque space / casual
-            const ag = new THREE.BoxGeometry(0.28, 0.18, 0.08)
-            const a = new THREE.Mesh(ag, armorMat); a.position.set(0, -0.12, 0.36)
-            meshGroup.add(a)
-          }
-        }
-
-        // ── Headgear ──
-        if (tailorConfig.headgear && tailorConfig.headgear !== 'none') {
-          const hgColors: Record<string, number> = {
-            crown: 0xffd700, antennae: 0x60a5fa, halo: 0xfef08a, 'wizard-hat': 0x7c3aed
-          }
-          const hgMat = new THREE.MeshStandardMaterial({ color: hgColors[tailorConfig.headgear] ?? 0xffd700, roughness: 0.4, metalness: 0.2 })
-          const topY = 0.38 * bodyScale
-          if (tailorConfig.headgear === 'crown') {
-            const cg = new THREE.CylinderGeometry(0.18, 0.22, 0.14, 6, 1, true)
-            const c = new THREE.Mesh(cg, hgMat); c.position.set(0, topY + 0.07, 0)
-            meshGroup.add(c)
-          } else if (tailorConfig.headgear === 'wizard-hat') {
-            const cg = new THREE.ConeGeometry(0.18, 0.35, 8)
-            const c = new THREE.Mesh(cg, hgMat); c.position.set(0, topY + 0.17, 0)
-            meshGroup.add(c)
-          } else if (tailorConfig.headgear === 'halo') {
-            const rg = new THREE.TorusGeometry(0.2, 0.03, 8, 24)
-            const r = new THREE.Mesh(rg, hgMat); r.position.set(0, topY + 0.18, 0)
-            meshGroup.add(r)
-          } else if (tailorConfig.headgear === 'antennae') {
-            const sg = new THREE.SphereGeometry(0.05, 8, 8)
-            const sm = new THREE.MeshLambertMaterial({ color: 0x60a5fa })
-            const cyl = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 6)
-            const cylm = new THREE.MeshLambertMaterial({ color: 0x94a3b8 })
-            const stickL = new THREE.Mesh(cyl, cylm); stickL.position.set(-0.12, topY + 0.1, 0)
-            const stickR = new THREE.Mesh(cyl, cylm); stickR.position.set(0.12, topY + 0.1, 0)
-            const ballL = new THREE.Mesh(sg, sm); ballL.position.set(-0.12, topY + 0.22, 0)
-            const ballR = new THREE.Mesh(sg, sm); ballR.position.set(0.12, topY + 0.22, 0)
-            meshGroup.add(stickL, stickR, ballL, ballR)
-          }
-        }
-
-        // ── Ear piece ──
-        if (tailorConfig.earPiece && tailorConfig.earPiece !== 'none') {
-          const epColors: Record<string, number> = {
-            tech: 0x64748b, headphones: 0x1e293b, 'cat-ears': 0xfbbf24
-          }
-          const epMat = new THREE.MeshStandardMaterial({ color: epColors[tailorConfig.earPiece] ?? 0x888899, roughness: 0.6, metalness: 0.2 })
-          const x = 0.4 * bodyScale
-          if (tailorConfig.earPiece === 'cat-ears') {
-            const cg = new THREE.ConeGeometry(0.07, 0.14, 4)
-            const eL = new THREE.Mesh(cg, epMat); eL.position.set(-x, 0.28, 0)
-            const eR = new THREE.Mesh(cg, epMat); eR.position.set(x, 0.28, 0)
-            meshGroup.add(eL, eR)
-          } else {
-            const eg = new THREE.BoxGeometry(0.07, 0.1, 0.07)
-            const eL = new THREE.Mesh(eg, epMat); eL.position.set(-x, 0.08, 0)
-            const eR = new THREE.Mesh(eg, epMat); eR.position.set(x, 0.08, 0)
-            meshGroup.add(eL, eR)
-          }
-        }
-
+        meshGroup.scale.setScalar(bodyScale)
         scene.add(meshGroup)
 
+        // ── Corps principal — forme selon bodyShape (copie exacte Avatar3D) ──
+        const bs = tailorConfig.bodyShape ?? 'blob'
+
+        if (bs === 'heart') {
+          const heartMat = bodyMat
+          const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.75, 32, 32), heartMat)
+          s1.position.set(-0.28, 0.22, 0); s1.scale.set(0.85, 0.85, 0.8)
+          const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.75, 32, 32), heartMat)
+          s2.position.set(0.28, 0.22, 0); s2.scale.set(0.85, 0.85, 0.8)
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.2, 32), heartMat)
+          cone.position.set(0, -0.4, 0); cone.rotation.z = Math.PI
+          meshGroup.add(s1, s2, cone)
+        } else if (bs === 'star') {
+          const starCore = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), bodyMat)
+          starCore.scale.setScalar(0.65)
+          meshGroup.add(starCore)
+          for (let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2 - Math.PI / 2
+            const x = Math.cos(angle) * 0.88
+            const y = Math.sin(angle) * 0.88
+            const spike = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.05, 0.6, 8), bodyMat)
+            spike.position.set(x, y, 0)
+            spike.rotation.z = angle + Math.PI / 2
+            meshGroup.add(spike)
+          }
+        } else if (bs === 'ghost') {
+          const ghostBody = new THREE.Mesh(new THREE.SphereGeometry(0.85, 32, 32), bodyMat)
+          ghostBody.scale.set(1.0, 1.1, 0.88); ghostBody.position.y = 0.1
+          meshGroup.add(ghostBody)
+          ;[-0.35, -0.1, 0.15, 0.4].forEach((gx) => {
+            const nub = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), bodyMat)
+            nub.position.set(gx, -0.85, 0)
+            meshGroup.add(nub)
+          })
+        } else {
+          // blob (défaut) — scale [1.0, 0.92, 0.88] exactement comme Avatar3D
+          const body = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), bodyMat)
+          body.scale.set(1.0, 0.92, 0.88)
+          meshGroup.add(body)
+        }
+
+        // ── KirbyEye — copie exacte de la fonction KirbyEye dans Avatar3D.tsx ──
+        const buildKirbyEye = (pos: [number, number, number]) => {
+          const eyeGroup = new THREE.Group()
+          eyeGroup.position.set(...pos)
+          const eyeStyle = tailorConfig.eyes ?? 'cute'
+
+          if (eyeStyle === 'pixel') {
+            const outer = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.1), darkMat)
+            const inner = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.04), eyeGlowMat)
+            inner.position.set(0.07, 0.07, 0.08)
+            eyeGroup.add(outer, inner)
+          } else if (eyeStyle === 'sleepy') {
+            const outer = new THREE.Mesh(new THREE.SphereGeometry(0.18, 32, 32), darkMat)
+            outer.scale.set(1.0, 0.52, 1.0)
+            const inner = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), eyeGlowMat)
+            inner.position.set(0.06, 0.02, 0.15); inner.scale.set(1, 0.52, 1)
+            eyeGroup.add(outer, inner)
+          } else if (eyeStyle === 'star') {
+            const outer = new THREE.Mesh(new THREE.SphereGeometry(0.18, 32, 32), darkMat)
+            outer.scale.set(1.0, 1.15, 1.0)
+            const inner1 = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), eyeGlowMat)
+            inner1.position.set(0.06, 0.06, 0.15)
+            const inner2 = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), eyeGlowMat)
+            inner2.position.set(-0.05, -0.04, 0.14)
+            eyeGroup.add(outer, inner1, inner2)
+          } else {
+            // cute (default) — outer sphere dark, inner glow, scale [1.0, 1.15, 1.0]
+            const outer = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 24), darkMat)
+            outer.scale.set(1.0, 1.15, 1.0)
+            const inner = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), eyeGlowMat)
+            inner.position.set(0.06, 0.06, 0.15)
+            eyeGroup.add(outer, inner)
+          }
+          return eyeGroup
+        }
+
+        // Positions KirbyEye identiques à Avatar3D : [-0.22, 0.12, 0.82] et [0.22, 0.12, 0.82]
+        meshGroup.add(buildKirbyEye([-0.22, 0.12, 0.82]))
+        meshGroup.add(buildKirbyEye([0.22, 0.12, 0.82]))
+
+        // ── Blush — CircleGeometry (copie Avatar3D Blush 'soft') ──
+        if (tailorConfig.blush && tailorConfig.blush !== 'none') {
+          const blushMat = new THREE.MeshStandardMaterial({
+            color: 0xff9999, transparent: true, opacity: 0.55, roughness: 1, metalness: 0,
+            side: THREE.DoubleSide, depthWrite: false,
+          })
+          // Positions exactes Avatar3D : ±0.52 (blush soft) — avatar3D blush at [±0.52, -0.05, 0.88]
+          ;[-0.52, 0.52].forEach((bx) => {
+            const blush = new THREE.Mesh(new THREE.CircleGeometry(0.13, 16), blushMat)
+            blush.position.set(bx, -0.05, 0.88)
+            blush.rotation.x = -0.2
+            meshGroup.add(blush)
+          })
+        }
+
+        // ── Mouth — copie exacte Avatar3D Mouth ──
+        const mouthStyle = tailorConfig.mouth ?? 'smile'
+        if (mouthStyle === 'open') {
+          const m = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), darkOutlineMat)
+          m.position.set(0, -0.22, 0.9)
+          meshGroup.add(m)
+        } else if (mouthStyle === 'cool') {
+          const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.03), darkOutlineMat)
+          m.position.set(0, -0.22, 0.9)
+          meshGroup.add(m)
+        } else if (mouthStyle === 'tongue') {
+          const arc = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 8, 16, Math.PI), darkOutlineMat)
+          arc.position.set(0, -0.22, 0.9); arc.rotation.z = Math.PI
+          const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12),
+            new THREE.MeshStandardMaterial({ color: 0xff6b9d, roughness: 0.8, metalness: 0 }))
+          tongue.position.set(0, -0.31, 0.88)
+          meshGroup.add(arc, tongue)
+        } else {
+          // smile (default) — torus arc, rotation PI comme Avatar3D
+          const m = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.025, 8, 20, Math.PI), darkOutlineMat)
+          m.position.set(0, -0.22, 0.9); m.rotation.z = Math.PI
+          meshGroup.add(m)
+        }
+
+        // ── Armor — copie Avatar3D Armor ──
+        if (tailorConfig.armor && tailorConfig.armor !== 'none') {
+          const armorMat = new THREE.MeshStandardMaterial({ color: 0x1c1c2e, metalness: 0.8, roughness: 0.3 })
+          const armorGoldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.2 })
+
+          if (tailorConfig.armor === 'space') {
+            const pieces: Array<[number, number, number, number, number, number, import('three').MeshStandardMaterial]> = [
+              [-1.1, -0.1, 0, 0.18, 0.55, 0.15, armorMat],
+              [-0.95, -0.1, 0, 0.04, 0.55, 0.04, armorGoldMat],
+              [1.1, -0.1, 0, 0.18, 0.55, 0.15, armorMat],
+              [0.95, -0.1, 0, 0.04, 0.55, 0.04, armorGoldMat],
+            ]
+            pieces.forEach(([x, y, z, w, h, d, mat]) => {
+              const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
+              m.position.set(x, y, z); meshGroup.add(m)
+            })
+            const chest = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.12, 0.12), armorMat)
+            chest.position.set(0, -0.62, 0.7); meshGroup.add(chest)
+          } else if (tailorConfig.armor === 'knight') {
+            ;[-1.1, 1.1].forEach((ax) => {
+              const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.6, 0.18), armorGoldMat)
+              m.position.set(ax, -0.1, 0); meshGroup.add(m)
+            })
+            const chest = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.14), armorGoldMat)
+            chest.position.set(0, -0.55, 0.75); meshGroup.add(chest)
+          } else if (tailorConfig.armor === 'casual') {
+            const casualMat = new THREE.MeshStandardMaterial({ color: 0xe11f7b, roughness: 0.6, metalness: 0 })
+            ;[-0.1, 0.1].forEach((cx) => {
+              const m = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), casualMat)
+              m.position.set(cx, -0.65, 0.75); m.scale.set(1.2, 0.7, 0.3); meshGroup.add(m)
+            })
+            const center = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), casualMat)
+            center.position.set(0, -0.65, 0.75); meshGroup.add(center)
+          } else if (tailorConfig.armor === 'wizard') {
+            const wizMat = new THREE.MeshStandardMaterial({ color: 0x4b0082, metalness: 0.3, roughness: 0.5 })
+            const arc1 = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.08, 8, 24, Math.PI), wizMat)
+            arc1.position.set(0, -0.7, 0.5); arc1.rotation.x = 0.3; meshGroup.add(arc1)
+            const goldTrimMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: new THREE.Color(0xffd700), emissiveIntensity: 0.5, metalness: 0.8, roughness: 0.1 })
+            const arc2 = new THREE.Mesh(new THREE.TorusGeometry(0.47, 0.02, 6, 24, Math.PI), goldTrimMat)
+            arc2.position.set(0, -0.7, 0.5); arc2.rotation.x = 0.3; meshGroup.add(arc2)
+          }
+        }
+
+        // ── Headgear — copie Avatar3D Headgear ──
+        if (tailorConfig.headgear && tailorConfig.headgear !== 'none') {
+          if (tailorConfig.headgear === 'crown') {
+            // Base cylindrique + 5 spikes (Avatar3D exact)
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.12, 32), goldMat)
+            base.position.set(0, 0.95, 0); meshGroup.add(base)
+            const crystalMat = new THREE.MeshStandardMaterial({
+              color: 0xaaddff, emissive: new THREE.Color(0x88ccff), emissiveIntensity: 1.5, metalness: 0.2, roughness: 0.1,
+            })
+            for (let i = 0; i < 5; i++) {
+              const angle = (i / 4) * Math.PI - Math.PI / 2
+              const cx = Math.sin(angle) * 0.45
+              const heightBonus = Math.cos(angle) * 0.18
+              const isCenter = i === 2
+              const spike = new THREE.Mesh(
+                new THREE.ConeGeometry(isCenter ? 0.09 : 0.075, isCenter ? 0.32 : 0.24, 4),
+                isCenter ? crystalMat : goldMat
+              )
+              spike.position.set(cx, 1.05 + heightBonus, 0)
+              meshGroup.add(spike)
+            }
+          } else if (tailorConfig.headgear === 'wizard-hat') {
+            const wizMat = new THREE.MeshStandardMaterial({ color: 0x4b0082, roughness: 0.5, metalness: 0 })
+            const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.1, 32), wizMat)
+            brim.position.set(0, 1.0, 0); meshGroup.add(brim)
+            const hat = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 32), wizMat)
+            hat.position.set(0, 1.45, 0); meshGroup.add(hat)
+            const star = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8),
+              new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: new THREE.Color(0xffd700), emissiveIntensity: 0.8, metalness: 0, roughness: 0 }))
+            star.position.set(0, 1.65, 0.28); meshGroup.add(star)
+          } else if (tailorConfig.headgear === 'halo') {
+            const haloMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: new THREE.Color(0xffd700), emissiveIntensity: 0.8, metalness: 0.5, roughness: 0.2 })
+            const halo = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.03, 8, 32), haloMat)
+            halo.position.set(0, 1.45, 0); halo.rotation.x = 0.3; meshGroup.add(halo)
+          } else if (tailorConfig.headgear === 'antennae') {
+            const antMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.6, metalness: 0 })
+            const ballMat = new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: new THREE.Color(0xff4444), emissiveIntensity: 0.8, metalness: 0, roughness: 0 })
+            // simplified straight sticks (CatmullRom tubes not available easily in vanilla)
+            const cylGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.55, 8)
+            ;[-0.45, 0.45].forEach((ax) => {
+              const stick = new THREE.Mesh(cylGeo, antMat)
+              stick.position.set(ax * 0.667, 1.25, 0.1); stick.rotation.z = ax < 0 ? 0.35 : -0.35
+              meshGroup.add(stick)
+              const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), ballMat)
+              ball.position.set(ax, 1.5, 0); meshGroup.add(ball)
+            })
+          }
+        }
+
+        // ── Ear pieces — copie Avatar3D EarPieces ──
+        if (tailorConfig.earPiece && tailorConfig.earPiece !== 'none') {
+          if (tailorConfig.earPiece === 'tech') {
+            // Exact copy from Avatar3D EarPieces 'tech': cylinder + torus ring + glowing sphere
+            const techArmorMat = new THREE.MeshStandardMaterial({ color: 0x1c1c2e, metalness: 0.8, roughness: 0.3 })
+            const techGoldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.2 })
+            const techGlowMat = new THREE.MeshStandardMaterial({ color: 0x0066ff, emissive: new THREE.Color(0x0088ff), emissiveIntensity: 2.0, roughness: 0, metalness: 0.1 })
+            ;[-1.05, 1.05].forEach((ex) => {
+              const disk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.06, 24), techArmorMat)
+              disk.position.set(ex, 0.05, 0); disk.rotation.z = Math.PI / 2; meshGroup.add(disk)
+              const ring = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.03, 8, 24), techGoldMat)
+              ring.position.set(ex, 0.05, 0); ring.rotation.y = Math.PI / 2; meshGroup.add(ring)
+              const glow = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), techGlowMat)
+              glow.position.set(ex, 0.05, 0); meshGroup.add(glow)
+            })
+          } else if (tailorConfig.earPiece === 'headphones') {
+            const hpMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.6, roughness: 0.3 })
+            const bandMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.3 })
+            ;[-1.05, 1.05].forEach((ex) => {
+              const cup = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), hpMat)
+              cup.position.set(ex, 0.2, 0); meshGroup.add(cup)
+            })
+            const band = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.035, 8, 24, Math.PI), bandMat)
+            band.position.set(0, 0.2, 0); band.rotation.x = Math.PI / 2; meshGroup.add(band)
+          } else if (tailorConfig.earPiece === 'cat-ears') {
+            const catMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.7, metalness: 0 })
+            ;[-0.75, 0.75].forEach((cx) => {
+              const ear = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.35, 3), catMat)
+              ear.position.set(cx, 1.05, 0); ear.rotation.z = cx > 0 ? 0.3 : -0.3; meshGroup.add(ear)
+            })
+          }
+        }
+
+        // ── Animation loop — identique useFrame Avatar3D ──
         const animType = tailorConfig.animation ?? 'rotate'
         let t = 0
         const animate = () => {
           if (disposed) return
           frameId = requestAnimationFrame(animate)
           t += 0.016
-          // Animations identiques à The Tailor (useFrame)
-          meshGroup.rotation.y = 0
-          meshGroup.position.y = 0
-          meshGroup.rotation.z = 0
           if (animType === 'rotate') {
             meshGroup.rotation.y += 0.005
           } else if (animType === 'bounce') {
@@ -239,7 +362,6 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
           } else if (animType === 'wiggle') {
             meshGroup.rotation.z = Math.sin(t * 3) * 0.15
           } else {
-            // default: rotate
             meshGroup.rotation.y += 0.005
           }
           renderer.render(scene, camera)
@@ -263,8 +385,8 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
   return (
     <canvas
       ref={canvasRef}
-      width={80}
-      height={80}
+      width={112}
+      height={112}
       style={{
         position: 'absolute',
         inset: 0,
@@ -308,7 +430,7 @@ function AgentBubble({
       animate={isWorking ? { boxShadow: [`0 0 0 0 ${meta.glow}`, `0 0 0 12px transparent`] } : {}}
       transition={isWorking ? { repeat: Infinity, duration: 1.2, ease: 'easeOut' } : {}}
       style={{
-        width: 80, height: 80,
+        width: 112, height: 112,
         borderRadius: '50%',
         overflow: 'hidden',
         position: 'relative',
@@ -317,7 +439,7 @@ function AgentBubble({
           : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
         border: `2px solid ${meta.color}88`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 32,
+        fontSize: 36,
         boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
       }}
     >
