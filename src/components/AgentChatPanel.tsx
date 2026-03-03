@@ -90,9 +90,9 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
       read_by_agent: false,
     })
 
-    // Pour les agents non-Orion : relayer via Telegram Bot API
+    // Relayer via Telegram Bot API pour tous les agents (y compris Orion)
     const agentData = agent as CanvasAgent & { bot_token?: string; agent_key?: string }
-    if (agentData.bot_token && agentData.agent_key !== 'orion') {
+    if (agentData.bot_token) {
       fetch(`https://api.telegram.org/bot${agentData.bot_token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
