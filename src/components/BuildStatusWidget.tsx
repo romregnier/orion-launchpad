@@ -128,20 +128,25 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
     })
   }, [])
 
-  // ── Backlog tickets ──────────────────────────────────────────────────────
+  // ── Backlog tickets — poll 10s ───────────────────────────────────────────
   useEffect(() => {
-    supabase
-      .from('tickets')
-      .select('id, title, status, assigned_to, priority')
-      .in('status', ['backlog', 'queued'])
-      .order('priority', { ascending: true })
-      .limit(20)
-      .then(({ data }) => {
-        if (data) setBacklog(data as BacklogTicket[])
-      })
+    const loadTickets = () => {
+      supabase
+        .from('tickets')
+        .select('id, title, status, assigned_to, priority')
+        .in('status', ['backlog', 'queued'])
+        .order('priority', { ascending: true })
+        .limit(20)
+        .then(({ data }) => {
+          if (data) setBacklog(data as BacklogTicket[])
+        })
+    }
+    loadTickets()
+    const interval = setInterval(loadTickets, 10000)
+    return () => clearInterval(interval)
   }, [])
 
-  // ── Supabase subscription ────────────────────────────────────────────────
+  // ── Build tasks — poll 5s + realtime channel ────────────────────────────
   useEffect(() => {
     const load = () => {
       supabase
@@ -154,13 +159,19 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
         })
     }
     load()
+    // Poll toutes les 5s (fiabilité > realtime seul)
+    const interval = setInterval(load, 5000)
 
+    // Realtime en complément pour les updates instantanés
     const channel = supabase
-      .channel('bsw_tasks_rt')
+      .channel('bsw_tasks_rt_v2')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'build_tasks' }, load)
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // ── Drag ─────────────────────────────────────────────────────────────────
