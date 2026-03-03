@@ -488,7 +488,7 @@ interface CanvasAgentAvatarProps {
  * (stiffness 60) pour l'aller, et plus rapide (stiffness 120) pour le retour.
  */
 export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: CanvasAgentAvatarProps) {
-  const { projects, canvasAgents, updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping, setAgentWorkingOn } = useLaunchpadStore()
+  const { projects, canvasAgents, updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping, setAgentWorkingOn, activeBuildTasks } = useLaunchpadStore()
   const [hovered, setHovered] = useState(false)
 
   // Local drag state for smooth visual feedback (no Supabase on every frame)
@@ -507,7 +507,12 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
     ? projects.find(p => p.id === agent.working_on_project)
     : null
 
-  const isWorking = !!targetProject
+  /** Agent a une build_task running même sans working_on_project */
+  const hasRunningBuildTask = activeBuildTasks.some(
+    t => t.agent_key === agent.agent_key && t.status === 'running'
+  )
+
+  const isWorking = !!targetProject || hasRunningBuildTask
 
   /**
    * Index de cet agent parmi tous ceux qui travaillent sur le même projet.
@@ -646,6 +651,38 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
       {/* Avatar — screenshot Tailor si disponible, sinon emoji */}
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
         <AgentBubble name={agent.name} isWorking={isWorking} tailorUrl={agent.tailorUrl} tailorConfig={agent.tailor_config} />
+
+        {/* TK-0019 — Bulle de pensée animée quand l'agent a une build_task running */}
+        {hasRunningBuildTask && (
+          <div style={{
+            position: 'absolute',
+            top: -22,
+            right: -6,
+            display: 'flex',
+            gap: 4,
+            alignItems: 'center',
+            pointerEvents: 'none',
+          }}>
+            {[0, 0.15, 0.30].map((delay, i) => {
+              const key2 = agent.name.toLowerCase()
+              const meta2 = AGENT_META[key2] ?? { color: '#fff' }
+              return (
+                <motion.div
+                  key={i}
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ repeat: Infinity, duration: 0.9, delay, ease: 'easeInOut' }}
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: meta2.color,
+                    boxShadow: `0 0 4px ${meta2.color}`,
+                  }}
+                />
+              )
+            })}
+          </div>
+        )}
 
 
 
