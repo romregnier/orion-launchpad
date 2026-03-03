@@ -61,7 +61,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
   // Agents travaillant sur ce projet — depuis working_on_project (manuel) OU build_tasks actives (automatique)
   const workingAgents = canvasAgents.filter(a => a.working_on_project === project.id)
   const taskAgentKeys = activeBuildTasks
-    .filter(t => t.project === project.id || t.project === project.title)
+    .filter(t => t.status === 'running' && (t.project === project.id || t.project === project.title))
     .map(t => t.agent_key)
     .filter((k): k is string => !!k && !workingAgents.some(a => a.agent_key === k))
   const taskAgents = canvasAgents.filter(a => taskAgentKeys.includes(a.agent_key ?? ''))
