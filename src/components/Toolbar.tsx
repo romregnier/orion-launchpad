@@ -6,7 +6,7 @@
  * Props : scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount, onChat?
  */
 import { useState, useEffect, useRef } from 'react'
-import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings, LayoutGrid } from 'lucide-react'
+import { Plus, ZoomIn, ZoomOut, Settings, LayoutGrid } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { supabase } from '../lib/supabase'
@@ -240,7 +240,7 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
-export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat: _onChat }: Props) {
+export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh: _onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat: _onChat }: Props) {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 640)
 
   useEffect(() => {
@@ -296,10 +296,6 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
       </button>
       <button className="launchpad-toolbar__btn" onClick={onZoomIn} title="Zoom avant" style={btnStyle(isMobile)}>
         <ZoomIn size={isMobile ? 13 : 15} />
-      </button>
-
-      <button onClick={onRefresh} title="Rafraîchir" style={{ ...btnStyle(isMobile), marginLeft: isMobile ? 0 : 2 }}>
-        <RefreshCw size={isMobile ? 12 : 14} />
       </button>
 
       {/* Tidy Up button — réorganise le canvas en grille */}
