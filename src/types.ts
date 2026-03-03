@@ -69,6 +69,14 @@ export interface BoardMember {
   status: 'pending' | 'active' | 'revoked'
 }
 
+export interface AgentMeta {
+  role?: string
+  personality?: string
+  system_prompt?: string
+  permissions?: string[]
+  authorized_projects?: string[]
+}
+
 export interface CanvasAgent {
   id: string
   owner: string
@@ -82,4 +90,5 @@ export interface CanvasAgent {
   home_x?: number | null
   home_y?: number | null
   tailor_config?: AvatarConfig | null
+  agent_meta?: AgentMeta | null
 }

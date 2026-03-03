@@ -120,12 +120,13 @@ export interface Idea {
 export interface ActiveBuildTask {
   id: string
   label: string
-  status: 'pending' | 'running'
+  status: 'pending' | 'running' | 'done' | 'failed'
   progress: number
   agent_key?: string | null
   step_label?: string | null
   /** project id ou nom associé à la tâche */
   project?: string | null
+  created_at?: string | null
 }
 
 // ── Row types for DB mapping ─────────────────────────────────────────────────
@@ -252,7 +253,7 @@ interface LaunchpadStore {
   subscribeToBuildTasks: () => () => void
   canvasAgents: CanvasAgent[]
   addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string, tailorConfig?: import('./types').AvatarConfig) => Promise<void>
-  updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config'>>) => Promise<void>
+  updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config' | 'agent_meta'>>) => Promise<void>
   removeCanvasAgent: (id: string) => Promise<void>
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
   subscribeToAgents: () => () => void
@@ -810,6 +811,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         if (updates.tailorUrl !== undefined) dbUpdates.tailor_url = updates.tailorUrl ?? null
         if (updates.bot_token !== undefined) dbUpdates.bot_token = updates.bot_token ?? null
         if (updates.tailor_config !== undefined) dbUpdates.tailor_config = updates.tailor_config ?? null
+        if (updates.agent_meta !== undefined) dbUpdates.agent_meta = updates.agent_meta ?? null
         await supabase.from('canvas_agents').update(dbUpdates).eq('id', id)
         set(state => ({
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, ...updates } : a)
@@ -834,9 +836,9 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const load = () => {
           supabase
             .from('build_tasks')
-            .select('id, label, status, progress, agent_key, step_label, project')
-            .in('status', ['running', 'pending'])
+            .select('id, label, status, progress, agent_key, step_label, project, created_at')
             .order('created_at', { ascending: false })
+            .limit(50)
             .then(({ data }) => {
               const tasks = (data ?? []) as ActiveBuildTask[]
               set({ activeBuildTasks: tasks })
