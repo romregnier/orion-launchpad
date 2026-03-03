@@ -113,22 +113,26 @@ export function BuildStatusFAB({ currentUser }: Props) {
     })
   }, [])
 
-  // ── Backlog tickets — poll 10s ───────────────────────────────────────────
+  // ── Backlog tickets — poll 5s + realtime channel ────────────────────────
   useEffect(() => {
     const loadTickets = () => {
       supabase
         .from('tickets')
         .select('id, title, status, assigned_to, priority')
-        .in('status', ['backlog', 'queued'])
-        .order('priority', { ascending: true })
-        .limit(20)
+        .in('status', ['backlog', 'queued', 'in_progress', 'in_review'])
+        .order('id', { ascending: true })
+        .limit(30)
         .then(({ data }) => {
           if (data) setBacklog(data as BacklogTicket[])
         })
     }
     loadTickets()
-    const interval = setInterval(loadTickets, 10000)
-    return () => clearInterval(interval)
+    const interval = setInterval(loadTickets, 5000)
+    const channel = supabase
+      .channel('fab_tickets_rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, loadTickets)
+      .subscribe()
+    return () => { clearInterval(interval); supabase.removeChannel(channel) }
   }, [])
 
   // ── Build tasks — poll 5s + realtime channel ────────────────────────────
@@ -454,8 +458,11 @@ export function BuildStatusFAB({ currentUser }: Props) {
                       <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {ticket.title}
                       </span>
+                      <span style={{ fontSize: 8, color: ticket.status === 'in_review' ? '#F59E0B' : ticket.status === 'in_progress' ? '#E11F7B' : 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                        {ticket.status === 'in_review' ? '👁' : ticket.status === 'in_progress' ? '🔄' : ''}
+                      </span>
                       {ticket.assigned_to && (
-                        <span style={{ fontSize: 8, color: agentColor(ticket.assigned_to), flexShrink: 0 }}>
+                        <span style={{ fontSize: 8, color: agentColor(ticket.assigned_to), flexShrink: 0, fontWeight: 700 }}>
                           {agentInitial(ticket.assigned_to)}
                         </span>
                       )}
