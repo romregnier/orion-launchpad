@@ -5,9 +5,9 @@ import type { CanvasAgent } from '../types'
 
 interface ChatMessage {
   id: string
-  agent_id: string
-  sender: string
-  content: string
+  agent_key: string
+  role: string       // 'user' | 'agent'
+  message: string
   created_at: string
   user_id?: string
 }
@@ -48,22 +48,21 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
     supabase
       .from('agent_chat_messages')
       .select('*')
-      .eq('agent_id', agent.id)
+      .eq('agent_key', agentKey)
       .eq('user_id', currentUser)
       .order('created_at', { ascending: true })
       .limit(50)
       .then(({ data }) => { if (data) setMessages(data as ChatMessage[]) })
 
-    // Realtime — filtré par agent ET user
+    // Realtime — filtré par agent_key
     const channel = supabase
-      .channel(`chat-${agent.id}-${currentUser}`)
+      .channel(`chat-${agentKey}-${currentUser}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'agent_chat_messages',
-        filter: `agent_id=eq.${agent.id}`,
+        filter: `agent_key=eq.${agentKey}`,
       }, (payload) => {
         const msg = payload.new as ChatMessage
-        // Ne montrer que les messages de cette conversation
-        if (msg.user_id === currentUser || msg.sender === agentKey) {
+        if (msg.user_id === currentUser || msg.role === 'agent') {
           setMessages(prev => [...prev, msg])
         }
       })
@@ -84,9 +83,9 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
 
     // Sauvegarder dans Supabase
     await supabase.from('agent_chat_messages').insert({
-      agent_id: agent.id,
-      sender: currentUser,
-      content,
+      agent_key: agentKey,
+      role: 'user',
+      message: content,
       user_id: currentUser,
       read_by_agent: false,
     })
@@ -145,7 +144,7 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
           </div>
         )}
         {messages.map(msg => {
-          const isUser = msg.sender === currentUser
+          const isUser = msg.role === 'user'
           return (
             <div key={msg.id} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
               <div style={{
@@ -158,8 +157,8 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
                 color: '#fff',
                 lineHeight: 1.5,
               }}>
-                {!isUser && <div style={{ fontSize: 10, color, fontWeight: 700, marginBottom: 4 }}>{msg.sender}</div>}
-                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.content}</div>
+                {!isUser && <div style={{ fontSize: 10, color, fontWeight: 700, marginBottom: 4 }}>{agent.name}</div>}
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.message}</div>
               </div>
             </div>
           )
