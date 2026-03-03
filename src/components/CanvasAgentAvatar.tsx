@@ -296,12 +296,12 @@ function AgentBubble({
   const isMobile = typeof navigator !== 'undefined'
     && (navigator.maxTouchPoints > 0 || window.innerWidth < 768)
 
-  // Priorité (intentionnelle) :
-  // 1. tailorUrl PNG — capture exacte depuis The Tailor (rendu identique garanti)
-  // 2. TailorCanvas 3D lightweight — si tailorConfig existe, pas de PNG, desktop
+  // Priorité (intentionnelle) — DESIGN_DECISIONS.md :
+  // 1. TailorCanvas 3D — si tailorConfig existe et desktop (rendu animé)
+  // 2. tailorUrl PNG — fallback si pas de config ou mobile
   // 3. emoji — dernier recours
-  const showPng = !!tailorUrl
-  const showTailor = !showPng && !isMobile && !!tailorConfig
+  const showTailor = !isMobile && !!tailorConfig
+  const showPng = !showTailor && !!tailorUrl
 
   return (
     <motion.div

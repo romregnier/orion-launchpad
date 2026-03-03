@@ -6,7 +6,7 @@
  * Props : scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, projectCount, onChat?
  */
 import { useState, useEffect, useRef } from 'react'
-import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings, MessageCircle, LayoutGrid } from 'lucide-react'
+import { Plus, ZoomIn, ZoomOut, RefreshCw, Settings, LayoutGrid } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { supabase } from '../lib/supabase'
@@ -240,7 +240,7 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
-export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat }: Props) {
+export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat: _onChat }: Props) {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 640)
 
   useEffect(() => {
@@ -252,13 +252,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
   }, [])
   const { showSettings, setShowSettings, currentUser } = useLaunchpadStore()
   const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'member'
-  const hasUnread = useChatUnread()
-
-  const handleChatClick = () => {
-    // Marquer comme lu quand l'utilisateur ouvre le chat
-    localStorage.setItem('last_seen_msg', new Date().toISOString())
-    onChat?.()
-  }
+  void useChatUnread() // conservé pour compatibilité — badge unread géré côté ChatPanel FAB
 
   return (
     <div
@@ -323,33 +317,6 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh, onAdd,
         }}
       >
         <Settings size={isMobile ? 12 : 14} />
-      </button>
-
-      {/* Chat button — visible pour tous les rôles */}
-      <button
-        onClick={handleChatClick}
-        title="Chat global"
-        style={{
-          ...btnStyle(isMobile),
-          position: 'relative',
-          color: 'rgba(255,255,255,0.5)',
-        }}
-      >
-        <MessageCircle size={isMobile ? 12 : 14} />
-        {hasUnread && (
-          <span
-            style={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#EF4444',
-              border: '1.5px solid #16121a',
-            }}
-          />
-        )}
       </button>
 
       <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)', marginInline: isMobile ? 2 : 4 }} />
