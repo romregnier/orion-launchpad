@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ExternalLink, RefreshCw } from 'lucide-react'
 import { CommentsPanel } from './CommentsPanel'
+import { useLaunchpadStore } from '../store'
 import type { Project } from '../types'
 
 interface ProjectPreviewModalProps {
@@ -21,6 +22,7 @@ interface ProjectPreviewModalProps {
 }
 
 export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewModalProps) {
+  const { currentUser } = useLaunchpadStore()
   const [iframeBlocked, setIframeBlocked] = useState(false)
   const [activeTab, setActiveTab] = useState<'preview' | 'comments'>('preview')
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -244,6 +246,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                     projectTitle={project.title}
                     open={true}
                     onClose={() => setShowComments(false)}
+                    currentUser={currentUser?.username}
                     inline={true}
                   />
                 </motion.div>
@@ -490,6 +493,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                       projectTitle={project.title}
                       open={true}
                       onClose={onClose}
+                      currentUser={currentUser?.username}
                       inline={true}
                     />
                   </div>

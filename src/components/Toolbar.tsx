@@ -17,7 +17,7 @@ interface Props {
   onZoomIn: () => void
   onZoomOut: () => void
   onReset: () => void
-  onRefresh: () => void
+
   onAdd: () => void
   onAddList: () => void
   onAddAgent: () => void
@@ -240,7 +240,7 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
-export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onRefresh: _onRefresh, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat: _onChat }: Props) {
+export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onAdd, onAddList, onAddAgent, onTidyUp, projectCount: _projectCount, onChat: _onChat }: Props) {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 640)
 
   useEffect(() => {

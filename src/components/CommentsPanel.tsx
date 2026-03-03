@@ -23,6 +23,8 @@ interface Props {
   projectTitle: string
   open: boolean
   onClose: () => void
+  /** Nom du collaborateur connecté — sauvegardé comme auteur du commentaire */
+  currentUser?: string
   /** Si true, rendu inline (pas de portal, pas de position:fixed) */
   inline?: boolean
 }
@@ -71,7 +73,7 @@ async function fetchComments(projectId: string): Promise<Comment[]> {
   }))
 }
 
-export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }: Props) {
+export function CommentsPanel({ projectId, projectTitle, open, onClose, currentUser, inline }: Props) {
   const [comments, setComments] = useState<Comment[]>([])
   const [text, setText] = useState('')
 
@@ -107,7 +109,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, inline }
     setText('')
     await supabase.from('launchpad_comments').insert({
       project_id: projectId,
-      author: 'Toi',
+      author: currentUser ? (currentUser.includes('@') ? currentUser.split('@')[0] : currentUser) : 'Anonyme',
       text: newText,
     })
     // Optimistic: refresh immediately
