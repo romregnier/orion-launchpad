@@ -324,15 +324,33 @@ export function BotModal({ open, onClose, editAgent }: Props) {
               />
 
               <label style={labelStyle}>MODÈLE LLM <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 400 }}>(optionnel)</span></label>
-              <select
-                value={model}
-                onChange={e => setModel(e.target.value)}
-                style={{ ...inputStyle, marginBottom: 16, cursor: 'pointer', appearance: 'auto' } as React.CSSProperties}
-              >
-                <option value="">Défaut (Sonnet)</option>
-                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — Dev / Orchestration</option>
-                <option value="claude-haiku-4-5">Claude Haiku 4.5 — QA / Audit (rapide)</option>
-              </select>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {[
+                  { value: '', label: 'Défaut (Sonnet)', badge: '🧠', desc: 'Standard' },
+                  { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', badge: '🧠', desc: 'Dev · Orchestration' },
+                  { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', badge: '⚡', desc: 'QA · Audit · Rapide' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setModel(opt.value)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 12px', borderRadius: 8, cursor: 'pointer',
+                      border: model === opt.value ? '1px solid rgba(225,31,123,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                      background: model === opt.value ? 'rgba(225,31,123,0.1)' : 'rgba(255,255,255,0.04)',
+                      textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.15s',
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>{opt.badge}</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: model === opt.value ? '#E11F7B' : 'rgba(255,255,255,0.8)' }}>{opt.label}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{opt.desc}</div>
+                    </div>
+                    {model === opt.value && <span style={{ marginLeft: 'auto', color: '#E11F7B', fontSize: 14 }}>✓</span>}
+                  </button>
+                ))}
+              </div>
 
               <label style={labelStyle}>PERSONNALITÉ <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 400 }}>(optionnel)</span></label>
               <textarea
