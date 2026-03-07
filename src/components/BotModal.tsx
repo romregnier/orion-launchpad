@@ -131,7 +131,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
       })
       await setAgentWorkingOn(editAgent.id, workingOn)
     } else {
-      await addCanvasAgent(name.trim(), tailorUrl || undefined, botToken.trim() || undefined, tailorConfigCapture ?? undefined)
+      await addCanvasAgent(name.trim(), tailorUrl || undefined, botToken.trim() || undefined, tailorConfigCapture ?? undefined, agent_meta)
     }
     setSaving(false)
     onClose()

@@ -252,7 +252,7 @@ interface LaunchpadStore {
   activeBuildTasks: ActiveBuildTask[]
   subscribeToBuildTasks: () => () => void
   canvasAgents: CanvasAgent[]
-  addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string, tailorConfig?: import('./types').AvatarConfig) => Promise<void>
+  addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string, tailorConfig?: import('./types').AvatarConfig, agentMeta?: import('./types').AgentMeta | null) => Promise<void>
   updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config' | 'agent_meta'>>) => Promise<void>
   removeCanvasAgent: (id: string) => Promise<void>
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
@@ -780,7 +780,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       getAllCanvasObjects: () => getAllCanvasObjectsFromState(get()),
 
-      addCanvasAgent: async (name, tailorUrl, botToken, tailorConfig) => {
+      addCanvasAgent: async (name, tailorUrl, botToken, tailorConfig, agentMeta) => {
         const { randomAvatarConfig } = await import('./utils/randomAvatar')
         const owner = get().currentUser?.username ?? 'anon'
         // Utiliser la config Tailor capturée si disponible, sinon générer un avatar aléatoire
@@ -790,17 +790,18 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const freePos = findFreePosition(allObjects, 80, 100, 60, 60, 20)
         const { data, error } = await supabase
           .from('canvas_agents')
-          .insert({ name, tailor_url: tailorUrl ?? null, bot_token: botToken ?? null, owner, position_x: freePos.x, position_y: freePos.y, tailor_config: tailorConfig })
+          .insert({ name, tailor_url: tailorUrl ?? null, bot_token: botToken ?? null, owner, position_x: freePos.x, position_y: freePos.y, tailor_config: tailorConfig, agent_meta: agentMeta ?? null })
           .select()
           .single()
         if (error || !data) return
-        const row = data as { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; tailor_config?: import('./types').AvatarConfig | null }
+        const row = data as { id: string; owner: string; name: string; tailor_url: string | null; position_x: number; position_y: number; bot_token?: string; tailor_config?: import('./types').AvatarConfig | null; agent_meta?: import('./types').AgentMeta | null }
         const agent: CanvasAgent = {
           id: row.id, owner: row.owner, name: row.name,
           tailorUrl: row.tailor_url ?? undefined,
           bot_token: row.bot_token ?? undefined,
           position: { x: row.position_x, y: row.position_y },
           tailor_config: row.tailor_config ?? null,
+          agent_meta: row.agent_meta ?? null,
         }
         set(state => ({ canvasAgents: [...state.canvasAgents, agent] }))
       },
