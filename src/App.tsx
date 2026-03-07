@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLaunchpadStore } from './store'
@@ -14,6 +14,12 @@ import { GroupBar } from './components/GroupBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusFAB } from './components/BuildStatusFAB'
+import { DecksPage } from './pages/DecksPage'
+import { NewDeckPage } from './pages/NewDeckPage'
+import { DeckEditorPage } from './pages/DeckEditorPage'
+import { DeckPresentPage } from './pages/DeckPresentPage'
+import { LandingsPage } from './pages/LandingsPage'
+import { NewLandingPage } from './pages/NewLandingPage'
 
 
 import { PresenceBar } from './components/PresenceBar'
@@ -28,6 +34,31 @@ import type { CanvasAgent } from './types'
 
 const MIN_SCALE = 0.2
 const MAX_SCALE = 2.5
+
+// ── NavLink component ─────────────────────────────────────────────────────────
+function NavLink({ to, label }: { to: string; label: string }) {
+  const location = useLocation()
+  const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
+  return (
+    <Link
+      to={to}
+      style={{
+        padding: '4px 10px',
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: isActive ? 700 : 500,
+        color: isActive ? '#F0EDF5' : 'rgba(240,237,245,0.55)',
+        background: isActive ? 'rgba(225,31,123,0.15)' : 'transparent',
+        border: isActive ? '1px solid rgba(225,31,123,0.35)' : '1px solid transparent',
+        textDecoration: 'none',
+        transition: 'all 0.15s ease',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </Link>
+  )
+}
 const SCALE_STEP = 0.15
 
 // ── Canvas principal (séparé pour respecter les règles des hooks) ─────────────
@@ -282,7 +313,9 @@ function LaunchpadCanvas() {
       >
         {/* Left: navigation links */}
         <div className="launchpad-navbar__left" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'all' }}>
-
+          <NavLink to="/" label="🌌 Canvas" />
+          <NavLink to="/decks" label="🃏 Decks" />
+          <NavLink to="/landings" label="🛬 Landings" />
         </div>
 
         {/* Center: board name */}
@@ -485,7 +518,17 @@ function AppInner() {
 
   return (
     <Routes>
+      {/* ── Deck Builder ─────────────────────────────────────────────── */}
+      <Route path="/decks" element={<DecksPage />} />
+      <Route path="/decks/new" element={<NewDeckPage />} />
+      <Route path="/decks/:id/edit" element={<DeckEditorPage />} />
+      <Route path="/decks/:id/present" element={<DeckPresentPage />} />
 
+      {/* ── Landing Builder ──────────────────────────────────────────── */}
+      <Route path="/landings" element={<LandingsPage />} />
+      <Route path="/landings/new" element={<NewLandingPage />} />
+
+      {/* ── Canvas principal (catch-all) ─────────────────────────────── */}
       <Route path="*" element={
         <>
           <LaunchpadCanvas />
