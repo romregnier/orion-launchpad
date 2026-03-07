@@ -327,7 +327,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
               <select
                 value={model}
                 onChange={e => setModel(e.target.value)}
-                style={{ ...inputStyle, marginBottom: 16, cursor: 'pointer' }}
+                style={{ ...inputStyle, marginBottom: 16, cursor: 'pointer', appearance: 'auto' } as React.CSSProperties}
               >
                 <option value="">Défaut (Sonnet)</option>
                 <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — Dev / Orchestration</option>
