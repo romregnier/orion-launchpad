@@ -560,6 +560,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
         projectTitle={project.title}
         open={showComments}
         onClose={() => setShowComments(false)}
+        currentUser={currentUser?.username}
       />
 
       {contextMenu && (

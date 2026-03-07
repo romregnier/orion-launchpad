@@ -214,12 +214,11 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
 
   if (!hasTasks) return (
     <div
-      className="build-status-widget"
+      className="build-status-widget bsw-gradient-border"
       onMouseDown={onMouseDown}
       style={{
         position: 'fixed', left: pos.x, top: pos.y, zIndex: 40,
         background: 'rgba(22,18,26,0.85)',
-        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 14, padding: '10px 14px',
         cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none', backdropFilter: 'blur(16px)',
@@ -234,12 +233,11 @@ export function BuildStatusWidget({ canvasScale: _canvasScale, currentUser }: Pr
 
   return (
     <div
-      className="build-status-widget"
+      className="build-status-widget bsw-gradient-border"
       onMouseDown={onMouseDown}
       style={{
         position: 'fixed', left: pos.x, top: pos.y, zIndex: 40,
         background: 'rgba(22,18,26,0.96)',
-        border: '1px solid rgba(255,255,255,0.10)',
         borderRadius: 14, overflow: 'hidden',
         minWidth: 260, maxWidth: 340,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',

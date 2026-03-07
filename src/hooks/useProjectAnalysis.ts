@@ -41,7 +41,7 @@ Critères score: SEO 25pts + UX 25pts + Contenu 25pts + Technique 25pts.
 Contenu: ${content.slice(0, 4000)}`
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

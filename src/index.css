@@ -22,8 +22,35 @@ body {
 }
 
 /* Card hover glow */
+.project-card {
+  animation: fadeIn 0.4s ease;
+}
 .project-card:hover {
-  box-shadow: 0 0 0 1px rgba(225,31,123,0.4), 0 20px 60px rgba(0,0,0,0.7);
+  box-shadow:
+    0 0 0 1px rgba(225,31,123,0.35),
+    0 0 20px rgba(225,31,123,0.15),
+    0 20px 60px rgba(0,0,0,0.7);
+  transition: box-shadow 0.3s ease;
+}
+
+/* ── BuildStatusWidget gradient border ─────────────────────────── */
+@property --bsw-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes bsw-border-spin {
+  to { --bsw-angle: 360deg; }
+}
+
+.bsw-gradient-border {
+  position: relative;
+  background:
+    linear-gradient(#1a1520, #1a1520) padding-box,
+    conic-gradient(from var(--bsw-angle), #E11F7B, #7C3AED, #00d4ff, #E11F7B) border-box !important;
+  border: 1.5px solid transparent !important;
+  animation: bsw-border-spin 4s linear infinite;
 }
 
 @keyframes fadeIn {

@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLaunchpadStore } from './store'
@@ -13,10 +14,14 @@ import { GroupBar } from './components/GroupBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusFAB } from './components/BuildStatusFAB'
+
+
 import { PresenceBar } from './components/PresenceBar'
 import { CanvasAgentAvatar } from './components/CanvasAgentAvatar'
 import { AgentChatPanel } from './components/AgentChatPanel'
 import { BotModal } from './components/BotModal'
+import { GalaxyCanvas } from './components/GalaxyCanvas'
+import { NebulaOverlay } from './components/NebulaBackground'
 // WorkProgressBar supprimé — remplacé par BuildStatusWidget (bottom right)
 import type { CanvasAgent } from './types'
 
@@ -204,10 +209,12 @@ function LaunchpadCanvas() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="canvas-bg" style={{ position: 'absolute', inset: 0, backgroundPosition: `${((offset.x % (32 * scale)) + 32 * scale) % (32 * scale)}px ${((offset.y % (32 * scale)) + 32 * scale) % (32 * scale)}px`, backgroundSize: `${32 * scale}px ${32 * scale}px` }} />
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(225,31,123,0.05) 0%, transparent 70%)' }} />
+      <GalaxyCanvas opacity={0.5} />
+      <NebulaOverlay />
+      <div className="canvas-bg" style={{ position: 'absolute', inset: 0, zIndex: 2, backgroundPosition: `${((offset.x % (32 * scale)) + 32 * scale) % (32 * scale)}px ${((offset.y % (32 * scale)) + 32 * scale) % (32 * scale)}px`, backgroundSize: `${32 * scale}px ${32 * scale}px` }} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(225,31,123,0.05) 0%, transparent 70%)' }} />
 
-      <div ref={canvasRef} style={{ position: 'absolute', inset: 0, transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`, transformOrigin: '0 0', cursor: isPanning ? 'grabbing' : 'grab' }}>
+      <div ref={canvasRef} style={{ position: 'absolute', inset: 0, zIndex: 3, transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`, transformOrigin: '0 0', cursor: isPanning ? 'grabbing' : 'grab' }}>
         <AnimatePresence>
           {visibleProjects.map((project, index) => (
             <ProjectCard key={project.id} project={project} canvasScale={scale} index={index} />
@@ -273,12 +280,22 @@ function LaunchpadCanvas() {
           pointerEvents: 'none', // let canvas clicks pass through
         }}
       >
-        {/* Left spacer (or future logo) */}
-        <div className="launchpad-navbar__left" style={{ flex: 1 }} />
+        {/* Left: navigation links */}
+        <div className="launchpad-navbar__left" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'all' }}>
+
+        </div>
 
         {/* Center: board name */}
         <div className="launchpad-navbar__title" style={{ userSelect: 'none' }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '-0.02em' }}>
+          <span style={{
+            fontSize: 17,
+            letterSpacing: '-0.02em',
+            background: 'linear-gradient(135deg, #F0EDF5 60%, rgba(225,31,123,0.8) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: 700,
+          }}>
             {boardName.replace(/[\p{Emoji}]/gu, '').trim()}
           </span>
         </div>
@@ -439,11 +456,9 @@ function LaunchpadCanvas() {
   )
 }
 
-// ── App root — auth routing uniquement ────────────────────────────────────────
-export default function App() {
+// ── AppInner — auth + routing (needs BrowserRouter context) ──────────────────
+function AppInner() {
   const { isPrivate, currentUser } = useLaunchpadStore()
-  // authReady : true quand on sait si l'utilisateur est connecté ou non
-  // authReady retiré — plus utilisé (overlay pattern)
 
   useEffect(() => {
     // Un seul point d'entrée auth → fetch.
@@ -469,15 +484,29 @@ export default function App() {
   const showLoginOverlay = isPrivate && !currentUser
 
   return (
-    <>
-      <LaunchpadCanvas />
-      {/* BuildStatusFAB — bouton fixe bottom-right, indépendant du canvas pan/zoom */}
-      {currentUser && <BuildStatusFAB currentUser={currentUser} />}
-      {showLoginOverlay && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0B090D' }}>
-          <LoginScreen />
-        </div>
-      )}
-    </>
+    <Routes>
+
+      <Route path="*" element={
+        <>
+          <LaunchpadCanvas />
+          {/* BuildStatusFAB — bouton fixe bottom-right, indépendant du canvas pan/zoom */}
+          {currentUser && <BuildStatusFAB currentUser={currentUser} />}
+          {showLoginOverlay && (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0B090D' }}>
+              <LoginScreen />
+            </div>
+          )}
+        </>
+      } />
+    </Routes>
+  )
+}
+
+// ── App root ──────────────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppInner />
+    </BrowserRouter>
   )
 }

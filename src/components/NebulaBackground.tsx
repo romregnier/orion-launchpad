@@ -27,6 +27,55 @@ const ORBES: OrbeConfig[] = [
   { width: 450, height: 450, color: '#8B5CF633', blur: 110, opacity: 0.25, top: '80%', left: '80%', duration: 11 },
 ]
 
+/**
+ * NebulaOverlay — variante légère pour le canvas principal.
+ * 3 orbes max, opacity × 0.4, toujours visible.
+ */
+const ORBES_OVERLAY: OrbeConfig[] = [
+  { width: 600, height: 600, color: '#E11F7B33', blur: 120, opacity: 0.20, top: '5%',  left: '10%', duration: 14 },
+  { width: 500, height: 500, color: '#7C3AED33', blur: 100, opacity: 0.15, top: '55%', left: '65%', duration: 18 },
+  { width: 450, height: 450, color: '#00d4ff22', blur: 110, opacity: 0.12, top: '75%', left: '25%', duration: 10 },
+]
+
+export function NebulaOverlay() {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      {ORBES_OVERLAY.map((orbe, i) => (
+        <motion.div
+          key={i}
+          style={{
+            position: 'absolute',
+            width: orbe.width,
+            height: orbe.height,
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${orbe.color}, transparent 70%)`,
+            filter: `blur(${orbe.blur}px)`,
+            opacity: orbe.opacity,
+            top: orbe.top,
+            left: orbe.left,
+            willChange: 'transform',
+          }}
+          animate={{ x: [0, 60, -40, 30, 0], y: [0, -40, 50, -20, 0] }}
+          transition={{
+            repeat: Infinity,
+            repeatType: 'mirror',
+            duration: orbe.duration,
+            ease: 'easeInOut',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export function NebulaBackground() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
   const activeOrbes = isMobile ? ORBES.slice(0, 3) : ORBES
