@@ -43,6 +43,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
   const [systemPrompt, setSystemPrompt] = useState('')
   const [permissions, setPermissions] = useState<string[]>([])
   const [authorizedProjects, setAuthorizedProjects] = useState<string[]>([])
+  const [model, setModel] = useState('')
 
   const tailorRef = useRef<HTMLIFrameElement>(null)
   const pendingConfigRef = useRef<AvatarConfig | null>(null)
@@ -62,6 +63,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
       setSystemPrompt(meta?.system_prompt ?? '')
       setPermissions(meta?.permissions ?? [])
       setAuthorizedProjects(meta?.authorized_projects ?? [])
+      setModel(meta?.model ?? '')
     } else {
       setName('')
       setBotToken('')
@@ -73,6 +75,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
       setSystemPrompt('')
       setPermissions([])
       setAuthorizedProjects([])
+      setModel('')
     }
     setShowTailor(false)
     setConfigSaved(false)
@@ -110,6 +113,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
     if (systemPrompt.trim()) meta.system_prompt = systemPrompt.trim()
     if (permissions.length > 0) meta.permissions = permissions
     if (authorizedProjects.length > 0) meta.authorized_projects = authorizedProjects
+    if (model.trim()) meta.model = model.trim()
     return Object.keys(meta).length > 0 ? meta : null
   }
 
@@ -318,6 +322,17 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                 placeholder="Ex: CPO, Dev Senior, QA..."
                 style={{ ...inputStyle, marginBottom: 16 }}
               />
+
+              <label style={labelStyle}>MODÈLE LLM <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 400 }}>(optionnel)</span></label>
+              <select
+                value={model}
+                onChange={e => setModel(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 16, cursor: 'pointer' }}
+              >
+                <option value="">Défaut (Sonnet)</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — Dev / Orchestration</option>
+                <option value="claude-haiku-4-5">Claude Haiku 4.5 — QA / Audit (rapide)</option>
+              </select>
 
               <label style={labelStyle}>PERSONNALITÉ <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 400 }}>(optionnel)</span></label>
               <textarea

@@ -75,6 +75,7 @@ export interface AgentMeta {
   system_prompt?: string
   permissions?: string[]
   authorized_projects?: string[]
+  model?: string  // LLM model override (ex: 'claude-haiku-4-5', 'claude-sonnet-4-6')
 }
 
 export interface CanvasAgent {

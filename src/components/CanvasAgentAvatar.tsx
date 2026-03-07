@@ -35,10 +35,14 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
       try {
         const THREE = await import('three')
 
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true })
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
         renderer.setSize(112, 112)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         renderer.shadowMap.enabled = false
+        // Identique aux defaults R3F + The Tailor — évite le rendu "sombre"
+        renderer.toneMapping = THREE.ACESFilmicToneMapping
+        renderer.toneMappingExposure = 1.2   // idem The Tailor
+        renderer.outputColorSpace = THREE.SRGBColorSpace
 
         const scene = new THREE.Scene()
         // Caméra identique à The Tailor (position [0,0,4], fov 45)
@@ -58,10 +62,15 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         const ambientIntensity = ambianceAmbient[ambianceKey] ?? 0.5
         const pointColor = ambiancePointColors[ambianceKey] ?? '#4488ff'
 
-        const ambient = new THREE.AmbientLight(0xffffff, ambientIntensity)
-        const pointLight1 = new THREE.PointLight(0xffffff, 1.5)
+        // MeshStandardMaterial applique un facteur 1/π dans BRDF_Lambert
+        // ce qui divise la luminosité par ~3.14 vs un rendu "flat".
+        // The Tailor compense via le Bloom post-processing (@react-three/postprocessing).
+        // TailorCanvas (no bloom) doit multiplier les intensités par π pour matcher.
+        const PI = Math.PI
+        const ambient = new THREE.AmbientLight(0xffffff, ambientIntensity * PI)
+        const pointLight1 = new THREE.PointLight(0xffffff, 1.5 * PI)
         pointLight1.position.set(3, 3, 3)
-        const pointLight2 = new THREE.PointLight(new THREE.Color(pointColor), 0.5)
+        const pointLight2 = new THREE.PointLight(new THREE.Color(pointColor), 0.5 * PI)
         pointLight2.position.set(-2, -1, 2)
         scene.add(ambient, pointLight1, pointLight2)
 
@@ -73,11 +82,13 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
 
         // Matériaux réutilisables
         const isGlow = tailorConfig.skinPattern === 'glow'
+        // Emissive de base sur le corps pour compenser l'absence de Bloom (vs The Tailor)
+        // Sans Bloom, le corps paraît sombre. L'emissive ajoute un auto-éclairage subtil.
         const bodyMat = new THREE.MeshStandardMaterial({
           color: bodyColor,
-          emissive: isGlow ? bodyColor : new THREE.Color(0x000000),
-          emissiveIntensity: isGlow ? 0.4 : 0,
-          roughness: 0.7,
+          emissive: bodyColor,
+          emissiveIntensity: isGlow ? 0.55 : 0.25,
+          roughness: 0.5,
           metalness: 0.05,
         })
         const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.1, metalness: 0.1 })
@@ -762,6 +773,24 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
           >
             {agent.name}
           </div>
+
+          {/* Badge modèle LLM */}
+          {agent.agent_meta?.model && (
+            <div style={{
+              background: 'rgba(124,58,237,0.18)',
+              border: '1px solid rgba(124,58,237,0.3)',
+              borderRadius: 4,
+              padding: '2px 6px',
+              fontSize: 9,
+              fontWeight: 700,
+              color: 'rgba(167,139,250,0.9)',
+              whiteSpace: 'nowrap',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+            }}>
+              {agent.agent_meta.model.includes('haiku') ? '⚡ Haiku' : agent.agent_meta.model.includes('sonnet') ? '🧠 Sonnet' : agent.agent_meta.model}
+            </div>
+          )}
 
           {onChat && (
             <button
