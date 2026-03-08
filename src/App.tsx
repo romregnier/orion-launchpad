@@ -11,8 +11,8 @@ import { ChatPanel } from './components/ChatPanel'
 import { ListWidgetCard } from './components/ListWidgetCard'
 import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
-import { SettingsPanel } from './components/SettingsPanel'
-import { OrgSettingsPanel } from './components/OrgSettingsPanel'
+import { AdminPanel } from './components/AdminPanel'
+// SettingsPanel + OrgSettingsPanel deprecated — remplacés par AdminPanel Sprint A
 import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusFAB } from './components/BuildStatusFAB'
 import { DecksPage } from './pages/DecksPage'
@@ -101,7 +101,7 @@ function LoadingTimeout() {
 }
 
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showOrgSettings, setShowOrgSettings } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showAdminPanel, setShowAdminPanel } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -342,29 +342,32 @@ function LaunchpadCanvas() {
           {/* Avatars des users connectés */}
           <PresenceBar currentUser={currentUser} />
 
-          {/* Org Settings button — admin only */}
+          {/* Admin Panel button — admin only */}
           {currentUser?.role === 'admin' && (
             <motion.button
-              onClick={() => setShowOrgSettings(true)}
-              whileHover={{ scale: 1.1 }}
+              onClick={() => setShowAdminPanel(true)}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 10px',
-                cursor: 'pointer',
-                color: 'rgba(255,255,255,0.7)',
-                fontSize: 16,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
+                padding: '6px 14px',
+                borderRadius: 8,
+                background: showAdminPanel ? 'rgba(225,31,123,0.22)' : 'rgba(225,31,123,0.10)',
+                border: '1px solid rgba(225,31,123,0.25)',
+                color: '#E11F7B',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
                 fontFamily: "'Poppins', sans-serif",
                 flexShrink: 0,
+                boxShadow: showAdminPanel ? '0 0 12px rgba(225,31,123,0.25)' : 'none',
               }}
-              title="Organisation Settings"
+              title="Admin Panel"
             >
-              ⚙️
+              🛡️ Admin
             </motion.button>
           )}
 
@@ -492,9 +495,9 @@ function LaunchpadCanvas() {
       <AddProjectModal open={showAdd} onClose={() => setShowAdd(false)} defaultPosition={newCardPosition} />
 
       <ChatPanel open={showGlobalChat} onClose={() => setShowGlobalChat(false)} />
-      <SettingsPanel />
+      {/* AdminPanel unifié (remplace SettingsPanel + OrgSettingsPanel — Sprint A) */}
       <AnimatePresence>
-        {showOrgSettings && <OrgSettingsPanel onClose={() => setShowOrgSettings(false)} />}
+        {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
       </AnimatePresence>
       {/* BuildStatusWidget déplacé dans le canvas div */}
 

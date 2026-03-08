@@ -187,8 +187,17 @@ function projectToRow(p: Project): Omit<ProjectRow, 'added_at'> & { added_at: nu
   }
 }
 
+// AdminPanel tab type
+export type AdminTab = 'team' | 'permissions' | 'orgchart' | 'workflow' | 'appsettings' | 'collaboration'
+
 interface LaunchpadStore {
-  // Org Settings
+  // Admin Panel (unified — replaces showSettings + showOrgSettings)
+  showAdminPanel: boolean
+  adminTab: AdminTab
+  setShowAdminPanel: (v: boolean) => void
+  setAdminTab: (tab: AdminTab) => void
+
+  // Org Settings (backward compat — redirect vers AdminPanel)
   showOrgSettings: boolean
   orgSettingsTab: 'agents' | 'workflow' | 'orgchart' | 'collaboration'
   setShowOrgSettings: (v: boolean) => void
@@ -258,7 +267,7 @@ interface LaunchpadStore {
   subscribeToBuildTasks: () => () => void
   canvasAgents: CanvasAgent[]
   addCanvasAgent: (name: string, tailorUrl?: string, botToken?: string, tailorConfig?: import('./types').AvatarConfig, agentMeta?: import('./types').AgentMeta | null) => Promise<void>
-  updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config' | 'agent_meta'>>) => Promise<void>
+  updateCanvasAgent: (id: string, updates: Partial<Pick<CanvasAgent, 'name' | 'tailorUrl' | 'bot_token' | 'tailor_config' | 'agent_meta' | 'role' | 'skills' | 'model'>>) => Promise<void>
   removeCanvasAgent: (id: string) => Promise<void>
   updateAgentPosition: (id: string, x: number, y: number) => Promise<void>
   subscribeToAgents: () => () => void
@@ -319,10 +328,23 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       isPrivate: true,  // Toujours true au démarrage — DB est source de vérité
       currentUser: null,
       showSettings: false,
+      showAdminPanel: false,
+      adminTab: 'team' as AdminTab,
+      setShowAdminPanel: (v) => set({ showAdminPanel: v }),
+      setAdminTab: (tab) => set({ adminTab: tab }),
+      // Backward compat — showOrgSettings/showSettings redirect to showAdminPanel
       showOrgSettings: false,
       orgSettingsTab: 'agents' as const,
-      setShowOrgSettings: (v) => set({ showOrgSettings: v }),
-      setOrgSettingsTab: (tab) => set({ orgSettingsTab: tab }),
+      setShowOrgSettings: (v) => set({ showAdminPanel: v, showOrgSettings: v }),
+      setOrgSettingsTab: (tab) => {
+        const map: Record<string, AdminTab> = {
+          agents: 'team',
+          workflow: 'workflow',
+          orgchart: 'orgchart',
+          collaboration: 'collaboration',
+        }
+        set({ orgSettingsTab: tab, adminTab: map[tab] ?? 'team' })
+      },
       activeBuildTasks: [],
       canvasAgents: [],
       lists: [],
@@ -706,7 +728,13 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         set({ currentUser: null, boardMembers: [] })
       },
 
-      setShowSettings: (v) => set({ showSettings: v }),
+      setShowSettings: (v) => {
+        if (v) {
+          set({ showSettings: v, showAdminPanel: true, adminTab: 'appsettings' })
+        } else {
+          set({ showSettings: false, showAdminPanel: false })
+        }
+      },
 
       fetchBoardMembers: async () => {
         const { data } = await supabase.from('board_members').select('*').order('invited_at', { ascending: true })
@@ -822,6 +850,9 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         if (updates.bot_token !== undefined) dbUpdates.bot_token = updates.bot_token ?? null
         if (updates.tailor_config !== undefined) dbUpdates.tailor_config = updates.tailor_config ?? null
         if (updates.agent_meta !== undefined) dbUpdates.agent_meta = updates.agent_meta ?? null
+        if (updates.role !== undefined) dbUpdates.role = updates.role ?? null
+        if (updates.skills !== undefined) dbUpdates.skills = updates.skills ?? []
+        if (updates.model !== undefined) dbUpdates.model = updates.model ?? null
         await supabase.from('canvas_agents').update(dbUpdates).eq('id', id)
         set(state => ({
           canvasAgents: state.canvasAgents.map(a => a.id === id ? { ...a, ...updates } : a)
