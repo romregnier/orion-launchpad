@@ -108,7 +108,7 @@ export interface WorkflowRule {
   name: string
   trigger_event: string
   trigger_agent: string | null
-  action_type: 'spawn' | 'notify' | 'deploy' | 'update_ticket'
+  action_type: 'spawn' | 'notify' | 'deploy' | 'update_ticket' | 'add_label' | 'send_summary'
   action_agent: string | null
   conditions: Record<string, unknown>
   project: string | null

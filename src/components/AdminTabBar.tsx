@@ -13,7 +13,7 @@ const ADMIN_TABS: Array<{
   { id: 'team',          label: 'Team',        emoji: '👥' },
   { id: 'permissions',   label: 'Permissions', emoji: '🔐' },
   { id: 'orgchart',      label: 'Org Chart',   emoji: '🌲' },
-  { id: 'workflow',      label: 'Workflow',    emoji: '🔀', disabled: true, comingSoon: true },
+  { id: 'workflow',      label: 'Workflow',    emoji: '🔀' },
   { id: 'appsettings',   label: 'App Settings',emoji: '⚙️' },
   { id: 'collaboration', label: 'Collab',      emoji: '🕸️', disabled: true, comingSoon: true },
 ]
