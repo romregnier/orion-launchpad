@@ -188,6 +188,11 @@ function projectToRow(p: Project): Omit<ProjectRow, 'added_at'> & { added_at: nu
 }
 
 interface LaunchpadStore {
+  // Org Settings
+  showOrgSettings: boolean
+  orgSettingsTab: 'agents' | 'workflow' | 'orgchart' | 'collaboration'
+  setShowOrgSettings: (v: boolean) => void
+  setOrgSettingsTab: (tab: 'agents' | 'workflow' | 'orgchart' | 'collaboration') => void
   projects: Project[]
   deletedProjects: Project[]
   deletedIds: string[]
@@ -314,6 +319,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       isPrivate: true,  // Toujours true au démarrage — DB est source de vérité
       currentUser: null,
       showSettings: false,
+      showOrgSettings: false,
+      orgSettingsTab: 'agents' as const,
+      setShowOrgSettings: (v) => set({ showOrgSettings: v }),
+      setOrgSettingsTab: (tab) => set({ orgSettingsTab: tab }),
       activeBuildTasks: [],
       canvasAgents: [],
       lists: [],

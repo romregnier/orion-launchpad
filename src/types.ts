@@ -92,4 +92,39 @@ export interface CanvasAgent {
   home_y?: number | null
   tailor_config?: AvatarConfig | null
   agent_meta?: AgentMeta | null
+  // Org Settings extensions
+  role?: string | null
+  skills?: string[] | null
+  model?: string | null
+  can_spawn?: string[] | null
+  can_be_spawned_by?: string[] | null
+  status?: 'online' | 'idle' | 'offline' | null
+  entity_type?: 'ai' | 'human' | null
+  telegram_chat_id?: string | null
+}
+
+export interface WorkflowRule {
+  id: string
+  name: string
+  trigger_event: string
+  trigger_agent: string | null
+  action_type: 'spawn' | 'notify' | 'deploy' | 'update_ticket'
+  action_agent: string | null
+  conditions: Record<string, unknown>
+  project: string | null
+  priority: number
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface OrgRelationship {
+  id: string
+  from_agent: string
+  to_agent: string
+  relationship_type: 'reports_to' | 'spawns' | 'collaborates' | 'reviews'
+  channel: 'telegram' | 'sessions_send' | 'file' | 'direct' | null
+  project: string | null
+  metadata: Record<string, unknown>
+  created_at: string
 }

@@ -12,6 +12,7 @@ import { ListWidgetCard } from './components/ListWidgetCard'
 import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
 import { SettingsPanel } from './components/SettingsPanel'
+import { OrgSettingsPanel } from './components/OrgSettingsPanel'
 import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusFAB } from './components/BuildStatusFAB'
 import { DecksPage } from './pages/DecksPage'
@@ -100,7 +101,7 @@ function LoadingTimeout() {
 }
 
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showOrgSettings, setShowOrgSettings } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -341,6 +342,32 @@ function LaunchpadCanvas() {
           {/* Avatars des users connectés */}
           <PresenceBar currentUser={currentUser} />
 
+          {/* Org Settings button — admin only */}
+          {currentUser?.role === 'admin' && (
+            <motion.button
+              onClick={() => setShowOrgSettings(true)}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8,
+                padding: '6px 10px',
+                cursor: 'pointer',
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 16,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontFamily: "'Poppins', sans-serif",
+                flexShrink: 0,
+              }}
+              title="Organisation Settings"
+            >
+              ⚙️
+            </motion.button>
+          )}
+
           {/* User connecté + déconnexion */}
           {isPrivate && currentUser && (
             <div
@@ -466,6 +493,9 @@ function LaunchpadCanvas() {
 
       <ChatPanel open={showGlobalChat} onClose={() => setShowGlobalChat(false)} />
       <SettingsPanel />
+      <AnimatePresence>
+        {showOrgSettings && <OrgSettingsPanel onClose={() => setShowOrgSettings(false)} />}
+      </AnimatePresence>
       {/* BuildStatusWidget déplacé dans le canvas div */}
 
       {/* Agent chat panel */}
