@@ -33,6 +33,8 @@ export function AdminTabBar() {
       position: 'sticky' as const,
       top: 65,
       zIndex: 9,
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
       flexShrink: 0,
     }}>
       {ADMIN_TABS.map(tab => {
