@@ -1,3 +1,13 @@
+export interface Capsule {
+  id: string
+  name: string
+  description?: string
+  color: string
+  emoji: string
+  owner_id?: string
+  created_at?: string
+}
+
 export interface Project {
   id: string
   url: string

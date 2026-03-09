@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Project, ListWidget, ListType, CanvasAgent, BoardMember } from './types'
+import type { Project, ListWidget, ListType, CanvasAgent, BoardMember, Capsule } from './types'
 import { supabase } from './lib/supabase'
 
 // ── Cache versionné — se vide automatiquement à chaque nouveau déploiement ──
@@ -290,6 +290,13 @@ interface LaunchpadStore {
   projectMetadata: Record<string, ProjectMeta>
   /** Fetch all project_metadata rows and store in projectMetadata */
   fetchProjectMetadata: () => Promise<void>
+
+  // ── Capsules ──────────────────────────────────────────────────────────────
+  activeCapsuleId: string | null
+  capsules: Capsule[]
+  currentCapsule: Capsule | null
+  switchCapsule: (id: string) => void
+  fetchCapsules: () => Promise<void>
 }
 
 interface ProjectMeta {
@@ -350,6 +357,21 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       lists: [],
       boardMembers: [],
       projectMetadata: {},
+
+      // ── Capsules initial state ──────────────────────────────────────────────
+      activeCapsuleId: (_stored as { activeCapsuleId?: string })?.activeCapsuleId ?? '00000000-0000-0000-0000-000000000001',
+      capsules: [],
+      get currentCapsule() {
+        const s = get()
+        return s.capsules.find(c => c.id === s.activeCapsuleId) ?? null
+      },
+      switchCapsule: (id: string) => {
+        set({ activeCapsuleId: id })
+      },
+      fetchCapsules: async () => {
+        const { data } = await supabase.from('capsules').select('*').order('created_at')
+        if (data) set({ capsules: data as Capsule[] })
+      },
 
       /**
        * Fetch all projects from Supabase and hydrate local state.
@@ -1311,6 +1333,7 @@ useLaunchpadStore.subscribe((state) => {
     groups: state.groups,
     boardName: state.boardName,
     isPrivate: state.isPrivate,
+    activeCapsuleId: state.activeCapsuleId,
   })
   if (toSave !== _lastSaved) {
     _lastSaved = toSave

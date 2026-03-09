@@ -29,6 +29,7 @@ import { AgentChatPanel } from './components/AgentChatPanel'
 import { BotModal } from './components/BotModal'
 import { GalaxyCanvas } from './components/GalaxyCanvas'
 import { NebulaOverlay } from './components/NebulaBackground'
+import { CapsuleSwitcher } from './components/CapsuleSwitcher'
 // WorkProgressBar supprimé — remplacé par BuildStatusWidget (bottom right)
 import type { CanvasAgent } from './types'
 
@@ -101,7 +102,7 @@ function LoadingTimeout() {
 }
 
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showAdminPanel, setShowAdminPanel } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showAdminPanel, setShowAdminPanel, fetchCapsules } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -141,6 +142,7 @@ function LaunchpadCanvas() {
     const unsubIdeas = subscribeToIdeas()
     const unsubLists = subscribeToLists()
     fetchProjectMetadata()
+    fetchCapsules()
     return () => { unsubProjects(); unsubAgents(); unsubPos(); unsubTasks(); unsubIdeas(); unsubLists() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -314,6 +316,7 @@ function LaunchpadCanvas() {
       >
         {/* Left: navigation links */}
         <div className="launchpad-navbar__left" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'all' }}>
+          <CapsuleSwitcher />
           <NavLink to="/" label="🌌 Canvas" />
           <NavLink to="/decks" label="🃏 Decks" />
           <NavLink to="/landings" label="🛬 Landings" />
