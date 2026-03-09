@@ -25,11 +25,7 @@ export function AdminTabBar() {
   return (
     <div style={{
       height: 48,
-      padding: '0 28px',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
-      display: 'flex',
-      gap: 0,
-      alignItems: 'flex-end',
       background: 'transparent',
       position: 'sticky' as const,
       top: 65,
@@ -38,6 +34,20 @@ export function AdminTabBar() {
       WebkitBackdropFilter: 'blur(12px)',
       flexShrink: 0,
     }}>
+      <div
+        className="admin-tab-bar"
+        style={{
+          display: 'flex',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          gap: 4,
+          padding: '0 4px',
+          height: '100%',
+          alignItems: 'flex-end',
+        }}
+      >
       {ADMIN_TABS.filter(tab => !tab.hidden).map(tab => {
         const isActive = adminTab === tab.id
         const isDisabled = tab.disabled
@@ -49,6 +59,7 @@ export function AdminTabBar() {
             style={{
               padding: '0 16px 12px',
               height: '100%',
+              flexShrink: 0,
               fontSize: 13,
               fontWeight: 600,
               fontFamily: "'Poppins', sans-serif",
@@ -112,6 +123,7 @@ export function AdminTabBar() {
           </button>
         )
       })}
+      </div>
     </div>
   )
 }

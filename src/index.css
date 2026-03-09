@@ -132,3 +132,23 @@ body {
 @media (max-width: 640px) {
   .launchpad-nav-links { display: none !important; }
 }
+
+/* Hide scrollbar for AdminTabBar on mobile */
+.admin-tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* CapsuleSwitcher — bottom-sheet on mobile */
+@media (max-width: 640px) {
+  .capsule-switcher-dropdown {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 16px) !important;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}

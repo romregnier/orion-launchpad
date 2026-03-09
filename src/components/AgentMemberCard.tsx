@@ -42,7 +42,8 @@ export function AgentMemberCard({ agentKey, name, role, emoji, lastTask, status 
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-      whileHover={{ scale: 1.02, transition: { type: 'spring', stiffness: 350, damping: 28 } }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.97 }}
       style={{
         background: '#2C272F',
         border: '1px solid rgba(255,255,255,0.08)',

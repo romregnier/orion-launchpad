@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { motion } from 'framer-motion'
 
 const NAV_ITEMS = [
   { to: '/',        emoji: '🌌', label: 'Canvas' },
@@ -24,23 +25,29 @@ export function MobileBottomNav() {
       {NAV_ITEMS.map(item => {
         const isActive = pathname === item.to || (item.to !== '/' && pathname.startsWith(item.to))
         return (
-          <Link
+          <motion.div
             key={item.to}
-            to={item.to}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: 2,
-              textDecoration: 'none', minHeight: 44,
-              color: isActive ? '#E11F7B' : 'rgba(255,255,255,0.4)',
-              transition: 'color 0.15s',
-              fontFamily: 'Poppins, sans-serif',
-            }}
+            style={{ flex: 1 }}
+            whileTap={{ scale: 0.88, opacity: 0.7 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           >
-            <span style={{ fontSize: isActive ? 22 : 20, transition: 'font-size 0.15s' }}>{item.emoji}</span>
-            <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, letterSpacing: '0.04em' }}>
-              {item.label}
-            </span>
-          </Link>
+            <Link
+              to={item.to}
+              style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 2,
+                textDecoration: 'none', minHeight: 44, height: '100%',
+                color: isActive ? '#E11F7B' : 'rgba(255,255,255,0.4)',
+                transition: 'color 0.15s',
+                fontFamily: 'Poppins, sans-serif',
+              }}
+            >
+              <span style={{ fontSize: isActive ? 22 : 20, transition: 'font-size 0.15s' }}>{item.emoji}</span>
+              <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, letterSpacing: '0.04em' }}>
+                {item.label}
+              </span>
+            </Link>
+          </motion.div>
         )
       })}
     </nav>

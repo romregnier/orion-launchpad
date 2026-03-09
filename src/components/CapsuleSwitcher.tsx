@@ -84,10 +84,11 @@ export function CapsuleSwitcher() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15 }}
+            className="capsule-switcher-dropdown"
             style={{
               position: 'absolute',
               top: 'calc(100% + 6px)',
-              left: 0,
+              right: 0,
               minWidth: 220,
               background: '#2C272F',
               border: '1px solid rgba(255,255,255,0.1)',
