@@ -1,3 +1,11 @@
+export const AGENT_META: Record<string, { emoji: string; color: string; glow: string }> = {
+  orion: { emoji: '🌟', color: '#E11F7B', glow: 'rgba(225,31,123,0.4)' },
+  nova:  { emoji: '✦',  color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+  aria:  { emoji: '🎨', color: '#8B5CF6', glow: 'rgba(139,92,246,0.4)' },
+  forge: { emoji: '🔧', color: '#F59E0B', glow: 'rgba(245,158,11,0.4)' },
+  rex:   { emoji: '🛡️', color: '#10B981', glow: 'rgba(16,185,129,0.4)' },
+}
+
 export interface Capsule {
   id: string
   name: string
@@ -67,6 +75,7 @@ export interface AvatarConfig {
   skinPattern?: string
   ambiance?: string
   bodyScale?: number
+  celShading?: boolean
 }
 
 export interface BoardMember {

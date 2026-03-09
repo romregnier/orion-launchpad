@@ -9,13 +9,14 @@ const ADMIN_TABS: Array<{
   emoji: string
   disabled?: boolean
   comingSoon?: boolean
+  hidden?: boolean
 }> = [
   { id: 'team',          label: 'Team',        emoji: '👥' },
   { id: 'permissions',   label: 'Permissions', emoji: '🔐' },
   { id: 'orgchart',      label: 'Org Chart',   emoji: '🌲' },
   { id: 'workflow',      label: 'Workflow',    emoji: '🔀' },
   { id: 'appsettings',   label: 'App Settings',emoji: '⚙️' },
-  { id: 'collaboration', label: 'Collab',      emoji: '🕸️', disabled: true, comingSoon: true },
+  { id: 'collaboration', label: 'Collab',      emoji: '🕸️', disabled: true, comingSoon: true, hidden: true },
 ]
 
 export function AdminTabBar() {
@@ -37,7 +38,7 @@ export function AdminTabBar() {
       WebkitBackdropFilter: 'blur(12px)',
       flexShrink: 0,
     }}>
-      {ADMIN_TABS.map(tab => {
+      {ADMIN_TABS.filter(tab => !tab.hidden).map(tab => {
         const isActive = adminTab === tab.id
         const isDisabled = tab.disabled
 

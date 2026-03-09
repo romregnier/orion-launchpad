@@ -30,6 +30,7 @@ import { BotModal } from './components/BotModal'
 import { GalaxyCanvas } from './components/GalaxyCanvas'
 import { NebulaOverlay } from './components/NebulaBackground'
 import { CapsuleSwitcher } from './components/CapsuleSwitcher'
+import { AppSidebar } from './components/AppSidebar'
 // WorkProgressBar supprimé — remplacé par BuildStatusWidget (bottom right)
 import type { CanvasAgent } from './types'
 
@@ -111,6 +112,7 @@ function LaunchpadCanvas() {
   const [showAdd, setShowAdd] = useState(false)
   const [showAddList, setShowAddList] = useState(false)
   const [showGlobalChat, setShowGlobalChat] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(true)
   const [chatAgent, setChatAgent] = useState<CanvasAgent | null>(null)
   const [showBotModal, setShowBotModal] = useState(false)
   const [editingAgent, setEditingAgent] = useState<CanvasAgent | null>(null)
@@ -128,8 +130,8 @@ function LaunchpadCanvas() {
     if (remoteLoaded && !hasAutoFitted.current) {
       hasAutoFitted.current = true
       // Offset centré sur les projets (qui sont à y≈60-350), assez bas pour voir les agents (y≈520)
-      setOffset({ x: 60, y: 20 })
-      setScale(0.85)
+      setOffset({ x: 40, y: 10 })
+      setScale(0.75)
     }
   }, [remoteLoaded])
 
@@ -234,7 +236,7 @@ function LaunchpadCanvas() {
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', touchAction: 'none' }}
+      style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', touchAction: 'none', paddingLeft: showSidebar ? 220 : 0, boxSizing: 'border-box', transition: 'padding-left 0.2s ease' }}
       data-projects={projects.length}
       data-agents={canvasAgents.length}
       onMouseDown={onMouseDown}
@@ -262,7 +264,7 @@ function LaunchpadCanvas() {
         {canvasAgents.map(agent => (
           <CanvasAgentAvatar
             key={agent.id} agent={agent} canvasScale={scale}
-            onChat={currentUser?.role === 'admin' ? setChatAgent : undefined}
+            onChat={currentUser?.role !== 'viewer' ? setChatAgent : undefined}
             onEdit={a => { setEditingAgent(a); setShowBotModal(true) }}
           />
         ))}
@@ -299,12 +301,17 @@ function LaunchpadCanvas() {
         onChat={() => setShowGlobalChat(v => !v)}
       />
 
+      {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
+      {showSidebar && <AppSidebar />}
+
       {/* ── Top navbar ───────────────────────────────────────────────────────── */}
       <header
         className="launchpad-navbar"
         style={{
           position: 'fixed',
-          top: 0, left: 0, right: 0,
+          top: 0,
+          left: showSidebar ? 220 : 0,
+          right: 0,
           height: 52,
           display: 'flex',
           alignItems: 'center',
@@ -312,14 +319,37 @@ function LaunchpadCanvas() {
           padding: '0 16px',
           zIndex: 35,
           pointerEvents: 'none', // let canvas clicks pass through
+          transition: 'left 0.2s ease',
         }}
       >
-        {/* Left: navigation links */}
+        {/* Left: hamburger + navigation links */}
         <div className="launchpad-navbar__left" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'all' }}>
-          <CapsuleSwitcher />
-          <NavLink to="/" label="🌌 Canvas" />
-          <NavLink to="/decks" label="🃏 Decks" />
-          <NavLink to="/landings" label="🛬 Landings" />
+          {/* Sidebar toggle */}
+          <button
+            onClick={() => setShowSidebar(v => !v)}
+            title={showSidebar ? 'Masquer la sidebar' : 'Afficher la sidebar'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px 6px',
+              borderRadius: 6,
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: 18,
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'color 0.12s',
+              flexShrink: 0,
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#fff' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)' }}
+          >
+            ☰
+          </button>
+          {!showSidebar && <CapsuleSwitcher />}
+          {!showSidebar && <NavLink to="/" label="🌌 Canvas" />}
+          {!showSidebar && <NavLink to="/decks" label="🃏 Decks" />}
+          {!showSidebar && <NavLink to="/landings" label="🛬 Landings" />}
         </div>
 
         {/* Center: board name */}

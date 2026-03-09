@@ -371,6 +371,11 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       fetchCapsules: async () => {
         const { data } = await supabase.from('capsules').select('*').order('created_at')
         if (data) set({ capsules: data as Capsule[] })
+        // NOTE TK-0204: Les tables `projects`, `lists`, `ideas` n'ont pas de colonne `capsule_id`.
+        // Le filtre DB par capsule est reporté jusqu'à la migration DB correspondante.
+        // Le capsule switching fonctionne au niveau UI uniquement (store.activeCapsuleId).
+        // Pour activer le filtre, ajouter .eq('capsule_id', get().activeCapsuleId) dans
+        // fetchProjects(), fetchLists(), fetchIdeas() une fois la migration DB effectuée.
       },
 
       /**

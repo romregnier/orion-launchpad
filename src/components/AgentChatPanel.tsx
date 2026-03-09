@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { useLaunchpadStore } from '../store'
 import type { CanvasAgent } from '../types'
+import { AGENT_META } from '../types'
+import { TypingIndicator } from './TypingIndicator'
+import { formatMessageTime } from '../utils/formatMessageTime'
 
 interface ChatMessage {
   id: string
@@ -12,36 +16,36 @@ interface ChatMessage {
   user_id?: string
 }
 
-const AGENT_COLORS: Record<string, string> = {
-  orion: '#E11F7B',
-  nova:  '#8B5CF6',
-  aria:  '#06B6D4',
-  forge: '#F59E0B',
-  rex:   '#10B981',
-}
 
-const AGENT_EMOJI: Record<string, string> = {
-  orion: '🌟',
-  nova:  '✦',
-  aria:  '🎨',
-  forge: '🔧',
-  rex:   '🔍',
-}
 
 interface Props {
   agent: CanvasAgent
   currentUser: string
   onClose: () => void
+  isTyping?: boolean
 }
 
-export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
+export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [isWaiting, setIsWaiting] = useState(false)
+  const [, forceUpdate] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const { activeBuildTasks } = useLaunchpadStore()
   const agentKey = (agent as CanvasAgent & { agent_key?: string }).agent_key ?? agent.name.toLowerCase()
-  const color = AGENT_COLORS[agentKey] ?? '#E11F7B'
-  const emoji = AGENT_EMOJI[agentKey] ?? '🤖'
+  const color = AGENT_META[agentKey]?.color ?? '#E11F7B'
+  const emoji = AGENT_META[agentKey]?.emoji ?? '🤖'
+  const isActive = activeBuildTasks.some(t => t.agent_key === agentKey && t.status === 'running')
+
+  // Live-update timestamps every 60s
+  useEffect(() => {
+    const id = setInterval(() => forceUpdate(n => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Typing = external override OR internal waiting
+  const showTyping = isTyping ?? isWaiting
 
   useEffect(() => {
     // Charger uniquement les messages de cette conversation (agent + user)
@@ -64,6 +68,7 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
         const msg = payload.new as ChatMessage
         if (msg.user_id === currentUser || msg.role === 'agent') {
           setMessages(prev => [...prev, msg])
+          if (msg.role === 'agent') setIsWaiting(false)
         }
       })
       .subscribe()
@@ -89,6 +94,7 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
       user_id: currentUser,
       read_by_agent: false,
     })
+    setIsWaiting(true)
 
     // Relayer via Telegram Bot API pour tous les agents (y compris Orion)
     const agentData = agent as CanvasAgent & { bot_token?: string; agent_key?: string }
@@ -130,7 +136,18 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
         <span style={{ fontSize: 18 }}>{emoji}</span>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{agent.name}</div>
-          <div style={{ fontSize: 10, color: color, fontWeight: 600 }}>{agentKey === 'orion' ? 'Agent IA principal' : `Agent ${agentKey}`}</div>
+          <div style={{ fontSize: 10, color, fontWeight: 600 }}>{agentKey === 'orion' ? 'Agent IA principal' : `Agent ${agentKey}`}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginRight: 4 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: isActive ? '#4ade80' : 'rgba(255,255,255,0.2)',
+            boxShadow: isActive ? '0 0 6px rgba(74,222,128,0.6)' : 'none',
+            flexShrink: 0,
+          }} />
+          <span style={{ fontSize: 10, color: isActive ? '#4ade80' : 'rgba(255,255,255,0.3)', fontFamily: 'Poppins, sans-serif' }}>
+            {isActive ? 'actif' : 'disponible'}
+          </span>
         </div>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
       </div>
@@ -145,6 +162,7 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
         )}
         {messages.map(msg => {
           const isUser = msg.role === 'user'
+          const { relative, absolute } = formatMessageTime(msg.created_at)
           return (
             <div key={msg.id} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
               <div style={{
@@ -159,10 +177,21 @@ export function AgentChatPanel({ agent, currentUser, onClose }: Props) {
               }}>
                 {!isUser && <div style={{ fontSize: 10, color, fontWeight: 700, marginBottom: 4 }}>{agent.name}</div>}
                 <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.message}</div>
+                <span
+                  title={absolute}
+                  style={{ fontSize: 10, opacity: 0.4, marginTop: 3, display: 'block', textAlign: isUser ? 'right' : 'left', cursor: 'default', userSelect: 'none' }}
+                >
+                  {relative}
+                </span>
               </div>
             </div>
           )
         })}
+        <TypingIndicator
+          agentName={agent.name}
+          color={color}
+          visible={showTyping}
+        />
         <div ref={bottomRef} />
       </div>
 

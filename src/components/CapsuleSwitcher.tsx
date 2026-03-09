@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
-import { supabase } from '../lib/supabase'
+import { CreateCapsuleModal } from './CreateCapsuleModal'
 
 export function CapsuleSwitcher() {
   const { activeCapsuleId, capsules, switchCapsule, fetchCapsules } = useLaunchpadStore()
   const [open, setOpen] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const current = capsules.find(c => c.id === activeCapsuleId)
 
@@ -29,24 +30,13 @@ export function CapsuleSwitcher() {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const handleCreate = async () => {
-    const name = prompt('Nom de la nouvelle capsule :')
-    if (!name?.trim()) return
-    const emoji = prompt('Emoji (ex: 🚀) :') ?? '🌟'
-    const { data, error } = await supabase.from('capsules').insert({
-      name: name.trim(),
-      emoji: emoji.trim() || '🌟',
-      color: '#E11F7B',
-      owner_id: 'user',
-    }).select().single()
-    if (!error && data) {
-      await fetchCapsules()
-      switchCapsule(data.id)
-    }
+  const handleCreate = () => {
     setOpen(false)
+    setShowCreate(true)
   }
 
   return (
+    <>
     <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
       <button
         onClick={() => setOpen(o => !o)}
@@ -183,5 +173,7 @@ export function CapsuleSwitcher() {
         )}
       </AnimatePresence>
     </div>
+    <CreateCapsuleModal open={showCreate} onClose={() => setShowCreate(false)} />
+    </>
   )
 }

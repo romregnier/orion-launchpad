@@ -13,6 +13,37 @@ const AGENT_META: Record<string, { emoji: string; color: string; glow: string }>
   rex:   { emoji: '🛡️', color: '#10B981', glow: 'rgba(16,185,129,0.4)' },
 }
 
+// ── BODY_CONFIG — positions visage par shape (identique Avatar3D.tsx) ────────
+interface BodyPositionConfig {
+  faceZ: number
+  eyeY: number
+  eyeSpread: number
+  blushSpread: number
+  mouthY: number
+}
+
+const BODY_CONFIG: Record<string, BodyPositionConfig> = {
+  blob:    { faceZ: 0.82, eyeY: 0.12, eyeSpread: 0.22, blushSpread: 0.52, mouthY: -0.22 },
+  heart:   { faceZ: 0.70, eyeY: 0.10, eyeSpread: 0.20, blushSpread: 0.45, mouthY: -0.20 },
+  star:    { faceZ: 0.62, eyeY: 0.08, eyeSpread: 0.18, blushSpread: 0.40, mouthY: -0.16 },
+  ghost:   { faceZ: 0.78, eyeY: 0.22, eyeSpread: 0.22, blushSpread: 0.50, mouthY: -0.15 },
+  capsule: { faceZ: 0.46, eyeY: 0.12, eyeSpread: 0.16, blushSpread: 0.32, mouthY: -0.16 },
+  organic: { faceZ: 0.82, eyeY: 0.12, eyeSpread: 0.22, blushSpread: 0.52, mouthY: -0.22 },
+}
+function getBc(shape: string): BodyPositionConfig {
+  return BODY_CONFIG[shape] ?? BODY_CONFIG.blob
+}
+
+// ── createGradientMap — pour MeshToonMaterial (cel-shading) ─────────────────
+function createGradientMap(THREE: typeof import('three')): import('three').DataTexture {
+  const colors = new Uint8Array([0, 128, 255])
+  const tex = new THREE.DataTexture(colors, 3, 1, THREE.RedFormat)
+  tex.magFilter = THREE.NearestFilter
+  tex.minFilter = THREE.NearestFilter
+  tex.needsUpdate = true
+  return tex
+}
+
 /**
  * TailorCanvas — Avatar Three.js animé 112×112px.
  * Géométrie exacte portée depuis Avatar3D.tsx (React Three Fiber → vanilla Three.js).
@@ -82,15 +113,38 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
 
         // Matériaux réutilisables
         const isGlow = tailorConfig.skinPattern === 'glow'
+        const isHolographic = tailorConfig.skinPattern === 'holographic'
+        const isMetal = tailorConfig.skinPattern === 'metal'
+        const celShading = !!(tailorConfig as AvatarConfig & { celShading?: boolean }).celShading
+        const gradientMap = celShading ? createGradientMap(THREE) : null
+
         // Emissive de base sur le corps pour compenser l'absence de Bloom (vs The Tailor)
         // Sans Bloom, le corps paraît sombre. L'emissive ajoute un auto-éclairage subtil.
-        const bodyMat = new THREE.MeshStandardMaterial({
-          color: bodyColor,
-          emissive: bodyColor,
-          emissiveIntensity: isGlow ? 0.55 : 0.25,
-          roughness: 0.5,
-          metalness: 0.05,
-        })
+        const bodyMat = isHolographic
+          ? new THREE.MeshStandardMaterial({
+              color: bodyColor,
+              emissive: bodyColor,
+              emissiveIntensity: 0.8,
+              roughness: 0.1,
+              metalness: 0.6,
+              transparent: true,
+              opacity: 0.85,
+            })
+          : isMetal
+          ? new THREE.MeshStandardMaterial({
+              color: bodyColor,
+              roughness: 0.05,
+              metalness: 0.9,
+            })
+          : celShading
+          ? new THREE.MeshToonMaterial({ color: bodyColor, gradientMap: gradientMap! })
+          : new THREE.MeshStandardMaterial({
+              color: bodyColor,
+              emissive: bodyColor,
+              emissiveIntensity: isGlow ? 0.55 : 0.25,
+              roughness: 0.5,
+              metalness: 0.05,
+            })
         const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.1, metalness: 0.1 })
         const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.2 })
         const darkOutlineMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.5, metalness: 0 })
@@ -113,6 +167,7 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
 
         // ── Corps principal — forme selon bodyShape (copie exacte Avatar3D) ──
         const bs = tailorConfig.bodyShape ?? 'blob'
+        const bc = getBc(bs)
 
         if (bs === 'heart') {
           const heartMat = bodyMat
@@ -145,11 +200,52 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
             nub.position.set(gx, -0.85, 0)
             meshGroup.add(nub)
           })
+        } else if (bs === 'capsule') {
+          // Corps cylindrique avec hémisphères (capsule médicale)
+          const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 1.1, 32), bodyMat)
+          const topSphere = new THREE.Mesh(new THREE.SphereGeometry(0.72, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), bodyMat)
+          const botSphere = new THREE.Mesh(new THREE.SphereGeometry(0.72, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), bodyMat)
+          topSphere.position.y = 0.55; botSphere.position.y = -0.55
+          meshGroup.add(cyl, topSphere, botSphere)
+        } else if (bs === 'organic') {
+          // Seeded random vertex displacement (identique Avatar3D TK-0016)
+          const geo = new THREE.SphereGeometry(1, 32, 32)
+          const pos = geo.attributes.position
+          let seed = 42
+          const rand = () => {
+            seed = (seed * 16807 + 0) % 2147483647
+            return seed / 2147483647
+          }
+          for (let i = 0; i < pos.count; i++) {
+            const noise = (rand() - 0.5) * 0.28
+            pos.setX(i, pos.getX(i) * (1 + noise))
+            pos.setY(i, pos.getY(i) * (1 + noise))
+            pos.setZ(i, pos.getZ(i) * (1 + noise))
+          }
+          pos.needsUpdate = true
+          geo.computeVertexNormals()
+          const organicMesh = new THREE.Mesh(geo, bodyMat)
+          organicMesh.scale.set(1.0, 0.92, 0.88)
+          meshGroup.add(organicMesh)
         } else {
           // blob (défaut) — scale [1.0, 0.92, 0.88] exactement comme Avatar3D
           const body = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), bodyMat)
           body.scale.set(1.0, 0.92, 0.88)
           meshGroup.add(body)
+        }
+
+        // ── Gradient skin pattern ──
+        if (tailorConfig.skinPattern === 'gradient' && !celShading && !isHolographic && !isMetal) {
+          const canvas2d = document.createElement('canvas')
+          canvas2d.width = 1; canvas2d.height = 256
+          const ctx2d = canvas2d.getContext('2d')!
+          const grad = ctx2d.createLinearGradient(0, 0, 0, 256)
+          grad.addColorStop(0, colorCss)
+          grad.addColorStop(1, new THREE.Color(bodyColor).offsetHSL(0.1, 0.1, -0.2).getStyle())
+          ctx2d.fillStyle = grad; ctx2d.fillRect(0, 0, 1, 256)
+          const gradTex = new THREE.CanvasTexture(canvas2d)
+          ;(bodyMat as import('three').MeshStandardMaterial).map = gradTex
+          ;(bodyMat as import('three').MeshStandardMaterial).needsUpdate = true
         }
 
         // ── KirbyEye — copie exacte de la fonction KirbyEye dans Avatar3D.tsx ──
@@ -188,9 +284,9 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
           return eyeGroup
         }
 
-        // Positions KirbyEye identiques à Avatar3D : [-0.22, 0.12, 0.82] et [0.22, 0.12, 0.82]
-        meshGroup.add(buildKirbyEye([-0.22, 0.12, 0.82]))
-        meshGroup.add(buildKirbyEye([0.22, 0.12, 0.82]))
+        // Positions KirbyEye via BODY_CONFIG par shape (DM-016)
+        meshGroup.add(buildKirbyEye([-bc.eyeSpread, bc.eyeY, bc.faceZ]))
+        meshGroup.add(buildKirbyEye([bc.eyeSpread, bc.eyeY, bc.faceZ]))
 
         // ── Blush — CircleGeometry (copie Avatar3D Blush 'soft') ──
         if (tailorConfig.blush && tailorConfig.blush !== 'none') {
@@ -198,10 +294,10 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
             color: 0xff9999, transparent: true, opacity: 0.55, roughness: 1, metalness: 0,
             side: THREE.DoubleSide, depthWrite: false,
           })
-          // Positions exactes Avatar3D : ±0.52 (blush soft) — avatar3D blush at [±0.52, -0.05, 0.88]
-          ;[-0.52, 0.52].forEach((bx) => {
+          // Positions blush via BODY_CONFIG par shape (DM-016)
+          ;[-bc.blushSpread, bc.blushSpread].forEach((bx) => {
             const blush = new THREE.Mesh(new THREE.CircleGeometry(0.13, 16), blushMat)
-            blush.position.set(bx, -0.05, 0.88)
+            blush.position.set(bx, -0.05, bc.faceZ + 0.06)
             blush.rotation.x = -0.2
             meshGroup.add(blush)
           })
@@ -211,23 +307,23 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
         const mouthStyle = tailorConfig.mouth ?? 'smile'
         if (mouthStyle === 'open') {
           const m = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), darkOutlineMat)
-          m.position.set(0, -0.22, 0.9)
+          m.position.set(0, bc.mouthY, bc.faceZ + 0.08)
           meshGroup.add(m)
         } else if (mouthStyle === 'cool') {
           const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.03), darkOutlineMat)
-          m.position.set(0, -0.22, 0.9)
+          m.position.set(0, bc.mouthY, bc.faceZ + 0.08)
           meshGroup.add(m)
         } else if (mouthStyle === 'tongue') {
           const arc = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 8, 16, Math.PI), darkOutlineMat)
-          arc.position.set(0, -0.22, 0.9); arc.rotation.z = Math.PI
+          arc.position.set(0, bc.mouthY, bc.faceZ + 0.08); arc.rotation.z = Math.PI
           const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12),
             new THREE.MeshStandardMaterial({ color: 0xff6b9d, roughness: 0.8, metalness: 0 }))
-          tongue.position.set(0, -0.31, 0.88)
+          tongue.position.set(0, bc.mouthY - 0.09, bc.faceZ + 0.06)
           meshGroup.add(arc, tongue)
         } else {
           // smile (default) — torus arc, rotation PI comme Avatar3D
           const m = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.025, 8, 20, Math.PI), darkOutlineMat)
-          m.position.set(0, -0.22, 0.9); m.rotation.z = Math.PI
+          m.position.set(0, bc.mouthY, bc.faceZ + 0.08); m.rotation.z = Math.PI
           meshGroup.add(m)
         }
 
@@ -374,6 +470,10 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
             meshGroup.rotation.z = Math.sin(t * 3) * 0.15
           } else {
             meshGroup.rotation.y += 0.005
+          }
+          // Holographic shimmer — pulsation emissiveIntensity (DM-018)
+          if (isHolographic && bodyMat instanceof THREE.MeshStandardMaterial) {
+            bodyMat.emissiveIntensity = 0.6 + Math.sin(Date.now() * 0.002) * 0.3
           }
           renderer.render(scene, camera)
         }

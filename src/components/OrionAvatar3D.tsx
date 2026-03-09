@@ -54,6 +54,15 @@ function getOrionConfig(): AvatarConfig {
   } catch { return DEFAULT_CONFIG }
 }
 
+// ── Eye positions by body shape ───────────────────────────────────────────────
+const EYE_POSITIONS: Record<BodyShape, { y: number; z: number; spread: number; highlightDY: number; highlightDZ: number; highlightDX: number }> = {
+  blob:  { y: 0.12, z: 0.48, spread: 0.22, highlightDY: 0.05, highlightDZ: 0.14, highlightDX: 0.05 },
+  heart: { y: 0.28, z: 0.36, spread: 0.20, highlightDY: 0.05, highlightDZ: 0.12, highlightDX: 0.05 },
+  star:  { y: 0.08, z: 0.44, spread: 0.18, highlightDY: 0.05, highlightDZ: 0.14, highlightDX: 0.05 },
+  ghost: { y: 0.22, z: 0.50, spread: 0.22, highlightDY: 0.05, highlightDZ: 0.12, highlightDX: 0.05 },
+}
+const DEFAULT_EYE = EYE_POSITIONS.blob
+
 // ── Eye color map ─────────────────────────────────────────────────────────────
 const eyeColorMap: Record<EyeColor, string> = {
   blue: '#4FC3F7',
@@ -189,35 +198,28 @@ function AvatarScene({ config }: { config: AvatarConfig }) {
           </>
         )}
 
-        {/* Kirby Eyes — left */}
-        <mesh position={[-0.22, 0.12, 0.48]}>
-          <sphereGeometry args={[0.18, 32, 32]} />
-          <meshStandardMaterial color="#1A1A2E" />
-        </mesh>
-        {/* Eye highlight left */}
-        <mesh position={[-0.17, 0.17, 0.62]}>
-          <sphereGeometry args={[0.06, 16, 16]} />
-          <meshStandardMaterial
-            color={eyeColorMap[config.eyeColor]}
-            emissive={eyeColorMap[config.eyeColor]}
-            emissiveIntensity={2.0}
-          />
-        </mesh>
-
-        {/* Kirby Eyes — right */}
-        <mesh position={[0.22, 0.12, 0.48]}>
-          <sphereGeometry args={[0.18, 32, 32]} />
-          <meshStandardMaterial color="#1A1A2E" />
-        </mesh>
-        {/* Eye highlight right */}
-        <mesh position={[0.27, 0.17, 0.62]}>
-          <sphereGeometry args={[0.06, 16, 16]} />
-          <meshStandardMaterial
-            color={eyeColorMap[config.eyeColor]}
-            emissive={eyeColorMap[config.eyeColor]}
-            emissiveIntensity={2.0}
-          />
-        </mesh>
+        {/* Kirby Eyes — positions per body shape */}
+        {(() => {
+          const ep = EYE_POSITIONS[config.bodyShape] ?? DEFAULT_EYE
+          return ([-1, 1] as const).map((side) => (
+            <group key={side} position={[side * ep.spread, ep.y, ep.z]}>
+              {/* Outer — sphere noire */}
+              <mesh scale={[1.0, 1.15, 1.0]}>
+                <sphereGeometry args={[0.18, 24, 24]} />
+                <meshStandardMaterial color="#1A1A2E" />
+              </mesh>
+              {/* Highlight — glow coloré */}
+              <mesh position={[side * ep.highlightDX, ep.highlightDY, ep.highlightDZ]}>
+                <sphereGeometry args={[0.06, 16, 16]} />
+                <meshStandardMaterial
+                  color={eyeColorMap[config.eyeColor]}
+                  emissive={eyeColorMap[config.eyeColor]}
+                  emissiveIntensity={2.0}
+                />
+              </mesh>
+            </group>
+          ))
+        })()}
 
         {/* Blush (soft) */}
         {config.blush === 'soft' && (

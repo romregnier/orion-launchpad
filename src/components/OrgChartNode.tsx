@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion'
 import type { CanvasAgent } from '../types'
+import { AGENT_META } from '../types'
 
 const AGENT_COLORS: Record<string, string> = {
   orion: '#E11F7B',
-  nova: '#7C3AED',
-  aria: '#0EA5E9',
+  nova: '#8B5CF6',
+  aria: '#8B5CF6',
   forge: '#F59E0B',
   rex: '#10B981',
   romain: '#F59E0B',
@@ -24,6 +25,8 @@ export function OrgChartNode({ agent, x, y, level, nodeIndex = 0, highlighted, o
   const color = AGENT_COLORS[agent.agent_key ?? ''] ?? '#6B7280'
   const isHuman = agent.entity_type === 'human'
   const initials = agent.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const agentKey = agent.agent_key ?? agent.name.toLowerCase()
+  const nodeEmoji = AGENT_META[agentKey]?.emoji ?? (isHuman ? '👤' : initials)
 
   const NODE_W = 120
   const NODE_H = 80
@@ -68,18 +71,18 @@ export function OrgChartNode({ agent, x, y, level, nodeIndex = 0, highlighted, o
         strokeWidth={1.5}
       />
 
-      {/* Avatar text (initials or emoji) */}
+      {/* Avatar text (emoji) */}
       <text
         x={x}
         y={y - 10}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={isHuman ? 14 : 13}
+        fontSize={14}
         fontWeight="700"
         fill="#fff"
         style={{ userSelect: 'none', pointerEvents: 'none' }}
       >
-        {isHuman ? '👤' : initials}
+        {nodeEmoji}
       </text>
 
       {/* Name */}
