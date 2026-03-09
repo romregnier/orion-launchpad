@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 
@@ -21,6 +22,22 @@ const ADMIN_TABS: Array<{
 
 export function AdminTabBar() {
   const { adminTab, setAdminTab } = useLaunchpadStore()
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
+  const handleTabClick = (tabId: AdminTab) => {
+    setAdminTab(tabId)
+    // Scroll the active tab into view on mobile
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-tab="${tabId}"]`) as HTMLElement | null
+      el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    })
+  }
 
   return (
     <div style={{
@@ -53,11 +70,13 @@ export function AdminTabBar() {
         const isDisabled = tab.disabled
 
         return (
-          <button
+          <motion.button
             key={tab.id}
-            onClick={() => !isDisabled && setAdminTab(tab.id)}
+            data-tab={tab.id}
+            onClick={() => !isDisabled && handleTabClick(tab.id)}
+            whileTap={!isDisabled ? { scale: 0.94 } : undefined}
             style={{
-              padding: '0 16px 12px',
+              padding: isMobile ? '0 10px 12px' : '0 16px 12px',
               height: '100%',
               flexShrink: 0,
               fontSize: 13,
@@ -78,6 +97,7 @@ export function AdminTabBar() {
               alignItems: 'flex-end',
               gap: 5,
               opacity: isDisabled ? 0.35 : 1,
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             {/* Emoji — only on active tab */}
@@ -120,7 +140,7 @@ export function AdminTabBar() {
                 transition={{ type: 'spring', stiffness: 350, damping: 28 }}
               />
             )}
-          </button>
+          </motion.button>
         )
       })}
       </div>

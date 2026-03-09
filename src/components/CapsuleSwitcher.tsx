@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { CreateCapsuleModal } from './CreateCapsuleModal'
@@ -7,6 +8,7 @@ export function CapsuleSwitcher() {
   const { activeCapsuleId, capsules, switchCapsule, fetchCapsules } = useLaunchpadStore()
   const [open, setOpen] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
   const ref = useRef<HTMLDivElement>(null)
   const current = capsules.find(c => c.id === activeCapsuleId)
 
@@ -18,9 +20,16 @@ export function CapsuleSwitcher() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Close dropdown on outside click
+  // Detect mobile
   useEffect(() => {
-    if (!open) return
+    const handler = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
+  // Close dropdown on outside click (desktop only)
+  useEffect(() => {
+    if (!open || isMobile) return
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
@@ -28,18 +37,95 @@ export function CapsuleSwitcher() {
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  }, [open, isMobile])
 
   const handleCreate = () => {
     setOpen(false)
     setShowCreate(true)
   }
 
+  // Bottom-sheet content (shared between mobile sheet and desktop dropdown)
+  const capsuleItems = (
+    <>
+      {capsules.map(c => (
+        <motion.button
+          key={c.id}
+          onClick={() => { switchCapsule(c.id); setOpen(false) }}
+          whileTap={{ scale: 0.97 }}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            padding: isMobile ? '12px 20px' : '8px 10px',
+            borderRadius: isMobile ? 0 : 8,
+            cursor: 'pointer',
+            color: '#fff',
+            fontSize: isMobile ? 15 : 13,
+            fontFamily: "'Poppins', sans-serif",
+            background: c.id === activeCapsuleId ? 'rgba(225,31,123,0.15)' : 'transparent',
+            border: 'none',
+            textAlign: 'left' as const,
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {isMobile && c.id === activeCapsuleId && (
+              <span style={{ color: '#E11F7B' }}>●</span>
+            )}
+            <span style={{ fontSize: 16 }}>{c.emoji}</span>
+            <span>{c.name}</span>
+          </span>
+          {!isMobile && c.id === activeCapsuleId && (
+            <span style={{
+              background: '#E11F7B',
+              color: '#fff',
+              fontSize: 10,
+              fontWeight: 700,
+              padding: '1px 7px',
+              borderRadius: 999,
+              letterSpacing: '0.05em',
+            }}>✓</span>
+          )}
+        </motion.button>
+      ))}
+
+      {!isMobile && <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px 4px' }} />}
+
+      <motion.button
+        onClick={handleCreate}
+        whileTap={{ scale: 0.97 }}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: isMobile ? '12px 20px' : '8px 10px',
+          borderRadius: isMobile ? 0 : 8,
+          cursor: 'pointer',
+          color: isMobile ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+          fontSize: isMobile ? 14 : 13,
+          fontFamily: "'Poppins', sans-serif",
+          background: 'transparent',
+          border: 'none',
+          textAlign: 'left' as const,
+          WebkitTapHighlightColor: 'transparent',
+        }}
+      >
+        <span style={{ fontSize: 18 }}>＋</span>
+        <span>Nouvelle capsule</span>
+      </motion.button>
+    </>
+  )
+
   return (
     <>
     <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button
+      <motion.button
         onClick={() => setOpen(o => !o)}
+        whileHover={{ opacity: 0.85 }}
+        whileTap={{ scale: 0.96 }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -53,7 +139,8 @@ export function CapsuleSwitcher() {
           fontWeight: 500,
           cursor: 'pointer',
           whiteSpace: 'nowrap',
-          transition: 'background 0.15s, border-color 0.15s',
+          fontFamily: "'Poppins', sans-serif",
+          WebkitTapHighlightColor: 'transparent',
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLButtonElement).style.background = 'rgba(225,31,123,0.22)'
@@ -75,105 +162,93 @@ export function CapsuleSwitcher() {
         >
           <path d="M1 1L5 5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </button>
+      </motion.button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ duration: 0.15 }}
-            className="capsule-switcher-dropdown"
-            style={{
-              position: 'absolute',
-              top: 'calc(100% + 6px)',
-              right: 0,
-              minWidth: 220,
-              background: '#2C272F',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 12,
-              zIndex: 200,
-              padding: '6px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            }}
-          >
-            {capsules.map(c => (
-              <div
-                key={c.id}
-                onClick={() => { switchCapsule(c.id); setOpen(false) }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  color: '#fff',
-                  fontSize: 13,
-                  background: c.id === activeCapsuleId ? 'rgba(225,31,123,0.15)' : 'transparent',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => {
-                  if (c.id !== activeCapsuleId) {
-                    (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)'
-                  }
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLDivElement).style.background =
-                    c.id === activeCapsuleId ? 'rgba(225,31,123,0.15)' : 'transparent'
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>{c.emoji}</span>
-                  <span>{c.name}</span>
-                </span>
-                {c.id === activeCapsuleId && (
-                  <span style={{
-                    background: '#E11F7B',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '1px 7px',
-                    borderRadius: 999,
-                    letterSpacing: '0.05em',
-                  }}>✓</span>
-                )}
-              </div>
-            ))}
-
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px 4px' }} />
-
-            <div
-              onClick={handleCreate}
+      {/* Desktop dropdown */}
+      {!isMobile && (
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="capsule-switcher-dropdown"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 10px',
-                borderRadius: 8,
-                cursor: 'pointer',
-                color: 'rgba(255,255,255,0.5)',
-                fontSize: 13,
-                transition: 'background 0.1s, color 0.1s',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)'
-                ;(e.currentTarget as HTMLDivElement).style.color = '#fff'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.background = 'transparent'
-                ;(e.currentTarget as HTMLDivElement).style.color = 'rgba(255,255,255,0.5)'
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                minWidth: 220,
+                background: '#2C272F',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 12,
+                zIndex: 200,
+                padding: '6px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
               }}
             >
-              <span style={{ fontSize: 16 }}>＋</span>
-              <span>Nouvelle capsule</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {capsuleItems}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
+
+    {/* Mobile bottom-sheet via portal */}
+    {isMobile && createPortal(
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 9990,
+                background: 'rgba(0,0,0,0.55)',
+              }}
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              style={{
+                position: 'fixed', bottom: 0, left: 0, right: 0,
+                zIndex: 9991,
+                background: '#2C272F',
+                borderRadius: '16px 16px 0 0',
+                paddingBottom: 32,
+                maxHeight: '70vh',
+                overflowY: 'auto',
+              }}
+            >
+              {/* Handle bar */}
+              <div style={{
+                width: 36, height: 4, borderRadius: 2,
+                background: 'rgba(255,255,255,0.15)',
+                margin: '12px auto 16px',
+              }} />
+              {/* Titre */}
+              <div style={{
+                padding: '0 20px 12px',
+                fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif",
+                textTransform: 'uppercase' as const,
+              }}>
+                Changer de Capsule
+              </div>
+              {capsuleItems}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>,
+      document.body
+    )}
+
     <CreateCapsuleModal open={showCreate} onClose={() => setShowCreate(false)} />
     </>
   )
