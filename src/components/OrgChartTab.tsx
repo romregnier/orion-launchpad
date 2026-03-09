@@ -84,8 +84,13 @@ export function OrgChartTab() {
   }
 
   return (
-    <div style={{ padding: '24px 28px', overflow: 'auto' }}>
-      <svg width={CANVAS_W} height={CANVAS_H} style={{ display: 'block', margin: '0 auto' }}>
+    <div style={{ padding: '24px 28px', overflowX: 'auto', overflowY: 'hidden' }}>
+      <svg
+        viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
+        width="100%"
+        height="auto"
+        style={{ display: 'block', margin: '0 auto', minWidth: 280, maxWidth: '100%' }}
+      >
         <defs>
           <marker id="org-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="rgba(255,255,255,0.3)" />

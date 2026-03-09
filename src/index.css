@@ -79,3 +79,56 @@ body {
   0%, 100% { opacity: 0.3; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.1); }
 }
+
+/* ── Mobile Bottom Nav ───────────────────────────────────────────── */
+.mobile-bottom-nav { display: flex; }
+@media (min-width: 769px) {
+  .mobile-bottom-nav { display: none !important; }
+}
+
+/* Safe area padding pour les pages avec bottom nav */
+@media (max-width: 768px) {
+  .page-with-bottom-nav {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ── AgentChatPanel mobile ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .agent-chat-panel {
+    width: calc(100vw - 16px) !important;
+    right: 8px !important;
+    left: 8px !important;
+    bottom: 64px !important;
+    height: 70vh !important;
+    border-radius: 16px 16px 12px 12px !important;
+  }
+}
+
+/* ── Responsive global ───────────────────────────────────────────── */
+
+/* Input zoom iOS fix */
+@media (max-width: 768px) {
+  input, textarea { font-size: 16px !important; }
+}
+
+/* Touch targets minimum */
+@media (max-width: 768px) {
+  button:not(.no-touch-target),
+  a:not(.no-touch-target) {
+    min-height: 36px;
+  }
+}
+
+/* TeamPage grid */
+@media (max-width: 640px) {
+  .team-page-grid {
+    grid-template-columns: 1fr !important;
+    padding: 16px !important;
+  }
+}
+
+/* Topbar NavLinks cachés sur mobile */
+@media (max-width: 640px) {
+  .launchpad-nav-links { display: none !important; }
+}

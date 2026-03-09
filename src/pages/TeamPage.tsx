@@ -94,6 +94,7 @@ export function TeamPage() {
 
   return (
     <div
+      className="page-with-bottom-nav"
       style={{
         minHeight: '100vh',
         background: '#0B090D',
@@ -158,7 +159,7 @@ export function TeamPage() {
       </div>
 
       {/* ── Content ──────────────────────────────────────────────────────────── */}
-      <div style={{ padding: '32px 32px 0', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ padding: 'clamp(16px, 4vw, 32px)', maxWidth: 1100, margin: '0 auto' }}>
         {loading ? (
           <div style={{
             display: 'flex',
@@ -185,7 +186,7 @@ export function TeamPage() {
             transition={{ delay: 0.1 }}
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))',
               gap: 16,
             }}
           >

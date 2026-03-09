@@ -1,20 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
+import { ModelSelector } from './ModelSelector'
 import type { CanvasAgent } from '../types'
 
 interface AgentEditModalProps {
   agent: CanvasAgent | null
   onClose: () => void
 }
-
-const MODEL_OPTIONS = [
-  'anthropic/claude-sonnet-4-6',
-  'anthropic/claude-3-5-haiku',
-  'anthropic/claude-opus-4',
-  'openai/gpt-4o',
-  'openai/gpt-4o-mini',
-]
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -46,7 +39,8 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
 
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
-  const [model, setModel] = useState('')
+  const [model, setModel] = useState('claude-sonnet-4-6')
+  const [modelFallback, setModelFallback] = useState('claude-haiku-3-5')
   const [skills, setSkills] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
   const [saving, setSaving] = useState(false)
@@ -55,7 +49,8 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
     if (agent) {
       setName(agent.name ?? '')
       setRole(agent.role ?? agent.agent_meta?.role ?? '')
-      setModel(agent.model ?? agent.agent_meta?.model ?? 'anthropic/claude-sonnet-4-6')
+      setModel(agent.model ?? agent.agent_meta?.model ?? 'claude-sonnet-4-6')
+      setModelFallback(agent.agent_meta?.model_fallback ?? 'claude-haiku-3-5')
       setSkills((agent.skills ?? []).join(', '))
       setSystemPrompt(agent.agent_meta?.system_prompt ?? '')
     }
@@ -73,6 +68,7 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
         ...agent.agent_meta,
         role,
         model,
+        model_fallback: modelFallback,
         system_prompt: systemPrompt,
       },
     })
@@ -206,18 +202,18 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
 
               <div>
                 <label style={labelStyle}>Modèle LLM</label>
-                <select
+                <ModelSelector
                   value={model}
-                  onChange={e => setModel(e.target.value)}
-                  style={{
-                    ...inputStyle,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {MODEL_OPTIONS.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+                  onChange={(modelId) => setModel(modelId)}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Modèle de secours</label>
+                <ModelSelector
+                  value={modelFallback}
+                  onChange={(id) => setModelFallback(id)}
+                />
               </div>
 
               <div>

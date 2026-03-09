@@ -4,6 +4,8 @@ import { AgentDirectoryCard } from './AgentDirectoryCard'
 import { HumanMemberCard } from './HumanMemberCard'
 import { AgentEditModal } from './AgentEditModal'
 import { Select } from './Select'
+import { useAgentStatus } from '../hooks/useAgentStatus'
+import { InviteMemberModal } from './InviteMemberModal'
 import type { CanvasAgent } from '../types'
 import type { SelectOption } from './Select'
 
@@ -189,10 +191,35 @@ const editBtnStyle: React.CSSProperties = {
   zIndex: 1,
 }
 
+// Status dot helper
+function StatusDot({ agentKey, statusMap }: { agentKey?: string | null; statusMap: Map<string, 'busy' | 'online' | 'idle'> }) {
+  const status = agentKey ? (statusMap.get(agentKey) ?? 'idle') : 'idle'
+  const COLOR: Record<string, string> = {
+    busy: '#F59E0B',
+    online: '#22C55E',
+    idle: 'rgba(255,255,255,0.2)',
+  }
+  return (
+    <span
+      title={status}
+      style={{
+        display: 'inline-block',
+        width: 8, height: 8,
+        borderRadius: '50%',
+        background: COLOR[status],
+        boxShadow: status === 'busy' ? '0 0 6px #F59E0B' : status === 'online' ? '0 0 6px #22C55E' : 'none',
+        flexShrink: 0,
+      }}
+    />
+  )
+}
+
 export function TeamTab() {
   const { canvasAgents, boardMembers, currentUser } = useLaunchpadStore()
   const [editingAgent, setEditingAgent] = useState<CanvasAgent | null>(null)
   const [showInviteForm, setShowInviteForm] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const agentStatusMap = useAgentStatus()
 
   const aiAgents = canvasAgents.filter(a => a.entity_type === 'ai' || !a.entity_type)
   const humanAgents = canvasAgents.filter(a => a.entity_type === 'human')
@@ -222,6 +249,10 @@ export function TeamTab() {
             {aiAgents.map(agent => (
               <div key={agent.id} style={{ position: 'relative' }}>
                 <AgentDirectoryCard agent={agent} />
+                {/* Live status dot */}
+                <div style={{ position: 'absolute', top: 10, left: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <StatusDot agentKey={agent.agent_key} statusMap={agentStatusMap} />
+                </div>
                 <button style={editBtnStyle} onClick={() => setEditingAgent(agent)}>
                   Éditer
                 </button>
@@ -251,6 +282,9 @@ export function TeamTab() {
               {humanAgents.map(agent => (
                 <div key={agent.id} style={{ position: 'relative' }}>
                   <AgentDirectoryCard agent={agent} />
+                  <div style={{ position: 'absolute', top: 10, left: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <StatusDot agentKey={agent.agent_key} statusMap={agentStatusMap} />
+                  </div>
                   <button style={editBtnStyle} onClick={() => setEditingAgent(agent)}>
                     Éditer
                   </button>
@@ -300,6 +334,29 @@ export function TeamTab() {
 
       {/* Agent Edit Modal */}
       <AgentEditModal agent={editingAgent} onClose={() => setEditingAgent(null)} />
+
+      {/* InviteMemberModal — TK-0215 */}
+      <InviteMemberModal open={showInviteModal} onClose={() => setShowInviteModal(false)} />
+
+      {/* Bouton flottant "Inviter un membre" */}
+      <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={() => setShowInviteModal(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '9px 18px', borderRadius: 10,
+            background: '#E11F7B',
+            border: 'none',
+            color: '#fff',
+            fontSize: 13, fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: "'Poppins', sans-serif",
+            boxShadow: '0 4px 16px rgba(225,31,123,0.35)',
+          }}
+        >
+          📨 Inviter un membre
+        </button>
+      </div>
     </div>
   )
 }

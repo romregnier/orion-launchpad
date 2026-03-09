@@ -22,6 +22,10 @@ import { DeckPresentPage } from './pages/DeckPresentPage'
 import { LandingsPage } from './pages/LandingsPage'
 import { NewLandingPage } from './pages/NewLandingPage'
 import { TeamPage } from './pages/TeamPage'
+import { AgentsPage } from './pages/AgentsPage'
+import { AgentInboxPage } from './pages/AgentInboxPage'
+import { AgentDMThread } from './pages/AgentDMThread'
+import { CapsuleHomePage } from './pages/CapsuleHomePage'
 
 
 import { PresenceBar } from './components/PresenceBar'
@@ -32,6 +36,7 @@ import { GalaxyCanvas } from './components/GalaxyCanvas'
 import { NebulaOverlay } from './components/NebulaBackground'
 import { CapsuleSwitcher } from './components/CapsuleSwitcher'
 import { AppSidebar } from './components/AppSidebar'
+import { MobileBottomNav } from './components/MobileBottomNav'
 // WorkProgressBar supprimé — remplacé par BuildStatusWidget (bottom right)
 import type { CanvasAgent } from './types'
 
@@ -113,7 +118,8 @@ function LaunchpadCanvas() {
   const [showAdd, setShowAdd] = useState(false)
   const [showAddList, setShowAddList] = useState(false)
   const [showGlobalChat, setShowGlobalChat] = useState(false)
-  const [showSidebar, setShowSidebar] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true)
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
   const [chatAgent, setChatAgent] = useState<CanvasAgent | null>(null)
   const [showBotModal, setShowBotModal] = useState(false)
   const [editingAgent, setEditingAgent] = useState<CanvasAgent | null>(null)
@@ -121,6 +127,15 @@ function LaunchpadCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
   const hasAutoFitted = useRef(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) { setShowSidebar(false); setIsMobile(true) }
+      else { setShowSidebar(true); setIsMobile(false) }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     setOffset({ x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 260 })
@@ -304,6 +319,9 @@ function LaunchpadCanvas() {
 
       {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
       {showSidebar && <AppSidebar />}
+      {showSidebar && isMobile && (
+        <div onClick={() => setShowSidebar(false)} style={{ position: 'fixed', inset: 0, zIndex: 39, background: 'rgba(0,0,0,0.5)' }} />
+      )}
 
       {/* ── Top navbar ───────────────────────────────────────────────────────── */}
       <header
@@ -348,9 +366,11 @@ function LaunchpadCanvas() {
             ☰
           </button>
           {!showSidebar && <CapsuleSwitcher />}
-          {!showSidebar && <NavLink to="/" label="🌌 Canvas" />}
-          {!showSidebar && <NavLink to="/decks" label="🃏 Decks" />}
-          {!showSidebar && <NavLink to="/landings" label="🛬 Landings" />}
+          <div className="launchpad-nav-links" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            {!showSidebar && <NavLink to="/" label="🌌 Canvas" />}
+            {!showSidebar && <NavLink to="/decks" label="🃏 Decks" />}
+            {!showSidebar && <NavLink to="/landings" label="🛬 Landings" />}
+          </div>
         </div>
 
         {/* Center: board name */}
@@ -598,6 +618,14 @@ function AppInner() {
       {/* ── Team (TK-0206) ───────────────────────────────────────────── */}
       <Route path="/team" element={<TeamPage />} />
 
+      {/* ── CapsuleHome dashboard (TK-0214) ─────────────────────────── */}
+      <Route path="/home" element={<CapsuleHomePage />} />
+
+      {/* ── Agent DM System (TK-0209/0210) ──────────────────────────── */}
+      <Route path="/agents" element={<AgentInboxPage />} />
+      <Route path="/agents/inbox-v1" element={<AgentsPage />} />
+      <Route path="/agents/:agentKey" element={<AgentDMThread />} />
+
       {/* ── Canvas principal (catch-all) ─────────────────────────────── */}
       <Route path="*" element={
         <>
@@ -620,6 +648,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppInner />
+      <MobileBottomNav />
     </BrowserRouter>
   )
 }

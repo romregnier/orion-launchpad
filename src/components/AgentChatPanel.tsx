@@ -115,11 +115,13 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 20, scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+      className="agent-chat-panel"
       style={{
         position: 'fixed',
-        bottom: 80,
-        right: 14,
-        width: 320,
+        bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+        right: 'max(8px, env(safe-area-inset-right, 8px))',
+        width: 'min(320px, calc(100vw - 16px))',
+        maxWidth: 'calc(100vw - 16px)',
         height: 440,
         background: '#1A171C',
         border: `1px solid ${color}40`,
@@ -149,7 +151,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
             {isActive ? 'actif' : 'disponible'}
           </span>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
       </div>
 
       {/* Messages */}
@@ -204,7 +206,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
           placeholder={`Message ${agent.name}…`}
           style={{
             flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 8, padding: '8px 10px', fontSize: 13, color: '#fff', outline: 'none',
+            borderRadius: 8, padding: '8px 10px', fontSize: 16, color: '#fff', outline: 'none',
           }}
         />
         <button
@@ -215,6 +217,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
             background: input.trim() ? color : 'rgba(255,255,255,0.06)',
             color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0,
             opacity: sending ? 0.5 : 1, transition: 'all 0.15s',
+            minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >↑</button>
       </div>

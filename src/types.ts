@@ -95,6 +95,7 @@ export interface AgentMeta {
   permissions?: string[]
   authorized_projects?: string[]
   model?: string  // LLM model override (ex: 'claude-haiku-4-5', 'claude-sonnet-4-6')
+  model_fallback?: string  // Fallback LLM model
 }
 
 export interface CanvasAgent {
@@ -115,6 +116,7 @@ export interface CanvasAgent {
   role?: string | null
   skills?: string[] | null
   model?: string | null
+  model_fallback?: string | null
   can_spawn?: string[] | null
   can_be_spawned_by?: string[] | null
   status?: 'online' | 'idle' | 'offline' | null

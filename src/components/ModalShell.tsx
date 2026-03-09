@@ -119,6 +119,11 @@ export function ModalShell({
                 padding: '2px 6px',
                 borderRadius: 6,
                 transition: 'color 0.12s',
+                minWidth: 44,
+                minHeight: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#fff' }}
               onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
