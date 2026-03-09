@@ -31,6 +31,8 @@ const AVATAR_COLORS = [
   '#3B82F6', '#EF4444', '#06B6D4', '#EC4899',
 ]
 
+const MAX_VISIBLE = 3
+
 function getAvatarColor(username: string): string {
   return AVATAR_COLORS[hashUsername(username) % AVATAR_COLORS.length]
 }
@@ -88,6 +90,9 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
 
   if (presentUsers.length === 0) return null
 
+  const visibleUsers = presentUsers.slice(0, MAX_VISIBLE)
+  const overflowCount = Math.max(0, presentUsers.length - MAX_VISIBLE)
+
   return (
     <div
       className="presence-bar"
@@ -97,7 +102,7 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
         gap: 4,
       }}
     >
-      {presentUsers.map((user, i) => {
+      {visibleUsers.map((user, i) => {
         const color = getAvatarColor(user.username)
         const initials = user.username.slice(0, 2).toUpperCase()
         const isTooltipOpen = tooltipUser === user.username
@@ -159,6 +164,33 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
           </div>
         )
       })}
+
+      {/* Badge +N pour les utilisateurs en overflow */}
+      {overflowCount > 0 && (
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.08)',
+            border: '2px solid rgba(255,255,255,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 10,
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.55)',
+            fontFamily: "'Poppins', sans-serif",
+            marginLeft: -8,
+            boxShadow: '0 0 0 2px #0B090D',
+            cursor: 'default',
+            flexShrink: 0,
+          }}
+          title={`${overflowCount} autre${overflowCount > 1 ? 's' : ''} connecté${overflowCount > 1 ? 's' : ''}`}
+        >
+          +{overflowCount}
+        </div>
+      )}
     </div>
   )
 }

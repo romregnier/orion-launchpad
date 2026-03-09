@@ -93,6 +93,26 @@ body {
   }
 }
 
+/* Safe area — main-content + panels scrollables (RESP-011) */
+@media (max-width: 640px) {
+  .main-content {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Panels avec scroll interne */
+  .team-page,
+  .admin-panel,
+  .workflow-tab,
+  .org-chart-container {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Body safe area de base */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 /* ── AgentChatPanel mobile ───────────────────────────────────────── */
 @media (max-width: 640px) {
   .agent-chat-panel {
