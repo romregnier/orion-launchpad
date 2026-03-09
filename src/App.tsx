@@ -21,6 +21,7 @@ import { DeckEditorPage } from './pages/DeckEditorPage'
 import { DeckPresentPage } from './pages/DeckPresentPage'
 import { LandingsPage } from './pages/LandingsPage'
 import { NewLandingPage } from './pages/NewLandingPage'
+import { TeamPage } from './pages/TeamPage'
 
 
 import { PresenceBar } from './components/PresenceBar'
@@ -593,6 +594,9 @@ function AppInner() {
       {/* ── Landing Builder ──────────────────────────────────────────── */}
       <Route path="/landings" element={<LandingsPage />} />
       <Route path="/landings/new" element={<NewLandingPage />} />
+
+      {/* ── Team (TK-0206) ───────────────────────────────────────────── */}
+      <Route path="/team" element={<TeamPage />} />
 
       {/* ── Canvas principal (catch-all) ─────────────────────────────── */}
       <Route path="*" element={

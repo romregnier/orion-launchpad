@@ -147,3 +147,40 @@ export interface OrgRelationship {
   metadata: Record<string, unknown>
   created_at: string
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Agent Chat — TK-0208
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Message stocké dans la table `agent_chat_messages` (utilisée par AgentChatPanel) */
+export interface AgentChatMessage {
+  id: string
+  agent_key: string
+  role: 'user' | 'agent' | 'system'
+  message: string
+  user_id?: string | null
+  read_by_agent: boolean
+  created_at: string
+}
+
+/** Session de conversation agent↔user ou agent↔agent (`agent_conversations`) */
+export interface AgentConversation {
+  id: string
+  agent_key: string
+  title?: string | null
+  project?: string | null
+  status: 'active' | 'archived' | 'closed'
+  created_at: string
+  updated_at: string
+}
+
+/** Message dans une conversation structurée (`agent_direct_messages`) */
+export interface AgentDirectMessage {
+  id: string
+  conversation_id: string
+  role: 'user' | 'agent' | 'system'
+  content: string
+  agent_key: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
