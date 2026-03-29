@@ -480,7 +480,7 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
   const [form, setForm] = useState<AgentBuilderForm>({ ...defaultForm })
   const [hiring, setHiring] = useState(false)
   const [error, setError] = useState('')
-  const { canvasAgents, currentUser } = useLaunchpadStore()
+  const { canvasAgents, currentUser, setLastNewAgentId } = useLaunchpadStore()
 
   const handleClose = () => {
     setStep(1)
@@ -545,6 +545,20 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
         tailor_config: null,
       })
       if (insertError) throw insertError
+      // Mark the new agent for spawn animation
+      // The Supabase subscription will add it to canvasAgents — we get the id via query
+      const { data: newAgent } = await supabase
+        .from('canvas_agents')
+        .select('id')
+        .eq('owner', currentUser?.username ?? 'anon')
+        .eq('name', form.name)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      if (newAgent?.id) {
+        setLastNewAgentId(newAgent.id)
+        setTimeout(() => setLastNewAgentId(null), 5000)
+      }
       handleClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création')

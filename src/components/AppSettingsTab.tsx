@@ -31,7 +31,7 @@ const PROVIDER_MODELS: Record<string, string[]> = {
   custom: [],
 }
 
-type SettingsSection = 'general' | 'llm' | 'integrations'
+// SettingsSection kept for type reference (used via AllSettingsSections)
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -906,24 +906,128 @@ function IntegrationsSection() {
   )
 }
 
-// ── Main AppSettingsTab ────────────────────────────────────────────────────────
-export function AppSettingsTab() {
-  const [section, setSection] = useState<SettingsSection>('general')
+// ── Coming Soon placeholder ────────────────────────────────────────────────────
+function ComingSoonSection({ label }: { label: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center', minHeight: 240 }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.6)', marginBottom: 8, fontFamily: "'Poppins', sans-serif" }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>Coming soon</div>
+    </div>
+  )
+}
 
-  const navItems: { key: SettingsSection; icon: string; label: string }[] = [
-    { key: 'general', icon: '⚙️', label: 'General' },
+// ── Main AppSettingsTab ────────────────────────────────────────────────────────
+type AllSettingsSections = 'general' | 'llm' | 'integrations' | 'notifications' | 'members' | 'budgets' | 'security' | 'danger'
+
+export function AppSettingsTab() {
+  const [section, setSection] = useState<AllSettingsSections>('general')
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+
+  // Responsive detection
+  useState(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  })
+
+  const navItems: { key: AllSettingsSections; icon: string; label: string; danger?: boolean }[] = [
+    { key: 'general', icon: '⚡', label: 'General' },
     { key: 'llm', icon: '🤖', label: 'LLM & Models' },
     { key: 'integrations', icon: '🔌', label: 'Integrations' },
+    { key: 'notifications', icon: '🔔', label: 'Notifications' },
+    { key: 'members', icon: '👥', label: 'Members' },
+    { key: 'budgets', icon: '💰', label: 'Budgets' },
+    { key: 'security', icon: '🛡️', label: 'Security' },
+    { key: 'danger', icon: '🗑️', label: 'Danger Zone', danger: true },
   ]
+
+  const renderContent = () => {
+    switch (section) {
+      case 'general': return <GeneralSection />
+      case 'llm': return <LLMSection />
+      case 'integrations': return <IntegrationsSection />
+      case 'notifications': return <ComingSoonSection label="Notifications" />
+      case 'members': return <ComingSoonSection label="Members" />
+      case 'budgets': return <ComingSoonSection label="Budgets" />
+      case 'security': return <ComingSoonSection label="Security" />
+      case 'danger': return <ComingSoonSection label="Danger Zone" />
+    }
+  }
+
+  if (isMobile) {
+    // Mobile: horizontal scrollable tabs
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: 500 }}>
+        {/* Horizontal tabs */}
+        <div style={{
+          display: 'flex',
+          overflowX: 'auto',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          gap: 2,
+          paddingBottom: 0,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        } as React.CSSProperties}>
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              onClick={() => setSection(item.key)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                padding: '10px 12px',
+                minWidth: 70,
+                minHeight: 44,
+                background: section === item.key ? 'rgba(225,31,123,0.12)' : 'transparent',
+                borderBottom: section === item.key ? `2px solid ${item.danger ? '#EF4444' : '#E11F7B'}` : '2px solid transparent',
+                border: 'none',
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                cursor: 'pointer',
+                fontSize: 10,
+                fontWeight: section === item.key ? 700 : 500,
+                color: section === item.key ? (item.danger ? '#EF4444' : '#fff') : (item.danger ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.5)'),
+                transition: 'all 0.15s ease',
+                fontFamily: "'Poppins', sans-serif",
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: 16 }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Content area */}
+        <div style={{ flex: 1, padding: '20px 4px', overflowY: 'auto' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={section}
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', gap: 0, minHeight: 500 }}>
-      {/* Sidebar nav */}
+      {/* Sidebar nav — 120px, 8 items */}
       <div style={{
-        width: 140,
+        width: 120,
         flexShrink: 0,
         borderRight: '1px solid rgba(255,255,255,0.07)',
-        paddingRight: 0,
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
@@ -939,21 +1043,28 @@ export function AppSettingsTab() {
               gap: 8,
               padding: '9px 12px',
               borderRadius: '6px 0 0 6px',
-              background: section === item.key ? 'rgba(225,31,123,0.12)' : 'transparent',
-              borderLeft: section === item.key ? '2px solid #E11F7B' : '2px solid transparent',
+              background: section === item.key
+                ? (item.danger ? 'rgba(239,68,68,0.10)' : 'rgba(225,31,123,0.12)')
+                : 'transparent',
+              borderLeft: section === item.key
+                ? `2px solid ${item.danger ? '#EF4444' : '#E11F7B'}`
+                : '2px solid transparent',
               border: 'none',
               cursor: 'pointer',
               textAlign: 'left',
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: section === item.key ? 700 : 500,
-              color: section === item.key ? '#fff' : 'rgba(255,255,255,0.5)',
+              color: section === item.key
+                ? (item.danger ? '#EF4444' : '#fff')
+                : (item.danger ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.5)'),
               transition: 'all 0.15s ease',
               fontFamily: "'Poppins', sans-serif",
               width: '100%',
+              marginTop: item.danger ? 'auto' : undefined,
             }}
           >
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
+            <span style={{ fontSize: 14 }}>{item.icon}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
           </button>
         ))}
       </div>
@@ -968,9 +1079,7 @@ export function AppSettingsTab() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
           >
-            {section === 'general' && <GeneralSection />}
-            {section === 'llm' && <LLMSection />}
-            {section === 'integrations' && <IntegrationsSection />}
+            {renderContent()}
           </motion.div>
         </AnimatePresence>
       </div>

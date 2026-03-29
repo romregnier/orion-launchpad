@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import type { CanvasAgent, AvatarConfig } from '../types'
 
@@ -583,6 +583,8 @@ interface CanvasAgentAvatarProps {
   canvasScale: number
   onChat?: (agent: CanvasAgent) => void
   onEdit?: (agent: CanvasAgent) => void
+  /** Si true, déclenche l'animation de spawn (nouvel agent recruté). */
+  isNew?: boolean
 }
 
 /**
@@ -598,9 +600,20 @@ interface CanvasAgentAvatarProps {
  * Le déplacement utilise une animation Framer Motion spring lente et fluide
  * (stiffness 60) pour l'aller, et plus rapide (stiffness 120) pour le retour.
  */
-export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: CanvasAgentAvatarProps) {
+export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew }: CanvasAgentAvatarProps) {
   const { projects, canvasAgents, updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping, setAgentWorkingOn, activeBuildTasks } = useLaunchpadStore()
   const [hovered, setHovered] = useState(false)
+  const [showSpawnAnim, setShowSpawnAnim] = useState(!!isNew)
+  const [showNewBadge, setShowNewBadge] = useState(!!isNew)
+
+  // Auto-clear spawn animation and NEW badge
+  useEffect(() => {
+    if (isNew) {
+      const t1 = setTimeout(() => setShowSpawnAnim(false), 800)
+      const t2 = setTimeout(() => setShowNewBadge(false), 3000)
+      return () => { clearTimeout(t1); clearTimeout(t2) }
+    }
+  }, [isNew])
 
   // Local drag state for smooth visual feedback (no Supabase on every frame)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
@@ -761,6 +774,51 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit }: Canvas
     >
       {/* Avatar — screenshot Tailor si disponible, sinon emoji */}
       <div className="canvas-agent-avatar__figure" style={{ position: 'relative' }}>
+        {/* Spawn animation ring — appears when isNew=true */}
+        <AnimatePresence>
+          {showSpawnAnim && (
+            <motion.div
+              initial={{ scale: 0.5, opacity: 1 }}
+              animate={{ scale: 2.2, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              style={{
+                position: 'absolute',
+                inset: -4,
+                borderRadius: '50%',
+                border: '2px solid #E11F7B',
+                pointerEvents: 'none',
+                zIndex: 20,
+              }}
+            />
+          )}
+        </AnimatePresence>
+        {/* NEW badge */}
+        <AnimatePresence>
+          {showNewBadge && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              style={{
+                position: 'absolute',
+                top: -10,
+                right: -10,
+                background: '#E11F7B',
+                color: '#fff',
+                fontSize: 8,
+                fontWeight: 900,
+                padding: '2px 5px',
+                borderRadius: 4,
+                pointerEvents: 'none',
+                zIndex: 21,
+                fontFamily: "'Poppins', sans-serif",
+                letterSpacing: '0.05em',
+              }}
+            >NEW</motion.div>
+          )}
+        </AnimatePresence>
         <AgentBubble name={agent.name} isWorking={isWorking} tailorUrl={agent.tailorUrl} tailorConfig={agent.tailor_config} />
 
         {/* TK-0019 — Bulle de pensée animée quand l'agent a une build_task running */}

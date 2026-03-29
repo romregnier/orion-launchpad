@@ -109,7 +109,7 @@ function LoadingTimeout() {
 }
 
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showAdminPanel, setShowAdminPanel, fetchCapsules } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showAdminPanel, setShowAdminPanel, fetchCapsules, lastNewAgentId } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -282,6 +282,7 @@ function LaunchpadCanvas() {
             key={agent.id} agent={agent} canvasScale={scale}
             onChat={currentUser?.role !== 'viewer' ? setChatAgent : undefined}
             onEdit={a => { setEditingAgent(a); setShowBotModal(true) }}
+            isNew={agent.id === lastNewAgentId}
           />
         ))}
         {remoteLoaded && projects.length === 0 && (

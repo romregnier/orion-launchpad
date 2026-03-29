@@ -196,6 +196,9 @@ interface LaunchpadStore {
   adminTab: AdminTab
   setShowAdminPanel: (v: boolean) => void
   setAdminTab: (tab: AdminTab) => void
+  /** ID of the most recently spawned agent, for spawn animation. Cleared after 5s. */
+  lastNewAgentId: string | null
+  setLastNewAgentId: (id: string | null) => void
 
   // Org Settings (backward compat — redirect vers AdminPanel)
   showOrgSettings: boolean
@@ -337,8 +340,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       showSettings: false,
       showAdminPanel: false,
       adminTab: 'team' as AdminTab,
+      lastNewAgentId: null,
       setShowAdminPanel: (v) => set({ showAdminPanel: v }),
       setAdminTab: (tab) => set({ adminTab: tab }),
+      setLastNewAgentId: (id) => set({ lastNewAgentId: id }),
       // Backward compat — showOrgSettings/showSettings redirect to showAdminPanel
       showOrgSettings: false,
       orgSettingsTab: 'agents' as const,
