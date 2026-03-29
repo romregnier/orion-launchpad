@@ -9,7 +9,6 @@ import { useLaunchpadStore } from './store'
 
 // ── Shell & Layout ────────────────────────────────────────────────────────────
 import { AppShell } from './components/AppShell'
-import { MobileBottomNav } from './components/MobileBottomNav'
 import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusFAB } from './components/BuildStatusFAB'
 
@@ -102,7 +101,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppInner />
-      <MobileBottomNav />
     </BrowserRouter>
   )
 }

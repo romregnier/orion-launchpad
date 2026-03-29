@@ -21,6 +21,7 @@ import { BotModal } from './BotModal'
 import { GalaxyCanvas } from './GalaxyCanvas'
 import { NebulaOverlay } from './NebulaBackground'
 import { CapsuleSwitcher } from './CapsuleSwitcher'
+import { MobileBottomNav } from './MobileBottomNav'
 import type { CanvasAgent } from '../types'
 
 const MIN_SCALE = 0.2
@@ -76,6 +77,14 @@ export function LaunchpadCanvas() {
     boardName, isPrivate, currentUser, logout, fetchCapsules, lastNewAgentId,
   } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
+
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768)
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -300,12 +309,14 @@ export function LaunchpadCanvas() {
       />
 
       {/* ── Top navbar (canvas-specific) ─────────────────────────────────────── */}
+      {/* Mobile : header complet (CapsuleSwitcher + boardName + PresenceBar + user info) */}
+      {/* Desktop : juste PresenceBar + user info (CapsuleSwitcher et boardName sont dans NavSidebar) */}
       <header
         className="launchpad-navbar"
         style={{
           position: 'fixed',
           top: 0,
-          left: NAV_OFFSET,
+          left: isMobile ? 0 : NAV_OFFSET,
           right: 0,
           height: 52,
           display: 'flex',
@@ -316,65 +327,75 @@ export function LaunchpadCanvas() {
           pointerEvents: 'none',
         }}
       >
-        {/* Left: capsule switcher */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'all' }}>
-          <CapsuleSwitcher />
-        </div>
-
-        {/* Center: board name */}
-        <div style={{ userSelect: 'none' }}>
-          <span style={{
-            fontSize: 17,
-            letterSpacing: '-0.02em',
-            background: 'linear-gradient(135deg, #F0EDF5 60%, rgba(225,31,123,0.8) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            fontWeight: 700,
-          }}>
-            {boardName.replace(/[\p{Emoji}]/gu, '').trim()}
-          </span>
-        </div>
-
-        {/* Right: présence + user info */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, pointerEvents: 'all', overflow: 'hidden', minWidth: 0 }}>
-          <PresenceBar currentUser={currentUser} />
-          {isPrivate && currentUser && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px',
-              borderRadius: 999, background: 'rgba(22,18,26,0.92)',
-              border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)', flexShrink: 0,
-            }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
-                👤 {currentUser.username}
-              </span>
-              <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-              <button
-                onClick={logout}
-                data-testid="btn-logout"
-                style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
-              >
-                Déconnexion
-              </button>
+        {isMobile ? (
+          <>
+            {/* Mobile Left: capsule switcher */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'all' }}>
+              <CapsuleSwitcher />
             </div>
-          )}
-        </div>
+
+            {/* Mobile Center: board name */}
+            <div style={{ userSelect: 'none' }}>
+              <span style={{
+                fontSize: 17,
+                letterSpacing: '-0.02em',
+                background: 'linear-gradient(135deg, #F0EDF5 60%, rgba(225,31,123,0.8) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                fontWeight: 700,
+              }}>
+                {boardName.replace(/[\p{Emoji}]/gu, '').trim()}
+              </span>
+            </div>
+
+            {/* Mobile Right: présence only (user info masqué sur mobile — Bug 4) */}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, pointerEvents: 'all', overflow: 'hidden', minWidth: 0 }}>
+              <PresenceBar currentUser={currentUser} />
+            </div>
+          </>
+        ) : (
+          /* Desktop : juste PresenceBar + user info (NavSidebar gère CapsuleSwitcher) */
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, width: '100%', pointerEvents: 'all', overflow: 'hidden', minWidth: 0 }}>
+            <PresenceBar currentUser={currentUser} />
+            {isPrivate && currentUser && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px',
+                borderRadius: 999, background: 'rgba(22,18,26,0.92)',
+                border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)', flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+                  👤 {currentUser.username}
+                </span>
+                <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                <button
+                  onClick={logout}
+                  data-testid="btn-logout"
+                  style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
+                >
+                  Déconnexion
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* ── Group filter bar ─────────────────────────────────────────────────── */}
+      {/* Bug 3 fix: offset left par --nav-width sur desktop pour éviter l'overlap avec la sidebar */}
       <nav
         className="launchpad-groupbar"
         style={{
           position: 'fixed',
           top: 54,
-          left: '50%',
+          left: isMobile ? '50%' : `calc(var(--nav-width, 64px) / 2 + 50%)`,
           transform: 'translateX(-50%)',
           background: 'rgba(15,12,20,0.88)',
           backdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 999,
           zIndex: 40,
-          maxWidth: 'calc(100vw - 80px)',
+          maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - var(--nav-width, 64px) - 32px)',
           overflowX: 'auto',
           scrollbarWidth: 'none',
           WebkitOverflowScrolling: 'touch',
@@ -390,7 +411,7 @@ export function LaunchpadCanvas() {
           style={{
             position: 'fixed',
             top: 96,
-            left: '50%',
+            left: isMobile ? '50%' : `calc(var(--nav-width, 64px) / 2 + 50%)`,
             transform: 'translateX(-50%)',
             display: 'flex',
             gap: 6,
@@ -402,7 +423,7 @@ export function LaunchpadCanvas() {
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 999,
             zIndex: 40,
-            maxWidth: 'calc(100vw - 80px)',
+            maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - var(--nav-width, 64px) - 32px)',
             overflowX: 'auto',
           }}
         >
@@ -461,6 +482,9 @@ export function LaunchpadCanvas() {
         onClose={() => { setShowBotModal(false); setEditingAgent(null) }}
         editAgent={editingAgent}
       />
+
+      {/* MobileBottomNav — mobile only (Bug 2) */}
+      {isMobile && <MobileBottomNav />}
     </div>
   )
 }

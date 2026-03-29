@@ -1,12 +1,17 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { LayoutGrid, LayoutDashboard, Bot, Ticket, Settings } from 'lucide-react'
+
+// ── MobileBottomNav ───────────────────────────────────────────────────────────
+// Mobile only (≤ 768px) — 5 routes v2
+// safe-area-inset-bottom pour iOS
 
 const NAV_ITEMS = [
-  { to: '/',        emoji: '🌌', label: 'Canvas' },
-  { to: '/home',    emoji: '🏠', label: 'Home'   },
-  { to: '/agents',  emoji: '💬', label: 'Agents' },
-  { to: '/team',    emoji: '👥', label: 'Team'   },
-  { to: '/decks',   emoji: '🃏', label: 'Decks'  },
+  { to: '/',          icon: LayoutGrid,       label: 'Canvas'    },
+  { to: '/dashboard', icon: LayoutDashboard,  label: 'Dashboard' },
+  { to: '/agents',    icon: Bot,              label: 'Agents'    },
+  { to: '/tickets',   icon: Ticket,           label: 'Tickets'   },
+  { to: '/settings',  icon: Settings,         label: 'Settings'  },
 ]
 
 export function MobileBottomNav() {
@@ -15,7 +20,7 @@ export function MobileBottomNav() {
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
-      height: 56, zIndex: 50,
+      zIndex: 50,
       background: 'rgba(11,9,13,0.95)',
       borderTop: '1px solid rgba(255,255,255,0.08)',
       backdropFilter: 'blur(16px)',
@@ -24,6 +29,7 @@ export function MobileBottomNav() {
     }} className="mobile-bottom-nav">
       {NAV_ITEMS.map(item => {
         const isActive = pathname === item.to || (item.to !== '/' && pathname.startsWith(item.to))
+        const Icon = item.icon
         return (
           <motion.div
             key={item.to}
@@ -36,13 +42,13 @@ export function MobileBottomNav() {
               style={{
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 2,
-                textDecoration: 'none', minHeight: 44, height: '100%',
+                textDecoration: 'none', minHeight: 52, height: '100%',
                 color: isActive ? '#E11F7B' : 'rgba(255,255,255,0.4)',
                 transition: 'color 0.15s',
                 fontFamily: 'Poppins, sans-serif',
               }}
             >
-              <span style={{ fontSize: isActive ? 22 : 20, transition: 'font-size 0.15s' }}>{item.emoji}</span>
+              <Icon size={isActive ? 22 : 20} strokeWidth={isActive ? 2.5 : 1.8} style={{ transition: 'all 0.15s' }} />
               <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, letterSpacing: '0.04em' }}>
                 {item.label}
               </span>
