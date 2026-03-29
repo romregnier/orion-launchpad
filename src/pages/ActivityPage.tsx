@@ -29,6 +29,14 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 const KNOWN_AGENTS = ['forge', 'nova', 'aria', 'rex', 'orion']
 
+const KNOWN_EVENT_TYPES = [
+  'task_start', 'task_done', 'task_fail',
+  'approval_request', 'approval_granted', 'approval_rejected',
+  'message_sent', 'message_received',
+  'build_start', 'build_done', 'build_fail',
+  'deploy', 'error', 'info',
+]
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr)
@@ -141,6 +149,7 @@ export function ActivityPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [filterAgent, setFilterAgent] = useState<string | null>(null)
+  const [filterEventType, setFilterEventType] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -173,9 +182,11 @@ export function ActivityPage() {
     return () => { void supabase.removeChannel(ch) }
   }, [])
 
-  const filtered = filterAgent
-    ? events.filter(e => e.agent_key === filterAgent)
-    : events
+  const filtered = events.filter(e => {
+    if (filterAgent && e.agent_key !== filterAgent) return false
+    if (filterEventType && e.event_type !== filterEventType) return false
+    return true
+  })
 
   const groups = groupByDay(filtered)
 
@@ -225,6 +236,27 @@ export function ActivityPage() {
           <option value="">Tous les agents</option>
           {KNOWN_AGENTS.map(a => (
             <option key={a} value={a}>{AGENT_EMOJI[a] ?? '🤖'} {a}</option>
+          ))}
+        </select>
+
+        {/* Event type filter */}
+        <select
+          value={filterEventType ?? ''}
+          onChange={e => setFilterEventType(e.target.value || null)}
+          style={{
+            fontSize: 11,
+            padding: '5px 10px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(255,255,255,0.06)',
+            color: 'var(--text-secondary)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-sans)',
+          }}
+        >
+          <option value="">Tous les types</option>
+          {KNOWN_EVENT_TYPES.map(t => (
+            <option key={t} value={t}>{t}</option>
           ))}
         </select>
 

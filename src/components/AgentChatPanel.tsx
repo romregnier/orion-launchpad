@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useLaunchpadStore } from '../store'
@@ -6,6 +6,29 @@ import type { CanvasAgent } from '../types'
 import { AGENT_META } from '../types'
 import { TypingIndicator } from './TypingIndicator'
 import { formatMessageTime } from '../utils/formatMessageTime'
+
+// ── @mention helpers ──────────────────────────────────────────────────────────
+const MENTION_COLOR = '#E11F7B'
+
+function renderMessageWithMentions(text: string): React.ReactNode {
+  const parts = text.split(/(@\w+)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('@') && part.length > 1) {
+      return (
+        <span key={i} style={{ color: MENTION_COLOR, fontWeight: 600 }}>
+          {part}
+        </span>
+      )
+    }
+    return part
+  })
+}
+
+function extractMentions(text: string): string[] {
+  const matches = text.match(/@(\w+)/g)
+  if (!matches) return []
+  return matches.map(m => m.slice(1).toLowerCase())
+}
 
 interface ChatMessage {
   id: string
@@ -31,8 +54,11 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
   const [sending, setSending] = useState(false)
   const [isWaiting, setIsWaiting] = useState(false)
   const [, forceUpdate] = useState(0)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionAnchor, setMentionAnchor] = useState<number>(0)
+  const inputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const { activeBuildTasks } = useLaunchpadStore()
+  const { activeBuildTasks, canvasAgents } = useLaunchpadStore()
   const agentKey = (agent as CanvasAgent & { agent_key?: string }).agent_key ?? agent.name.toLowerCase()
   const color = AGENT_META[agentKey]?.color ?? '#E11F7B'
   const emoji = AGENT_META[agentKey]?.emoji ?? '🤖'
@@ -80,6 +106,50 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const handleInputChange = useCallback((value: string) => {
+    setInput(value)
+    const lastAt = value.lastIndexOf('@')
+    if (lastAt >= 0 && (lastAt === 0 || value[lastAt - 1] === ' ')) {
+      const query = value.slice(lastAt + 1)
+      if (!query.includes(' ')) {
+        setMentionQuery(query.toLowerCase())
+        setMentionAnchor(lastAt)
+        return
+      }
+    }
+    setMentionQuery(null)
+  }, [])
+
+  const selectMention = useCallback((key: string) => {
+    const before = input.slice(0, mentionAnchor)
+    const after = input.slice(mentionAnchor + 1 + (mentionQuery?.length ?? 0))
+    const newValue = `${before}@${key} ${after}`
+    setInput(newValue)
+    setMentionQuery(null)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }, [input, mentionAnchor, mentionQuery])
+
+  // Build mention suggestions list
+  const mentionSuggestions = mentionQuery !== null ? (() => {
+    const q = mentionQuery
+    const agentSuggestions = canvasAgents
+      .filter(a => {
+        const key = (a as CanvasAgent & { agent_key?: string }).agent_key ?? a.name.toLowerCase()
+        return key.startsWith(q)
+      })
+      .slice(0, 4)
+      .map(a => {
+        const key = (a as CanvasAgent & { agent_key?: string }).agent_key ?? a.name.toLowerCase()
+        const em = AGENT_META[key]?.emoji ?? '🤖'
+        return { key, emoji: em }
+      })
+    const result: { key: string; emoji: string }[] = [...agentSuggestions]
+    if ('romain'.startsWith(q) && result.length < 5) {
+      result.push({ key: 'romain', emoji: '👤' })
+    }
+    return result.slice(0, 5)
+  })() : []
+
   const send = async () => {
     if (!input.trim() || sending) return
     setSending(true)
@@ -87,12 +157,14 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
     setInput('')
 
     // Sauvegarder dans Supabase
+    const mentions = extractMentions(content)
     await supabase.from('agent_chat_messages').insert({
       agent_key: agentKey,
       role: 'user',
       message: content,
       user_id: currentUser,
       read_by_agent: false,
+      ...(mentions.length > 0 ? { mentions } : {}),
     })
     setIsWaiting(true)
 
@@ -178,7 +250,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
                 lineHeight: 1.5,
               }}>
                 {!isUser && <div style={{ fontSize: 10, color, fontWeight: 700, marginBottom: 4 }}>{agent.name}</div>}
-                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.message}</div>
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{renderMessageWithMentions(msg.message)}</div>
                 <span
                   title={absolute}
                   style={{ fontSize: 10, opacity: 0.4, marginTop: 3, display: 'block', textAlign: isUser ? 'right' : 'left', cursor: 'default', userSelect: 'none' }}
@@ -198,11 +270,56 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
       </div>
 
       {/* Input */}
-      <div style={{ padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, display: 'flex', gap: 8 }}>
+      <div style={{ padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, display: 'flex', gap: 8, position: 'relative' }}>
+        {/* @mention dropdown */}
+        {mentionQuery !== null && mentionSuggestions.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: 14,
+            right: 14,
+            background: 'var(--bg-elevated, #3E3742)',
+            borderRadius: 10,
+            border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
+            zIndex: 400,
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          }}>
+            {mentionSuggestions.map(s => (
+              <button
+                key={s.key}
+                onMouseDown={e => { e.preventDefault(); selectMention(s.key) }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '8px 12px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontFamily: 'var(--font-sans)',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover, rgba(255,255,255,0.08))' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+              >
+                <span style={{ fontSize: 16 }}>{s.emoji}</span>
+                <span style={{ color: MENTION_COLOR, fontWeight: 600 }}>@{s.key}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <input
+          ref={inputRef}
           value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+          onChange={e => handleInputChange(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Escape' && mentionQuery !== null) { setMentionQuery(null); return }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() }
+          }}
           placeholder={`Message ${agent.name}…`}
           style={{
             flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -210,7 +327,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
           }}
         />
         <button
-          onClick={send}
+          onClick={() => void send()}
           disabled={!input.trim() || sending}
           style={{
             padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
