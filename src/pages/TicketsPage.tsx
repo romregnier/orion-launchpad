@@ -5,6 +5,7 @@
  */
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { useLaunchpadStore } from '../store'
 import type { Goal } from '../types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -337,11 +338,17 @@ function InlineNewTicket({
     if (!title.trim()) return
     setLoading(true)
     try {
-      await supabase.from('tickets').insert({
+      const { activeCapsuleId } = useLaunchpadStore.getState()
+      const { error: insertErr } = await supabase.from('tickets').insert({
         title: title.trim(),
         priority,
         status: columnStatus,
+        project: 'launchpad',
+        reporter: 'romain',
+        type: 'feature',
+        capsule_id: activeCapsuleId ?? undefined,
       })
+      if (insertErr) throw insertErr
       setTitle('')
       setPriority('P2')
       setOpen(false)

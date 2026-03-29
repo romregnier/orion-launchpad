@@ -18,6 +18,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { AgentsTabPage } from './pages/AgentsTabPage'
 import { TicketsPage } from './pages/TicketsPage'
 import { ActivityPage } from './pages/ActivityPage'
+import { AutomationsPage } from './pages/AutomationsPage'
 import { SettingsPage } from './pages/SettingsPage'
 
 // ── Pages sans nav ─────────────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ function AppInner() {
           <Route path="/agents" element={<AgentsTabPage />} />
           <Route path="/tickets" element={<TicketsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
+          <Route path="/automations" element={<AutomationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

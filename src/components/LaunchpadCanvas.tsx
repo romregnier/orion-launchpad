@@ -74,7 +74,7 @@ export function LaunchpadCanvas() {
     subscribeToProjects, subscribeToIdeas, subscribeToLists,
     fetchProjectMetadata, fetchPublicSettings, tidyUp,
     remoteLoaded, activeFilter, setFilter, activeGroup,
-    boardName, isPrivate, currentUser, logout, fetchCapsules, lastNewAgentId,
+    boardName, currentUser, fetchCapsules, lastNewAgentId,
   } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
@@ -96,6 +96,7 @@ export function LaunchpadCanvas() {
   const [showBotModal, setShowBotModal] = useState(false)
   const [editingAgent, setEditingAgent] = useState<CanvasAgent | null>(null)
   const [agentBudgetPcts, setAgentBudgetPcts] = useState<Record<string, number>>({})
+  const [showTagBar, setShowTagBar] = useState(false)
   const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
@@ -355,28 +356,9 @@ export function LaunchpadCanvas() {
             </div>
           </>
         ) : (
-          /* Desktop : juste PresenceBar + user info (NavSidebar gère CapsuleSwitcher) */
+          /* Desktop : juste PresenceBar (NavSidebar gère logout + CapsuleSwitcher) */
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, width: '100%', pointerEvents: 'all', overflow: 'hidden', minWidth: 0 }}>
             <PresenceBar currentUser={currentUser} />
-            {isPrivate && currentUser && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px',
-                borderRadius: 999, background: 'rgba(22,18,26,0.92)',
-                border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)', flexShrink: 0,
-              }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
-                  👤 {currentUser.username}
-                </span>
-                <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-                <button
-                  onClick={logout}
-                  data-testid="btn-logout"
-                  style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
-                >
-                  Déconnexion
-                </button>
-              </div>
-            )}
           </div>
         )}
       </header>
@@ -402,10 +384,25 @@ export function LaunchpadCanvas() {
         } as React.CSSProperties}
       >
         <GroupBar />
+        {allTags.length > 0 && (
+          <button
+            onClick={() => setShowTagBar(v => !v)}
+            title="Filtrer par tags"
+            style={{
+              padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+              border: `1px solid ${showTagBar ? 'rgba(225,31,123,0.6)' : 'rgba(255,255,255,0.15)'}`,
+              cursor: 'pointer', flexShrink: 0, marginLeft: 4,
+              background: showTagBar ? 'rgba(225,31,123,0.15)' : 'transparent',
+              color: showTagBar ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+            }}
+          >
+            🏷 Tags
+          </button>
+        )}
       </nav>
 
-      {/* ── Tag filter bar ───────────────────────────────────────────────────── */}
-      {allTags.length > 0 && (
+      {/* ── Tag filter bar ─ (masquée par défaut, toggle via bouton Tags) ────── */}
+      {showTagBar && allTags.length > 0 && (
         <nav
           className="launchpad-tagbar"
           style={{

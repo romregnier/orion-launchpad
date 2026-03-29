@@ -4,7 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { CreateCapsuleModal } from './CreateCapsuleModal'
 
-export function CapsuleSwitcher() {
+interface CapsuleSwitcherProps {
+  compact?: boolean
+}
+
+export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
   const { activeCapsuleId, capsules, switchCapsule, fetchCapsules } = useLaunchpadStore()
   const [open, setOpen] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
@@ -126,11 +130,12 @@ export function CapsuleSwitcher() {
         onClick={() => setOpen(o => !o)}
         whileHover={{ opacity: 0.85 }}
         whileTap={{ scale: 0.96 }}
+        title={compact ? (current?.name ?? 'Studio') : undefined}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          padding: '5px 12px',
+          gap: compact ? 4 : 6,
+          padding: compact ? '6px 8px' : '5px 12px',
           background: 'rgba(225,31,123,0.12)',
           border: '1px solid rgba(225,31,123,0.3)',
           borderRadius: 999,
@@ -141,6 +146,8 @@ export function CapsuleSwitcher() {
           whiteSpace: 'nowrap',
           fontFamily: "'Poppins', sans-serif",
           WebkitTapHighlightColor: 'transparent',
+          width: compact ? '100%' : undefined,
+          justifyContent: compact ? 'center' : undefined,
         }}
         onMouseEnter={e => {
           (e.currentTarget as HTMLButtonElement).style.background = 'rgba(225,31,123,0.22)'
@@ -151,8 +158,8 @@ export function CapsuleSwitcher() {
           ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(225,31,123,0.3)'
         }}
       >
-        <span>{current?.emoji ?? '🌟'}</span>
-        <span>{current?.name ?? 'Studio'}</span>
+        <span style={{ fontSize: compact ? 18 : undefined }}>{current?.emoji ?? '🌟'}</span>
+        {!compact && <span>{current?.name ?? 'Studio'}</span>}
         <svg
           width="10"
           height="6"

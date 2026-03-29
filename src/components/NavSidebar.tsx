@@ -8,6 +8,7 @@ import {
   Activity,
   Settings,
   LogOut,
+  Zap,
 } from 'lucide-react'
 import { useLaunchpadStore } from '../store'
 import { CapsuleSwitcher } from './CapsuleSwitcher'
@@ -20,12 +21,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { path: '/',          label: 'Canvas',    icon: <LayoutGrid size={20} /> },
-  { path: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-  { path: '/agents',    label: 'Agents',    icon: <Bot size={20} /> },
-  { path: '/tickets',   label: 'Tickets',   icon: <Ticket size={20} /> },
-  { path: '/activity',  label: 'Activity',  icon: <Activity size={20} /> },
-  { path: '/settings',  label: 'Settings',  icon: <Settings size={20} /> },
+  { path: '/',             label: 'Canvas',      icon: <LayoutGrid size={20} /> },
+  { path: '/dashboard',    label: 'Dashboard',   icon: <LayoutDashboard size={20} /> },
+  { path: '/agents',       label: 'Agents',      icon: <Bot size={20} /> },
+  { path: '/tickets',      label: 'Tickets',     icon: <Ticket size={20} /> },
+  { path: '/activity',     label: 'Activity',    icon: <Activity size={20} /> },
+  { path: '/automations',  label: 'Automations', icon: <Zap size={20} /> },
+  { path: '/settings',     label: 'Settings',    icon: <Settings size={20} /> },
 ]
 
 // ── NavSidebar ─────────────────────────────────────────────────────────────────
@@ -58,9 +60,9 @@ export function NavSidebar({ onOpenCommandPalette }: NavSidebarProps) {
         scrollbarWidth: 'none',
       }}
     >
-      {/* CapsuleSwitcher compact — top */}
+      {/* CapsuleSwitcher compact — top (emoji + chevron only, nom en tooltip) */}
       <div style={{ width: '100%', padding: '0 8px', marginBottom: 8 }}>
-        <CapsuleSwitcher />
+        <CapsuleSwitcher compact />
       </div>
 
       {/* Nav items */}

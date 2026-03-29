@@ -526,10 +526,12 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
     try {
       const pos = getNextPosition()
       const { activeCapsuleId } = useLaunchpadStore.getState()
+      const baseKey = form.agent_key || form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      const uniqueKey = `${baseKey}-${Date.now().toString(36).slice(-4)}`
       const { data: newAgent, error: insertError } = await supabase.from('canvas_agents').insert({
         owner: currentUser?.username ?? 'anon',
         name: form.name,
-        agent_key: form.agent_key || form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        agent_key: uniqueKey,
         position_x: pos.x, position_y: pos.y,
         home_x: pos.x, home_y: pos.y,
         entity_type: form.entity_type,
@@ -560,9 +562,12 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
         setTimeout(() => setLastNewAgentId(null), 5000)
       }
       const agentName = form.name
+      // Force re-fetch canvas agents so the new agent appears immediately
+      const { subscribeToAgents } = useLaunchpadStore.getState()
+      subscribeToAgents()
       // TK-0157 — Audit log: agent hired
       logAuditEvent({
-        agent_key: form.agent_key || form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        agent_key: uniqueKey,
         capsule_id: useLaunchpadStore.getState().activeCapsuleId ?? undefined,
         event_type: 'agent_hired',
         event_data: { name: form.name, role: form.role, model: form.model },
