@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-const VAPID_PUBLIC_KEY = 'BCeeDWX-PB0Q8JjdyUUliEyH7VYMJR7CbrTxiwadtcyU6EyxAO9oD-NBWgGdRqJdBpUU2kGlfepMBI9VChfQpHk'
+const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY as string) ?? 'BCeeDWX-PB0Q8JjdyUUliEyH7VYMJR7CbrTxiwadtcyU6EyxAO9oD-NBWgGdRqJdBpUU2kGlfepMBI9VChfQpHk'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)

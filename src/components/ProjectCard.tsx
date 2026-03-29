@@ -468,7 +468,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 position: 'absolute', top: 12, left: 12, zIndex: 10,
                 width: 10, height: 10, borderRadius: '50%',
                 background: group.color,
-                border: '2px solid #2C272F',
+                border: '2px solid var(--bg-surface)',
                 boxShadow: `0 0 6px ${group.color}80`,
               }} title={group.name} />
             )}

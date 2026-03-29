@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap');
+
+:root {
+  /* Backgrounds */
+  --bg-base:     #080612;
+  --bg-surface:  #12101C;
+  --bg-elevated: #1C1A2E;
+  --bg-hover:    rgba(255,255,255,0.04);
+  --bg-glass:    rgba(255,255,255,0.05);
+
+  /* Accent */
+  --accent:          #E11F7B;
+  --accent-hover:    #C8166A;
+  --accent-glow:     rgba(225,31,123,0.3);
+  --accent-subtle:   rgba(225,31,123,0.12);
+  --accent-gradient: linear-gradient(135deg,#E11F7B 0%,#9B14BE 100%);
+
+  /* Purple */
+  --purple:       #7C3AED;
+  --purple-light: #A78BFA;
+
+  /* Status */
+  --success:  #10B981;
+  --warning:  #F59E0B;
+  --error:    #EF4444;
+  --info:     #0EA5E9;
+
+  /* Text */
+  --text-primary:   #FFFFFF;
+  --text-secondary: rgba(255,255,255,0.6);
+  --text-tertiary:  rgba(255,255,255,0.35);
+  --text-label:     rgba(255,255,255,0.4);
+
+  /* Borders */
+  --border:         rgba(255,255,255,0.08);
+  --border-focus:   rgba(225,31,123,0.5);
+  --border-accent:  rgba(225,31,123,0.25);
+
+  /* Glassmorphism */
+  --glass-blur:   blur(20px);
+  --glass-border: 1px solid rgba(255,255,255,0.08);
+
+  /* Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans:    'Inter', system-ui, sans-serif;
+  --font-display: 'Poppins', sans-serif;
+
+  /* Shadows */
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg:     0 8px 32px rgba(0,0,0,0.6);
+  --shadow-accent: 0 0 20px rgba(225,31,123,0.25);
+
+  /* Spacing */
+  --nav-width: 64px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
