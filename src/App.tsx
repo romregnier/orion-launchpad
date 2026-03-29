@@ -586,7 +586,7 @@ function AppInner() {
     // getSession() sert uniquement à débloquer l'UI rapidement si la session existe déjà.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        const role = session.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
+        const _adminEmails = ((import.meta.env.VITE_ADMIN_EMAILS as string | undefined) ?? '').split(',').map((e:string) => e.trim()).filter(Boolean); const role = _adminEmails.includes(session.user.email ?? '') ? 'admin' : 'member'
         useLaunchpadStore.setState({ currentUser: { username: session.user.email ?? '', role } })
         // Un seul fetchProjects par session — le guard _fetching évite les doublons
         useLaunchpadStore.getState().fetchProjects()

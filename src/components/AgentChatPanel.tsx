@@ -102,7 +102,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
       fetch(`https://api.telegram.org/bot${agentData.bot_token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: '7893397797', text: `💬 [Launchpad] ${currentUser} → ${agent.name}:\n${content}` }),
+        body: JSON.stringify({ chat_id: (import.meta.env.VITE_ADMIN_TELEGRAM_CHAT_ID as string | undefined) ?? agent.telegram_chat_id ?? '', text: `💬 [Launchpad] ${currentUser} → ${agent.name}:\n${content}` }),
       }).catch(() => {})
     }
 

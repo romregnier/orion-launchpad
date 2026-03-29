@@ -9,7 +9,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { supabase } from './supabase'
 import type { DeckBrief, DeckJSON, SlideJSON } from '../types/deck'
 
-const GOOGLE_AI_KEY = 'AIzaSyAmLCREMg8cL856Wx3bhp9iQw7baj_f6r0'
+const GOOGLE_AI_KEY = (import.meta.env.VITE_GOOGLE_AI_KEY as string | undefined) ?? ''
 
 const SYSTEM_PROMPT = `Tu es un expert en présentation professionnelle. Génère un deck de présentation au format JSON strict.
 Le deck doit être visuellement impactant avec du VRAI contenu (pas de placeholders Lorem Ipsum).

@@ -742,7 +742,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       login: async (email: string, password: string) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error || !data.user) return false
-        const role = data.user.email === 'romain@rive-studio.com' ? 'admin' : 'member'
+        const _adminEmails = ((import.meta.env.VITE_ADMIN_EMAILS as string | undefined) ?? '').split(',').map((e:string) => e.trim()).filter(Boolean); const role = _adminEmails.includes(data.user.email ?? '') ? 'admin' : 'member'
         set({ currentUser: { username: data.user.email ?? '', role } })
         return true
       },
@@ -790,7 +790,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password: crypto.randomUUID(),
-          options: { emailRedirectTo: 'https://orion-launchpad.surge.sh' },
+          options: { emailRedirectTo: (import.meta.env.VITE_BASE_URL as string | undefined) ?? window.location.origin },
         })
         if (signUpError && !signUpError.message.includes('already registered') && !signUpError.message.includes('User already registered')) {
           return { ok: false, error: signUpError.message }

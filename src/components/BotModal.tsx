@@ -147,7 +147,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
       setTimeout(() => {
         tailorRef.current?.contentWindow?.postMessage(
           { type: 'tailor-load-config', config: pendingConfigRef.current },
-          'https://the-tailor.surge.sh'
+          (import.meta.env.VITE_AVATAR_BUILDER_URL as string | undefined) ?? 'https://the-tailor.surge.sh'
         )
       }, 300)
     }
@@ -165,7 +165,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
     )
   }
 
-  const tailorSrc = 'https://the-tailor.surge.sh'
+  const tailorSrc = (import.meta.env.VITE_AVATAR_BUILDER_URL as string | undefined) ?? 'https://the-tailor.surge.sh'
 
   const tailorFullscreen = (
     <AnimatePresence>
