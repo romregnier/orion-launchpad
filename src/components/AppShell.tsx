@@ -24,8 +24,8 @@ export function AppShell() {
         overflow: 'hidden',
       }}
     >
-      {/* Nav latérale 64px — desktop only */}
-      <div style={{ display: isMobile ? 'none' : 'block' }}>
+      {/* Nav latérale — desktop only */}
+      <div style={{ display: isMobile ? 'none' : 'block', width: 'var(--nav-width)', flexShrink: 0 }}>
         <NavSidebar />
       </div>
 

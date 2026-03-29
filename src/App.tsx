@@ -88,7 +88,7 @@ function AppInner() {
 
       {/* Login overlay */}
       {showLoginOverlay && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#080612' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg-base)' }}>
           <LoginScreen />
         </div>
       )}

@@ -111,8 +111,8 @@ function AgentCard({
         width: '100%',
         padding: '16px 12px',
         borderRadius: 12,
-        background: hovered ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${hovered ? 'rgba(225,31,123,0.3)' : 'rgba(255,255,255,0.08)'}`,
+        background: hovered ? 'rgba(255,255,255,0.07)' : 'var(--bg-hover)',
+        border: `1px solid ${hovered ? 'var(--border-accent)' : 'var(--border-default)'}`,
         textAlign: 'center',
         cursor: 'pointer',
         display: 'flex',
@@ -277,8 +277,8 @@ export function AgentsTabPage() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: '#0B090D',
-        fontFamily: "'Poppins', sans-serif",
+        background: 'var(--bg-base)',
+        fontFamily: 'var(--font-sans)',
         color: '#F0EDF5',
       }}
     >
@@ -290,7 +290,7 @@ export function AgentsTabPage() {
           zIndex: 10,
           background: 'rgba(11,9,13,0.95)',
           backdropFilter: 'blur(16px)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: '1px solid var(--border-default)',
           padding: '0 24px',
           height: 64,
           display: 'flex',
@@ -324,9 +324,9 @@ export function AgentsTabPage() {
             whileTap={{ scale: 0.96 }}
             onClick={() => setShowBuilder(true)}
             style={{
-              background: '#E11F7B',
+              background: 'var(--accent)',
               border: 'none',
-              borderRadius: 10,
+              borderRadius: 'var(--radius-md)',
               padding: '9px 16px',
               fontSize: 13,
               fontWeight: 700,

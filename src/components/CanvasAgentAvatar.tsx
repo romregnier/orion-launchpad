@@ -788,7 +788,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
                 position: 'absolute',
                 inset: -4,
                 borderRadius: '50%',
-                border: '2px solid #E11F7B',
+                border: '2px solid var(--accent)',
                 pointerEvents: 'none',
                 zIndex: 20,
               }}
@@ -807,7 +807,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
                 position: 'absolute',
                 top: -10,
                 right: -10,
-                background: '#E11F7B',
+                background: 'var(--accent)',
                 color: '#fff',
                 fontSize: 8,
                 fontWeight: 900,
@@ -815,7 +815,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
                 borderRadius: 4,
                 pointerEvents: 'none',
                 zIndex: 21,
-                fontFamily: "'Poppins', sans-serif",
+                fontFamily: 'var(--font-sans)',
                 letterSpacing: '0.05em',
               }}
             >NEW</motion.div>
@@ -835,7 +835,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
               width: 18,
               height: 18,
               borderRadius: '50%',
-              background: budgetPct >= 80 ? '#EF4444' : '#F59E0B',
+              background: budgetPct >= 80 ? 'var(--error)' : 'var(--warning)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -846,7 +846,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
               zIndex: 22,
               fontFamily: "'Poppins', sans-serif",
               border: '1.5px solid rgba(11,9,13,0.8)',
-              boxShadow: budgetPct >= 80 ? '0 0 6px rgba(239,68,68,0.7)' : '0 0 4px rgba(245,158,11,0.5)',
+              boxShadow: budgetPct >= 80 ? '0 0 6px var(--accent-glow)' : '0 0 4px rgba(245,158,11,0.5)',
             }}
           >
             {budgetPct >= 90 ? '💰' : `${budgetPct}%`}
@@ -913,7 +913,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
               style={{
                 position: 'absolute', top: -8, left: -8,
                 width: 22, height: 22, borderRadius: '50%',
-                background: '#6366F1', border: '2px solid #0B090D',
+                background: '#6366F1', border: '2px solid var(--bg-base)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, color: '#fff', cursor: 'pointer', padding: 0,
               }}
@@ -930,7 +930,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
                 style={{
                   position: 'absolute', top: -8, right: -8,
                   width: 22, height: 22, borderRadius: '50%',
-                  background: '#EF4444', border: '2px solid #0B090D',
+                  background: 'var(--error)', border: '2px solid var(--bg-base)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, color: '#fff', cursor: 'pointer', lineHeight: 1, padding: 0,
                 }}
@@ -995,7 +995,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
                 padding: '3px 7px',
                 fontSize: 12,
                 cursor: 'pointer',
-                color: '#E11F7B',
+                color: 'var(--accent)',
               }}
             >
               💬
@@ -1015,7 +1015,7 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, b
               padding: '2px 7px',
               fontSize: 10,
               fontWeight: 700,
-              color: '#E11F7B',
+              color: 'var(--accent)',
               whiteSpace: 'nowrap',
             }}
           >
