@@ -199,9 +199,8 @@ interface LaunchpadStore {
   setActiveTab: (tab: AppShellTab) => void
 
   // Admin Panel (unified — replaces showSettings + showOrgSettings)
-  showAdminPanel: boolean
+  // TK-0167: showAdminPanel supprimé — utiliser setActiveTab('agents') ou setActiveTab('settings')
   adminTab: AdminTab
-  setShowAdminPanel: (v: boolean) => void
   setAdminTab: (tab: AdminTab) => void
   /** ID of the most recently spawned agent, for spawn animation. Cleared after 5s. */
   lastNewAgentId: string | null
@@ -348,16 +347,15 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       // TK-0160/0161 — AppShell navigation tab
       activeTab: 'canvas' as AppShellTab,
       setActiveTab: (tab) => set({ activeTab: tab }),
-      showAdminPanel: false,
+      // TK-0167: showAdminPanel supprimé
       adminTab: 'team' as AdminTab,
       lastNewAgentId: null,
-      setShowAdminPanel: (v) => set({ showAdminPanel: v }),
       setAdminTab: (tab) => set({ adminTab: tab }),
       setLastNewAgentId: (id) => set({ lastNewAgentId: id }),
-      // Backward compat — showOrgSettings/showSettings redirect to showAdminPanel
+      // Backward compat — showOrgSettings/showSettings redirect to activeTab
       showOrgSettings: false,
       orgSettingsTab: 'agents' as const,
-      setShowOrgSettings: (v) => set({ showAdminPanel: v, showOrgSettings: v }),
+      setShowOrgSettings: (v) => { set({ showOrgSettings: v }); if (v) set({ activeTab: 'agents' }) },
       setOrgSettingsTab: (tab) => {
         const map: Record<string, AdminTab> = {
           agents: 'team',
@@ -775,9 +773,9 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
 
       setShowSettings: (v) => {
         if (v) {
-          set({ showSettings: v, showAdminPanel: true, adminTab: 'appsettings' })
+          set({ showSettings: v, adminTab: 'appsettings', activeTab: 'settings' })
         } else {
-          set({ showSettings: false, showAdminPanel: false })
+          set({ showSettings: false })
         }
       },
 

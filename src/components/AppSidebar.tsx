@@ -106,13 +106,18 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onAdminTab }: AppSidebarProps) {
   const location = useLocation()
-  const { setShowAdminPanel, setAdminTab } = useLaunchpadStore()
+  const { setAdminTab, setActiveTab } = useLaunchpadStore()
 
   const isActive = (to: string) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
 
   const handleAdminTab = (tab: 'team' | 'orgchart' | 'appsettings') => {
     setAdminTab(tab)
-    setShowAdminPanel(true)
+    // TK-0167: remplacer setShowAdminPanel par setActiveTab
+    if (tab === 'appsettings') {
+      setActiveTab('settings')
+    } else {
+      setActiveTab('agents')
+    }
     if (onAdminTab) onAdminTab(tab)
   }
 

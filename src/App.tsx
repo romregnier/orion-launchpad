@@ -11,9 +11,8 @@ import { ChatPanel } from './components/ChatPanel'
 import { ListWidgetCard } from './components/ListWidgetCard'
 import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
-// AdminPanel TK-0160: commenté — plus rendu en floating overlay, accessible via nav
-// import { AdminPanel } from './components/AdminPanel'
-// SettingsPanel + OrgSettingsPanel deprecated — remplacés par AdminPanel Sprint A
+// AdminPanel TK-0167: supprimé — accessible via nav 'agents' tab
+// SettingsPanel TK-0167: supprimé — accessible via nav 'settings' tab
 import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusFAB } from './components/BuildStatusFAB'
 import { DecksPage } from './pages/DecksPage'
@@ -29,6 +28,8 @@ import { AgentDMThread } from './pages/AgentDMThread'
 import { CapsuleHomePage } from './pages/CapsuleHomePage'
 import { AppShell } from './components/AppShell'
 import { DashboardPage } from './pages/DashboardPage'
+import { AgentsTabPage } from './pages/AgentsTabPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 
 import { PresenceBar } from './components/PresenceBar'
@@ -553,8 +554,7 @@ function LaunchpadCanvas() {
       <AddProjectModal open={showAdd} onClose={() => setShowAdd(false)} defaultPosition={newCardPosition} />
 
       <ChatPanel open={showGlobalChat} onClose={() => setShowGlobalChat(false)} />
-      {/* AdminPanel TK-0160: commenté — plus rendu en floating overlay */}
-      {/* <AnimatePresence>{showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}</AnimatePresence> */}
+      {/* AdminPanel TK-0167: supprimé — accessible via nav onglet 'agents' */}
 
       {/* Agent chat panel */}
       <AnimatePresence>
@@ -644,13 +644,10 @@ function AppInner() {
             </div>
           )}
 
-          {/* Agents tab — redirect to existing AgentInboxPage content */}
+          {/* Agents tab — AgentsTabPage (TK-0162) */}
           {activeTab === 'agents' && (
-            <div style={{ width: '100%', height: '100%', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
-                <p style={{ fontSize: 14 }}>Agents — coming soon</p>
-              </div>
+            <div style={{ width: '100%', height: '100%' }}>
+              <AgentsTabPage />
             </div>
           )}
 
@@ -674,13 +671,10 @@ function AppInner() {
             </div>
           )}
 
-          {/* Settings tab */}
+          {/* Settings tab — SettingsPage (TK-0168) */}
           {activeTab === 'settings' && (
-            <div style={{ width: '100%', height: '100%', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>⚙️</div>
-                <p style={{ fontSize: 14 }}>Settings — coming soon</p>
-              </div>
+            <div style={{ width: '100%', height: '100%' }}>
+              <SettingsPage />
             </div>
           )}
 
