@@ -186,3 +186,45 @@ export interface AgentDirectMessage {
   metadata: Record<string, unknown>
   created_at: string
 }
+
+export interface Goal {
+  id: string
+  capsule_id: string
+  parent_goal_id?: string
+  title: string
+  description?: string
+  level: 'capsule' | 'project' | 'sprint'
+  status: 'active' | 'completed' | 'cancelled'
+  target_date?: string
+  metrics?: Record<string, unknown>
+  created_at: string
+}
+
+export interface BoardApproval {
+  id: string
+  capsule_id: string
+  agent_key: string
+  action: string
+  detail: Record<string, unknown>
+  status: 'pending' | 'approved' | 'rejected' | 'expired'
+  decided_by?: string
+  timeout_at?: string
+  decided_at?: string
+  created_at: string
+}
+
+export interface Automation {
+  id: string
+  capsule_id: string
+  name: string
+  description?: string
+  schedule?: string
+  script_path?: string
+  adapter_type: string
+  adapter_config?: Record<string, unknown>
+  enabled: boolean
+  last_run_at?: string
+  last_run_status?: string
+  last_run_output?: string
+  created_at: string
+}

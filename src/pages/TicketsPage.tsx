@@ -1,9 +1,11 @@
 /**
  * TicketsPage — Route "/tickets"
  * TK-0175 — Vue Kanban des tickets
+ * TK-0169 — Goal Hierarchy (capsule goal banner, GoalBadge, New Goal modal)
  */
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import type { Goal } from '../types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Ticket {
@@ -13,6 +15,7 @@ interface Ticket {
   status: string
   assigned_to: string | null
   project: string | null
+  goal_id?: string | null
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -21,6 +24,12 @@ const PRIORITY_COLORS: Record<string, { bg: string; color: string }> = {
   P1: { bg: 'rgba(245,158,11,0.2)',   color: '#F59E0B' },
   P2: { bg: 'rgba(107,114,128,0.2)',  color: '#9CA3AF' },
   P3: { bg: 'rgba(107,114,128,0.15)', color: '#6B7280' },
+}
+
+const GOAL_LEVEL_COLORS: Record<string, { bg: string; color: string }> = {
+  capsule: { bg: 'rgba(225,31,123,0.15)', color: '#E11F7B' },
+  project: { bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6' },
+  sprint:  { bg: 'rgba(16,185,129,0.15)', color: '#10B981' },
 }
 
 const AGENT_EMOJI: Record<string, string> = {
@@ -33,11 +42,218 @@ const KANBAN_COLUMNS = [
   { id: 'done',        label: 'Done',        statuses: ['done', 'verified'] },
 ]
 
+// ── GoalBadge ─────────────────────────────────────────────────────────────────
+function GoalBadge({ goal }: { goal: Goal }) {
+  const colors = GOAL_LEVEL_COLORS[goal.level] ?? GOAL_LEVEL_COLORS.project
+  return (
+    <span style={{
+      fontSize: 10,
+      fontWeight: 600,
+      padding: '2px 7px',
+      borderRadius: 'var(--radius-full)',
+      background: colors.bg,
+      color: colors.color,
+      fontFamily: 'var(--font-sans)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      maxWidth: 120,
+    }} title={goal.title}>
+      🎯 {goal.title}
+    </span>
+  )
+}
+
+// ── NewGoalModal ──────────────────────────────────────────────────────────────
+function NewGoalModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [title, setTitle] = useState('')
+  const [level, setLevel] = useState<'capsule' | 'project' | 'sprint'>('project')
+  const [description, setDescription] = useState('')
+  const [targetDate, setTargetDate] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async () => {
+    if (!title.trim()) { setError('Le titre est obligatoire'); return }
+    setLoading(true)
+    setError('')
+    try {
+      // Get current capsule id
+      const { data: capsules } = await supabase.from('capsules').select('id').limit(1)
+      const capsuleId = capsules?.[0]?.id
+      if (!capsuleId) { setError('Aucune capsule trouvée'); setLoading(false); return }
+
+      const { error: insertErr } = await supabase.from('goals').insert({
+        capsule_id: capsuleId,
+        title: title.trim(),
+        level,
+        description: description.trim() || null,
+        target_date: targetDate || null,
+        status: 'active',
+      })
+      if (insertErr) throw insertErr
+      onCreated()
+      onClose()
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Erreur lors de la création'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 9000,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 480,
+          background: 'var(--bg-elevated)',
+          border: 'var(--glass-border)',
+          borderRadius: 'var(--radius-xl)',
+          padding: 24,
+          display: 'flex', flexDirection: 'column', gap: 16,
+        }}
+      >
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+          🎯 Nouvel objectif
+        </h2>
+
+        {/* Title */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-label)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Titre *
+          </label>
+          <input
+            autoFocus
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && void handleSubmit()}
+            placeholder="Atteindre 500k MAU en 2026…"
+            style={{
+              background: 'var(--bg-surface)', border: 'var(--glass-border)',
+              borderRadius: 'var(--radius-md)', padding: '10px 12px',
+              color: 'var(--text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)',
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Level */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-label)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Niveau
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['capsule', 'project', 'sprint'] as const).map(lvl => {
+              const colors = GOAL_LEVEL_COLORS[lvl]
+              return (
+                <button
+                  key={lvl}
+                  onClick={() => setLevel(lvl)}
+                  style={{
+                    flex: 1, padding: '8px 0',
+                    borderRadius: 'var(--radius-md)',
+                    border: level === lvl ? `1px solid ${colors.color}` : '1px solid var(--border-default)',
+                    background: level === lvl ? colors.bg : 'transparent',
+                    color: level === lvl ? colors.color : 'var(--text-secondary)',
+                    cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                    fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                  }}
+                >
+                  {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Description */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-label)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Description (optionnelle)
+          </label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={2}
+            placeholder="Détails sur l'objectif…"
+            style={{
+              background: 'var(--bg-surface)', border: 'var(--glass-border)',
+              borderRadius: 'var(--radius-md)', padding: '10px 12px',
+              color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)',
+              outline: 'none', resize: 'vertical',
+            }}
+          />
+        </div>
+
+        {/* Target date */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-label)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Date cible (optionnelle)
+          </label>
+          <input
+            type="date"
+            value={targetDate}
+            onChange={e => setTargetDate(e.target.value)}
+            style={{
+              background: 'var(--bg-surface)', border: 'var(--glass-border)',
+              borderRadius: 'var(--radius-md)', padding: '10px 12px',
+              color: 'var(--text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)',
+              outline: 'none', colorScheme: 'dark',
+            }}
+          />
+        </div>
+
+        {error && (
+          <p style={{ margin: 0, fontSize: 12, color: '#EF4444', fontFamily: 'var(--font-sans)' }}>{error}</p>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '9px 18px', borderRadius: 'var(--radius-md)',
+              background: 'transparent', border: '1px solid var(--border-default)',
+              color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 13,
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => void handleSubmit()}
+            disabled={loading || !title.trim()}
+            style={{
+              padding: '9px 18px', borderRadius: 'var(--radius-md)',
+              background: 'var(--accent)', color: '#fff', border: 'none',
+              cursor: loading || !title.trim() ? 'not-allowed' : 'pointer',
+              fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
+              opacity: loading || !title.trim() ? 0.6 : 1,
+            }}
+          >
+            {loading ? 'Création…' : '🎯 Créer l\'objectif'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── TicketCard ────────────────────────────────────────────────────────────────
-function TicketCard({ ticket }: { ticket: Ticket }) {
+function TicketCard({ ticket, goals }: { ticket: Ticket; goals: Goal[] }) {
   const priority = ticket.priority?.toUpperCase() ?? 'P3'
   const pColor = PRIORITY_COLORS[priority] ?? PRIORITY_COLORS.P3
   const agentEmoji = AGENT_EMOJI[ticket.assigned_to?.toLowerCase() ?? '']
+  const linkedGoal = ticket.goal_id ? goals.find(g => g.id === ticket.goal_id) : null
 
   return (
     <div
@@ -66,6 +282,9 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
       }}>
         {ticket.title}
       </p>
+
+      {/* GoalBadge */}
+      {linkedGoal && <GoalBadge goal={linkedGoal} />}
 
       {/* Footer: priority + assigned */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -142,6 +361,7 @@ function InlineNewTicket({
   if (!open) {
     return (
       <button
+        id={columnStatus === 'backlog' ? 'new-ticket-backlog' : undefined}
         onClick={handleOpen}
         style={{
           width: '100%',
@@ -236,29 +456,72 @@ function InlineNewTicket({
 // ── TicketsPage ───────────────────────────────────────────────────────────────
 export function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
+  const [goals, setGoals] = useState<Goal[]>([])
+  const [capsuleGoal, setCapsuleGoal] = useState<Goal | null>(null)
   const [loading, setLoading] = useState(true)
   const [filterPriority, setFilterPriority] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [showNewGoalModal, setShowNewGoalModal] = useState(false)
 
-  const loadTickets = async () => {
+  const loadData = async () => {
     try {
-      const { data } = await supabase
+      // Load tickets with goal_id (graceful if column doesn't exist)
+      const { data: ticketData } = await supabase
         .from('tickets')
-        .select('id,title,priority,status,assigned_to,project')
+        .select('id,title,priority,status,assigned_to,project,goal_id')
         .order('created_at', { ascending: false })
-      setTickets(data as Ticket[] ?? [])
+      setTickets((ticketData as Ticket[]) ?? [])
     } catch {
-      setTickets([])
+      // goals column might not exist yet - load without it
+      try {
+        const { data: ticketData } = await supabase
+          .from('tickets')
+          .select('id,title,priority,status,assigned_to,project')
+          .order('created_at', { ascending: false })
+        setTickets((ticketData as Ticket[]) ?? [])
+      } catch {
+        setTickets([])
+      }
     } finally {
       setLoading(false)
     }
   }
 
+  const loadGoals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        // Table doesn't exist yet - graceful empty state
+        setGoals([])
+        setCapsuleGoal(null)
+        return
+      }
+
+      const allGoals = (data as Goal[]) ?? []
+      setGoals(allGoals)
+      // Find active capsule-level goal
+      const activeCapGoal = allGoals.find(g => g.level === 'capsule' && g.status === 'active')
+      setCapsuleGoal(activeCapGoal ?? null)
+    } catch {
+      setGoals([])
+      setCapsuleGoal(null)
+    }
+  }
+
+  const loadTickets = async () => {
+    await loadData()
+  }
+
   useEffect(() => {
-    void loadTickets()
+    void loadData()
+    void loadGoals()
 
     const ch = supabase.channel('tickets_page_rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => void loadTickets())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => void loadData())
       .subscribe()
 
     return () => { void supabase.removeChannel(ch) }
@@ -268,7 +531,6 @@ export function TicketsPage() {
   const filtered = tickets.filter(t => {
     if (filterPriority && t.priority?.toUpperCase() !== filterPriority) return false
     if (filterStatus) {
-      // map filter status label to actual statuses
       const col = KANBAN_COLUMNS.find(c => c.id === filterStatus)
       if (col && !col.statuses.includes(t.status)) return false
       if (!col && t.status !== filterStatus) return false
@@ -287,6 +549,66 @@ export function TicketsPage() {
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
+      {/* ── Capsule Goal Banner ──────────────────────────────────────────────── */}
+      {capsuleGoal ? (
+        <div style={{
+          padding: '10px 24px',
+          background: 'rgba(225,31,123,0.06)',
+          borderBottom: '1px solid rgba(225,31,123,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <span style={{ fontSize: 16 }}>🎯</span>
+          <span style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'rgba(225,31,123,0.9)',
+            fontFamily: 'var(--font-display)',
+          }}>
+            "{capsuleGoal.title}"
+          </span>
+          {capsuleGoal.target_date && (
+            <span style={{
+              fontSize: 11,
+              color: 'var(--text-tertiary)',
+              fontFamily: 'var(--font-sans)',
+            }}>
+              → {new Date(capsuleGoal.target_date).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+            </span>
+          )}
+        </div>
+      ) : (
+        <div style={{
+          padding: '8px 24px',
+          background: 'rgba(255,255,255,0.02)',
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <button
+            onClick={() => setShowNewGoalModal(true)}
+            style={{
+              fontSize: 12,
+              color: 'var(--text-tertiary)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)' }}
+          >
+            <span>🎯</span> + Définir un objectif capsule
+          </button>
+        </div>
+      )}
+
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div style={{
         padding: 'var(--space-5) var(--space-6) var(--space-4)',
@@ -310,7 +632,6 @@ export function TicketsPage() {
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginLeft: 8 }}>
-          {/* Priority filter */}
           {(['P0','P1','P2'] as const).map(p => (
             <button
               key={p}
@@ -329,7 +650,6 @@ export function TicketsPage() {
             </button>
           ))}
 
-          {/* Status filter */}
           <select
             value={filterStatus ?? ''}
             onChange={e => setFilterStatus(e.target.value || null)}
@@ -349,11 +669,27 @@ export function TicketsPage() {
           </select>
         </div>
 
-        {/* Spacer + New Ticket button */}
-        <div style={{ marginLeft: 'auto' }}>
+        {/* Spacer + New Ticket + New Goal buttons */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowNewGoalModal(true)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(225,31,123,0.1)',
+              color: 'rgba(225,31,123,0.9)',
+              fontSize: 'var(--font-size-sm)',
+              fontWeight: 600,
+              border: '1px solid rgba(225,31,123,0.25)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              transition: 'background 0.15s',
+            }}
+          >
+            🎯 New Goal
+          </button>
           <button
             onClick={() => {
-              // Scroll to backlog column if possible, or just trigger inline form
               document.getElementById('new-ticket-backlog')?.click()
             }}
             style={{
@@ -442,7 +778,7 @@ export function TicketsPage() {
                   </div>
                 ) : (
                   colTickets.map(ticket => (
-                    <TicketCard key={ticket.id} ticket={ticket} />
+                    <TicketCard key={ticket.id} ticket={ticket} goals={goals} />
                   ))
                 )}
 
@@ -457,6 +793,14 @@ export function TicketsPage() {
             )
           })}
         </div>
+      )}
+
+      {/* New Goal Modal */}
+      {showNewGoalModal && (
+        <NewGoalModal
+          onClose={() => setShowNewGoalModal(false)}
+          onCreated={() => { void loadGoals() }}
+        />
       )}
 
       {/* Responsive */}

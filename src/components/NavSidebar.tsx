@@ -29,7 +29,11 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 // ── NavSidebar ─────────────────────────────────────────────────────────────────
-export function NavSidebar() {
+interface NavSidebarProps {
+  onOpenCommandPalette?: () => void
+}
+
+export function NavSidebar({ onOpenCommandPalette }: NavSidebarProps) {
   const { currentUser, logout } = useLaunchpadStore()
   const location = useLocation()
   const navigate = useNavigate()
@@ -75,6 +79,41 @@ export function NavSidebar() {
           )
         })}
       </div>
+
+      {/* ⌘K hint */}
+      {onOpenCommandPalette && (
+        <button
+          onClick={onOpenCommandPalette}
+          title="Command Palette (⌘K)"
+          style={{
+            width: 'calc(100% - 16px)',
+            margin: '4px 8px',
+            padding: '6px 8px',
+            borderRadius: 'var(--radius-md)',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'var(--text-tertiary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            transition: 'background 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => {
+            const b = e.currentTarget
+            b.style.background = 'rgba(255,255,255,0.08)'
+            b.style.color = 'var(--text-secondary)'
+          }}
+          onMouseLeave={e => {
+            const b = e.currentTarget
+            b.style.background = 'rgba(255,255,255,0.04)'
+            b.style.color = 'var(--text-tertiary)'
+          }}
+        >
+          <kbd style={{ fontSize: 10, fontFamily: 'monospace', opacity: 0.7 }}>⌘K</kbd>
+        </button>
+      )}
 
       {/* Bottom: user avatar + logout */}
       <div style={{ width: '100%', borderTop: 'var(--glass-border)', paddingTop: 8 }}>

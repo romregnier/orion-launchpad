@@ -1,11 +1,15 @@
 /**
  * DashboardPage — Route "/dashboard"
  * TK-0163 — Vue opérationnelle complète
- * 5 sections : stats, build tasks, approvals, activity feed, automations
+ * TK-0170 — Board Approvals branchés sur board_approvals
+ * TK-0165 — Automations branchées sur automations table
  */
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useLaunchpadStore } from '../store'
+import { HumanApprovalCard } from '../components/HumanApprovalCard'
+import { AutomationCard } from '../components/AutomationCard'
+import type { BoardApproval, Automation } from '../types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AuditEvent {
@@ -41,26 +45,6 @@ interface AgentBudget {
   tokens_used_mtd: number
   usd_used_mtd: number
   monthly_usd_limit: number
-}
-
-interface HumanApproval {
-  id: string
-  title: string
-  description: string | null
-  requested_by: string
-  approval_type: string
-  status: string
-  created_at: string
-}
-
-interface Automation {
-  id: string
-  name: string
-  description: string | null
-  enabled: boolean
-  last_run_at: string | null
-  last_run_status: string | null
-  schedule: string | null
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -175,7 +159,7 @@ export function DashboardPage() {
   const [tasks, setTasks] = useState<BuildTask[]>([])
   const [ticketsP0, setTicketsP0] = useState<Ticket[]>([])
   const [budgets, setBudgets] = useState<AgentBudget[]>([])
-  const [approvals, setApprovals] = useState<HumanApproval[]>([])
+  const [approvals, setApprovals] = useState<BoardApproval[]>([])
   const [automations, setAutomations] = useState<Automation[]>([])
 
   const [loadingEvents, setLoadingEvents] = useState(true)
@@ -185,16 +169,54 @@ export function DashboardPage() {
 
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  useEffect(() => {
-    const safeQuery = async <T,>(query: PromiseLike<{ data: T[] | null; error: unknown }>, onData: (d: T[]) => void, onErr: () => void) => {
-      try {
-        const { data } = await query
-        onData(data ?? [])
-      } catch {
-        onErr()
-      }
+  const safeQuery = async <T,>(
+    query: PromiseLike<{ data: T[] | null; error: unknown }>,
+    onData: (d: T[]) => void,
+    onErr: () => void
+  ) => {
+    try {
+      const { data } = await query
+      onData(data ?? [])
+    } catch {
+      onErr()
     }
+  }
 
+  const loadApprovals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('board_approvals')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+      if (error) {
+        // Table doesn't exist yet - use empty state
+        setApprovals([])
+      } else {
+        setApprovals((data as BoardApproval[]) ?? [])
+      }
+    } catch {
+      setApprovals([])
+    }
+  }
+
+  const loadAutomations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('automations')
+        .select('*')
+        .order('name')
+      if (error) {
+        setAutomations([])
+      } else {
+        setAutomations((data as Automation[]) ?? [])
+      }
+    } catch {
+      setAutomations([])
+    }
+  }
+
+  useEffect(() => {
     void safeQuery(supabase.from('agent_audit_log').select('*').order('created_at', { ascending: false }).limit(5) as never,
       (d) => { setEvents(d as AuditEvent[]); setLoadingEvents(false) },
       () => setLoadingEvents(false))
@@ -211,13 +233,8 @@ export function DashboardPage() {
       (d) => { setBudgets(d as AgentBudget[]); setLoadingBudgets(false) },
       () => setLoadingBudgets(false))
 
-    void safeQuery(supabase.from('human_approvals').select('*').eq('status', 'pending').order('created_at', { ascending: false }) as never,
-      (d) => setApprovals(d as HumanApproval[]),
-      () => setApprovals([]))
-
-    void safeQuery(supabase.from('automations').select('*').eq('enabled', true).order('name') as never,
-      (d) => setAutomations(d as Automation[]),
-      () => setAutomations([]))
+    void loadApprovals()
+    void loadAutomations()
   }, [])
 
   // Realtime subscription for build tasks
@@ -230,6 +247,38 @@ export function DashboardPage() {
       .subscribe()
     return () => { void supabase.removeChannel(ch) }
   }, [])
+
+  // Approval actions
+  const handleApprove = async (id: string) => {
+    const { error } = await supabase
+      .from('board_approvals')
+      .update({ status: 'approved', decided_at: new Date().toISOString() })
+      .eq('id', id)
+    if (!error) {
+      setApprovals(prev => prev.filter(a => a.id !== id))
+    }
+  }
+
+  const handleReject = async (id: string) => {
+    const { error } = await supabase
+      .from('board_approvals')
+      .update({ status: 'rejected', decided_at: new Date().toISOString() })
+      .eq('id', id)
+    if (!error) {
+      setApprovals(prev => prev.filter(a => a.id !== id))
+    }
+  }
+
+  // Automation toggle
+  const handleAutomationToggle = async (id: string, enabled: boolean) => {
+    const { error } = await supabase
+      .from('automations')
+      .update({ enabled })
+      .eq('id', id)
+    if (!error) {
+      setAutomations(prev => prev.map(a => a.id === id ? { ...a, enabled } : a))
+    }
+  }
 
   // Stats
   const activeAgents = canvasAgents.filter(a => a.status === 'online' || a.working_on_project).length
@@ -329,42 +378,19 @@ export function DashboardPage() {
             )}
           </Section>
 
-          {/* Section 3 — Approbations en attente */}
-          <Section title="Approbations en attente">
+          {/* Section 3 — Approbations en attente (board_approvals) */}
+          <Section title={`Approbations en attente ${approvals.length > 0 ? `(${approvals.length})` : ''}`}>
             {approvals.length === 0 ? (
               <Empty text="Aucune approbation en attente ✅" />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {approvals.map(a => (
-                  <div key={a.id} style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'rgba(225,31,123,0.06)',
-                    border: '1px solid rgba(225,31,123,0.15)',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14 }}>{AGENT_EMOJI[a.requested_by] ?? '🤖'}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-                        {a.title}
-                      </span>
-                    </div>
-                    {a.description && (
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-sans)' }}>
-                        {a.description}
-                      </span>
-                    )}
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--radius-sm)', background: 'rgba(16,185,129,0.2)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                        ✅ Approuver
-                      </button>
-                      <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.15)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                        ❌ Rejeter
-                      </button>
-                    </div>
-                  </div>
+                  <HumanApprovalCard
+                    key={a.id}
+                    approval={a}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                  />
                 ))}
               </div>
             )}
@@ -414,42 +440,18 @@ export function DashboardPage() {
             )}
           </Section>
 
-          {/* Section 5 — Automations actives */}
-          <Section title="Automations actives">
+          {/* Section 5 — Automations */}
+          <Section title={`Automations ${automations.length > 0 ? `(${automations.length})` : ''}`}>
             {automations.length === 0 ? (
               <Empty text="Aucune automatisation configurée" />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {automations.map(a => (
-                  <div key={a.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 10px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: 'var(--glass-border)',
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {a.name}
-                      </div>
-                      {a.last_run_at && (
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-                          Dernier run : {relativeTime(a.last_run_at)}
-                        </div>
-                      )}
-                    </div>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '2px 6px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: a.last_run_status === 'error' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.15)',
-                      color: a.last_run_status === 'error' ? '#EF4444' : '#10B981',
-                      fontFamily: 'var(--font-display)',
-                    }}>
-                      {a.last_run_status === 'error' ? '⚠️ error' : '✅ ok'}
-                    </span>
-                  </div>
+                  <AutomationCard
+                    key={a.id}
+                    automation={a}
+                    onToggle={handleAutomationToggle}
+                  />
                 ))}
               </div>
             )}
