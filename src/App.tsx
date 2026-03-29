@@ -11,7 +11,8 @@ import { ChatPanel } from './components/ChatPanel'
 import { ListWidgetCard } from './components/ListWidgetCard'
 import { AddListModal } from './components/AddListModal'
 import { GroupBar } from './components/GroupBar'
-import { AdminPanel } from './components/AdminPanel'
+// AdminPanel TK-0160: commenté — plus rendu en floating overlay, accessible via nav
+// import { AdminPanel } from './components/AdminPanel'
 // SettingsPanel + OrgSettingsPanel deprecated — remplacés par AdminPanel Sprint A
 import { LoginScreen } from './components/LoginScreen'
 import { BuildStatusFAB } from './components/BuildStatusFAB'
@@ -26,6 +27,8 @@ import { AgentsPage } from './pages/AgentsPage'
 import { AgentInboxPage } from './pages/AgentInboxPage'
 import { AgentDMThread } from './pages/AgentDMThread'
 import { CapsuleHomePage } from './pages/CapsuleHomePage'
+import { AppShell } from './components/AppShell'
+import { DashboardPage } from './pages/DashboardPage'
 
 
 import { PresenceBar } from './components/PresenceBar'
@@ -118,7 +121,7 @@ interface AgentBudget {
 }
 
 function LaunchpadCanvas() {
-  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showAdminPanel, setShowAdminPanel, fetchCapsules, lastNewAgentId } = useLaunchpadStore()
+  const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, fetchCapsules, lastNewAgentId } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
 
   const [scale, setScale] = useState(1)
@@ -278,7 +281,7 @@ function LaunchpadCanvas() {
 
   return (
     <div
-      style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', touchAction: 'none', paddingLeft: showSidebar ? 220 : 0, boxSizing: 'border-box', transition: 'padding-left 0.2s ease' }}
+      style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', touchAction: 'none', paddingLeft: showSidebar ? 220 : 0, boxSizing: 'border-box', transition: 'padding-left 0.2s ease' }}
       data-projects={projects.length}
       data-agents={canvasAgents.length}
       onMouseDown={onMouseDown}
@@ -424,34 +427,7 @@ function LaunchpadCanvas() {
           {/* Avatars des users connectés */}
           <PresenceBar currentUser={currentUser} />
 
-          {/* Admin Panel button — admin only */}
-          {currentUser?.role === 'admin' && (
-            <motion.button
-              onClick={() => setShowAdminPanel(true)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 14px',
-                borderRadius: 8,
-                background: showAdminPanel ? 'rgba(225,31,123,0.22)' : 'rgba(225,31,123,0.10)',
-                border: '1px solid rgba(225,31,123,0.25)',
-                color: '#E11F7B',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: "'Poppins', sans-serif",
-                flexShrink: 0,
-                boxShadow: showAdminPanel ? '0 0 12px rgba(225,31,123,0.25)' : 'none',
-              }}
-              title="Admin Panel"
-            >
-              🛡️ Admin
-            </motion.button>
-          )}
+          {/* Admin Panel button removed — TK-0160: accessible via nav Settings tab */}
 
           {/* User connecté + déconnexion */}
           {isPrivate && currentUser && (
@@ -577,11 +553,8 @@ function LaunchpadCanvas() {
       <AddProjectModal open={showAdd} onClose={() => setShowAdd(false)} defaultPosition={newCardPosition} />
 
       <ChatPanel open={showGlobalChat} onClose={() => setShowGlobalChat(false)} />
-      {/* AdminPanel unifié (remplace SettingsPanel + OrgSettingsPanel — Sprint A) */}
-      <AnimatePresence>
-        {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
-      </AnimatePresence>
-      {/* BuildStatusWidget déplacé dans le canvas div */}
+      {/* AdminPanel TK-0160: commenté — plus rendu en floating overlay */}
+      {/* <AnimatePresence>{showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}</AnimatePresence> */}
 
       {/* Agent chat panel */}
       <AnimatePresence>
@@ -606,7 +579,7 @@ function LaunchpadCanvas() {
 
 // ── AppInner — auth + routing (needs BrowserRouter context) ──────────────────
 function AppInner() {
-  const { isPrivate, currentUser } = useLaunchpadStore()
+  const { isPrivate, currentUser, activeTab } = useLaunchpadStore()
 
   useEffect(() => {
     // Un seul point d'entrée auth → fetch.
@@ -654,18 +627,69 @@ function AppInner() {
       <Route path="/agents/inbox-v1" element={<AgentsPage />} />
       <Route path="/agents/:agentKey" element={<AgentDMThread />} />
 
-      {/* ── Canvas principal (catch-all) ─────────────────────────────── */}
+      {/* ── Canvas principal (catch-all) — wrapped in AppShell ──────── */}
       <Route path="*" element={
-        <>
-          <LaunchpadCanvas />
-          {/* BuildStatusFAB — bouton fixe bottom-right, indépendant du canvas pan/zoom */}
-          {currentUser && <BuildStatusFAB currentUser={currentUser} />}
+        <AppShell>
+          {/* Canvas tab — always mounted to keep subscriptions alive */}
+          <div style={{ display: activeTab === 'canvas' ? 'block' : 'none', width: '100%', height: '100%' }}>
+            <LaunchpadCanvas />
+            {/* BuildStatusFAB — bouton fixe bottom-right, indépendant du canvas pan/zoom */}
+            {currentUser && <BuildStatusFAB currentUser={currentUser} />}
+          </div>
+
+          {/* Dashboard tab */}
+          {activeTab === 'dashboard' && (
+            <div style={{ width: '100%', height: '100%' }}>
+              <DashboardPage />
+            </div>
+          )}
+
+          {/* Agents tab — redirect to existing AgentInboxPage content */}
+          {activeTab === 'agents' && (
+            <div style={{ width: '100%', height: '100%', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
+                <p style={{ fontSize: 14 }}>Agents — coming soon</p>
+              </div>
+            </div>
+          )}
+
+          {/* Tickets tab */}
+          {activeTab === 'tickets' && (
+            <div style={{ width: '100%', height: '100%', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🎫</div>
+                <p style={{ fontSize: 14 }}>Tickets — coming soon</p>
+              </div>
+            </div>
+          )}
+
+          {/* Activity tab */}
+          {activeTab === 'activity' && (
+            <div style={{ width: '100%', height: '100%', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>⚡</div>
+                <p style={{ fontSize: 14 }}>Activity — coming soon</p>
+              </div>
+            </div>
+          )}
+
+          {/* Settings tab */}
+          {activeTab === 'settings' && (
+            <div style={{ width: '100%', height: '100%', background: '#0B090D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>⚙️</div>
+                <p style={{ fontSize: 14 }}>Settings — coming soon</p>
+              </div>
+            </div>
+          )}
+
           {showLoginOverlay && (
             <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0B090D' }}>
               <LoginScreen />
             </div>
           )}
-        </>
+        </AppShell>
       } />
     </Routes>
   )

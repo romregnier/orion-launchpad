@@ -190,7 +190,14 @@ function projectToRow(p: Project): Omit<ProjectRow, 'added_at'> & { added_at: nu
 // AdminPanel tab type
 export type AdminTab = 'team' | 'permissions' | 'orgchart' | 'workflow' | 'appsettings' | 'collaboration'
 
+// TK-0161 — Active tab for AppShell navigation
+export type AppShellTab = 'canvas' | 'dashboard' | 'agents' | 'tickets' | 'activity' | 'settings'
+
 interface LaunchpadStore {
+  // AppShell navigation tab (TK-0160/0161)
+  activeTab: AppShellTab
+  setActiveTab: (tab: AppShellTab) => void
+
   // Admin Panel (unified — replaces showSettings + showOrgSettings)
   showAdminPanel: boolean
   adminTab: AdminTab
@@ -338,6 +345,9 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
       isPrivate: true,  // Toujours true au démarrage — DB est source de vérité
       currentUser: null,
       showSettings: false,
+      // TK-0160/0161 — AppShell navigation tab
+      activeTab: 'canvas' as AppShellTab,
+      setActiveTab: (tab) => set({ activeTab: tab }),
       showAdminPanel: false,
       adminTab: 'team' as AdminTab,
       lastNewAgentId: null,
