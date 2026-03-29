@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLaunchpadStore } from '../store'
 import { OrgChartNode } from './OrgChartNode'
 import { OrgChartEdge } from './OrgChartEdge'
+import { AgentBuilderModal } from './AgentBuilderModal'
 import type { CanvasAgent } from '../types'
 
 const CANVAS_W = 852
@@ -35,8 +36,9 @@ function getNodePositions(agentMap: Record<string, CanvasAgent | undefined>) {
 }
 
 export function OrgChartTab() {
-  const { canvasAgents } = useLaunchpadStore()
+  const { canvasAgents, currentUser } = useLaunchpadStore()
   const [hoveredKey, setHoveredKey] = useState<string | null>(null)
+  const [showHireModal, setShowHireModal] = useState(false)
 
   const agentMap: Record<string, CanvasAgent | undefined> = {}
   for (const a of canvasAgents) {
@@ -61,9 +63,22 @@ export function OrgChartTab() {
         <div style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
           Pas de hiérarchie
         </div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', maxWidth: 300, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', maxWidth: 300, lineHeight: 1.5, marginBottom: 20 }}>
           L'organigramme s'affichera une fois les agents configurés.
         </div>
+        {currentUser?.role === 'admin' && (
+          <button
+            onClick={() => setShowHireModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 20px', borderRadius: 10,
+              background: '#E11F7B', border: 'none',
+              color: '#fff', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
+            }}
+          >👤 + Hire Agent</button>
+        )}
+        <AgentBuilderModal open={showHireModal} onClose={() => setShowHireModal(false)} />
       </div>
     )
   }
@@ -85,6 +100,28 @@ export function OrgChartTab() {
 
   return (
     <div style={{ padding: '24px 28px', overflowX: 'auto', overflowY: 'hidden' }}>
+      {/* Hire Agent button — admins only */}
+      {currentUser?.role === 'admin' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+          <button
+            onClick={() => setShowHireModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '9px 16px', borderRadius: 10,
+              background: '#E11F7B', border: 'none',
+              color: '#fff', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#C8166A'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(225,31,123,0.35)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#E11F7B'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <span>👤</span>
+            + Hire Agent
+          </button>
+        </div>
+      )}
+      <AgentBuilderModal open={showHireModal} onClose={() => setShowHireModal(false)} />
       <svg
         viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
         width="100%"

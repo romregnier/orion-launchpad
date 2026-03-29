@@ -112,7 +112,7 @@ export function SettingsPanel() {
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
             style={{
               position: 'fixed', top: 0, right: 0,
-              width: 'min(380px, 100vw)', height: '100vh',
+              width: 'min(520px, 100vw)', height: '100vh',
               background: '#13111A',
               borderLeft: '1px solid rgba(255,255,255,0.07)',
               zIndex: 500,
