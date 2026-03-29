@@ -525,6 +525,7 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
     setError('')
     try {
       const pos = getNextPosition()
+      const { activeCapsuleId } = useLaunchpadStore.getState()
       const { data: newAgent, error: insertError } = await supabase.from('canvas_agents').insert({
         owner: currentUser?.username ?? 'anon',
         name: form.name,
@@ -550,6 +551,7 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
         status: 'idle',
         is_system: false,
         tailor_config: null,
+        capsule_id: activeCapsuleId ?? undefined,
       }).select('id, position_x, position_y').single()
       if (insertError) throw insertError
       // Mark the new agent for spawn animation — use id directly, no separate query
@@ -561,6 +563,7 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
       // TK-0157 — Audit log: agent hired
       logAuditEvent({
         agent_key: form.agent_key || form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        capsule_id: useLaunchpadStore.getState().activeCapsuleId ?? undefined,
         event_type: 'agent_hired',
         event_data: { name: form.name, role: form.role, model: form.model },
         severity: 'info',

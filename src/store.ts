@@ -525,7 +525,10 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
           deletedIds: state.deletedIds.filter((id) => id !== finalProject.id),
           deletedProjects: state.deletedProjects.filter((p) => p.id !== finalProject.id),
         }))
-        await supabase.from('projects').insert(projectToRow(finalProject))
+        await supabase.from('projects').insert({
+          ...projectToRow(finalProject),
+          capsule_id: get().activeCapsuleId ?? undefined,
+        })
       },
 
       /** Remove a project optimistically and delete from Supabase */
@@ -1077,6 +1080,7 @@ export const useLaunchpadStore = create<LaunchpadStore>()(
         await supabase.from('lists').insert({
           id: newList.id, title, type, created_by: newList.createdBy,
           created_at: newList.createdAt, position_x: freePos.x, position_y: freePos.y, items: [],
+          capsule_id: get().activeCapsuleId ?? undefined,
         })
       },
 
