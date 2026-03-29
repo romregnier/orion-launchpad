@@ -108,6 +108,15 @@ function LoadingTimeout() {
   )
 }
 
+// TK-0156 — Budget data per agent
+interface AgentBudget {
+  agent_key: string
+  monthly_token_limit: number
+  monthly_usd_limit: number
+  tokens_used_mtd: number
+  usd_used_mtd: number
+}
+
 function LaunchpadCanvas() {
   const { projects, lists, canvasAgents, subscribeToAgents, subscribeToPositions, subscribeToBuildTasks, subscribeToProjects, subscribeToIdeas, subscribeToLists, fetchProjectMetadata, fetchPublicSettings, tidyUp, remoteLoaded, activeFilter, setFilter, activeGroup, boardName, isPrivate, currentUser, logout, showAdminPanel, setShowAdminPanel, fetchCapsules, lastNewAgentId } = useLaunchpadStore()
   const sessionId = localStorage.getItem('launchpad_session') ?? ''
@@ -123,6 +132,8 @@ function LaunchpadCanvas() {
   const [chatAgent, setChatAgent] = useState<CanvasAgent | null>(null)
   const [showBotModal, setShowBotModal] = useState(false)
   const [editingAgent, setEditingAgent] = useState<CanvasAgent | null>(null)
+  // TK-0156 — Agent budgets map: agent_key → budgetPct (0-100)
+  const [agentBudgetPcts, setAgentBudgetPcts] = useState<Record<string, number>>({})
   const panStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
   const touchState = useRef<{ touches: React.Touch[]; lastDist: number; lastMid: { x: number; y: number } } | null>(null)
@@ -163,6 +174,21 @@ function LaunchpadCanvas() {
     fetchCapsules()
     return () => { unsubProjects(); unsubAgents(); unsubPos(); unsubTasks(); unsubIdeas(); unsubLists() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // TK-0156 — Charger les budgets agents et calculer les pourcentages
+  useEffect(() => {
+    supabase.from('agent_budgets').select('agent_key,monthly_token_limit,monthly_usd_limit,tokens_used_mtd,usd_used_mtd')
+      .then(({ data }) => {
+        if (!data) return
+        const pcts: Record<string, number> = {}
+        ;(data as AgentBudget[]).forEach(b => {
+          const tokenPct = b.monthly_token_limit > 0 ? Math.round((b.tokens_used_mtd / b.monthly_token_limit) * 100) : 0
+          const usdPct = b.monthly_usd_limit > 0 ? Math.round((b.usd_used_mtd / b.monthly_usd_limit) * 100) : 0
+          pcts[b.agent_key] = Math.max(tokenPct, usdPct)
+        })
+        setAgentBudgetPcts(pcts)
+      })
   }, [])
 
   const allTags = Array.from(new Set(projects.flatMap((p) => p.tags ?? [])))
@@ -283,6 +309,7 @@ function LaunchpadCanvas() {
             onChat={currentUser?.role !== 'viewer' ? setChatAgent : undefined}
             onEdit={a => { setEditingAgent(a); setShowBotModal(true) }}
             isNew={agent.id === lastNewAgentId}
+            budgetPct={agent.agent_key ? agentBudgetPcts[agent.agent_key] : undefined}
           />
         ))}
         {remoteLoaded && projects.length === 0 && (

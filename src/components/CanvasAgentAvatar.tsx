@@ -585,6 +585,8 @@ interface CanvasAgentAvatarProps {
   onEdit?: (agent: CanvasAgent) => void
   /** Si true, déclenche l'animation de spawn (nouvel agent recruté). */
   isNew?: boolean
+  /** Pourcentage du budget mensuel consommé (0-100). Badge affiché si >= 70. */
+  budgetPct?: number
 }
 
 /**
@@ -600,7 +602,7 @@ interface CanvasAgentAvatarProps {
  * Le déplacement utilise une animation Framer Motion spring lente et fluide
  * (stiffness 60) pour l'aller, et plus rapide (stiffness 120) pour le retour.
  */
-export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew }: CanvasAgentAvatarProps) {
+export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew, budgetPct }: CanvasAgentAvatarProps) {
   const { projects, canvasAgents, updateAgentPosition, removeCanvasAgent, currentUser, pushOverlapping, setAgentWorkingOn, activeBuildTasks } = useLaunchpadStore()
   const [hovered, setHovered] = useState(false)
   const [showSpawnAnim, setShowSpawnAnim] = useState(!!isNew)
@@ -820,6 +822,36 @@ export function CanvasAgentAvatar({ agent, canvasScale, onChat, onEdit, isNew }:
           )}
         </AnimatePresence>
         <AgentBubble name={agent.name} isWorking={isWorking} tailorUrl={agent.tailorUrl} tailorConfig={agent.tailor_config} />
+
+        {/* TK-0156 — Badge budget (coin bas-gauche, visible si >= 70%) */}
+        {budgetPct !== undefined && budgetPct >= 70 && (
+          <motion.div
+            animate={budgetPct >= 80 ? { scale: [1, 1.15, 1], opacity: [0.9, 1, 0.9] } : {}}
+            transition={budgetPct >= 80 ? { repeat: Infinity, duration: 1.2, ease: 'easeInOut' } : {}}
+            style={{
+              position: 'absolute',
+              bottom: 4,
+              left: 4,
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: budgetPct >= 80 ? '#EF4444' : '#F59E0B',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 9,
+              fontWeight: 700,
+              color: '#fff',
+              pointerEvents: 'none',
+              zIndex: 22,
+              fontFamily: "'Poppins', sans-serif",
+              border: '1.5px solid rgba(11,9,13,0.8)',
+              boxShadow: budgetPct >= 80 ? '0 0 6px rgba(239,68,68,0.7)' : '0 0 4px rgba(245,158,11,0.5)',
+            }}
+          >
+            {budgetPct >= 90 ? '💰' : `${budgetPct}%`}
+          </motion.div>
+        )}
 
         {/* TK-0019 — Bulle de pensée animée quand l'agent a une build_task running */}
         {hasRunningBuildTask && (

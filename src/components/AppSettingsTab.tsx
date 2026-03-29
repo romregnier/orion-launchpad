@@ -6,6 +6,7 @@ import { Select } from './Select'
 import { IntegrationCard } from './IntegrationCard'
 import { supabase } from '../lib/supabase'
 import type { SelectOption } from './Select'
+import { logAuditEvent } from '../lib/auditLog'
 
 const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
@@ -104,6 +105,13 @@ function useAutoSaveCapsuleSetting(capsuleId: string | null, section: string, ke
       { capsule_id: capsuleId, section, key, value, updated_at: new Date().toISOString() },
       { onConflict: 'capsule_id,section,key' }
     )
+    // TK-0157 — Audit log: settings changed
+    logAuditEvent({
+      capsule_id: capsuleId,
+      event_type: 'settings_change',
+      event_data: { section, field: key, value: key.toLowerCase().includes('secret') || key.toLowerCase().includes('key') || key.toLowerCase().includes('token') || key.toLowerCase().includes('password') ? '[redacted]' : value },
+      severity: 'info',
+    })
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -906,6 +914,268 @@ function IntegrationsSection() {
   )
 }
 
+// ── BudgetsSection — TK-0156 ────────────────────────────────────────────────
+interface AgentBudgetRow {
+  id: string
+  agent_key: string
+  capsule_id: string | null
+  monthly_token_limit: number
+  monthly_usd_limit: number
+  alert_threshold_pct: number
+  hard_stop: boolean
+  tokens_used_mtd: number
+  usd_used_mtd: number
+}
+
+const AGENT_EMOJIS: Record<string, string> = {
+  orion: '🌟', nova: '✦', aria: '🎨', forge: '🔧', rex: '🛡️',
+}
+
+function BudgetsSection() {
+  const { canvasAgents } = useLaunchpadStore()
+  const [budgets, setBudgets] = useState<AgentBudgetRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editLimit, setEditLimit] = useState('')
+  const [editUsdLimit, setEditUsdLimit] = useState('')
+
+  useEffect(() => {
+    supabase.from('agent_budgets').select('*').then(({ data }) => {
+      setBudgets((data as AgentBudgetRow[]) ?? [])
+      setLoading(false)
+    })
+  }, [])
+
+  const getBudgetPct = (b: AgentBudgetRow) => {
+    const tokenPct = b.monthly_token_limit > 0 ? (b.tokens_used_mtd / b.monthly_token_limit) * 100 : 0
+    const usdPct = b.monthly_usd_limit > 0 ? (b.usd_used_mtd / b.monthly_usd_limit) * 100 : 0
+    return Math.min(Math.round(Math.max(tokenPct, usdPct)), 100)
+  }
+
+  const getBarColor = (pct: number) => {
+    if (pct >= 90) return '#EF4444'
+    if (pct >= 80) return '#EF4444'
+    if (pct >= 70) return '#F59E0B'
+    return '#10B981'
+  }
+
+  const handleSaveLimits = async (b: AgentBudgetRow) => {
+    const newTokenLimit = parseInt(editLimit) || b.monthly_token_limit
+    const newUsdLimit = parseFloat(editUsdLimit) || b.monthly_usd_limit
+    await supabase.from('agent_budgets').update({
+      monthly_token_limit: newTokenLimit,
+      monthly_usd_limit: newUsdLimit,
+      updated_at: new Date().toISOString(),
+    }).eq('id', b.id)
+    setBudgets(prev => prev.map(x => x.id === b.id ? { ...x, monthly_token_limit: newTokenLimit, monthly_usd_limit: newUsdLimit } : x))
+    setEditingId(null)
+  }
+
+  const handleToggleHardStop = async (b: AgentBudgetRow) => {
+    const newVal = !b.hard_stop
+    await supabase.from('agent_budgets').update({ hard_stop: newVal, updated_at: new Date().toISOString() }).eq('id', b.id)
+    setBudgets(prev => prev.map(x => x.id === b.id ? { ...x, hard_stop: newVal } : x))
+  }
+
+  // Agents du canvas sans budget → afficher un état vide
+  const agentsWithoutBudget = canvasAgents.filter(a => !budgets.some(b => b.agent_key === a.agent_key))
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} style={{ fontSize: 24 }}>⏳</motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <p style={{ margin: '0 0 4px', fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: "'Poppins', sans-serif" }}>
+        Suivez la consommation de tokens et les coûts USD par agent. Les limites mensuelles se réinitialisent automatiquement.
+      </p>
+
+      {budgets.length === 0 && agentsWithoutBudget.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+          Aucun agent sur le canvas. Recrutez des agents pour suivre leurs budgets.
+        </div>
+      )}
+
+      {budgets.map(b => {
+        const agent = canvasAgents.find(a => a.agent_key === b.agent_key)
+        const pct = getBudgetPct(b)
+        const barColor = getBarColor(pct)
+        const emoji = AGENT_EMOJIS[b.agent_key] ?? '🤖'
+        const isEditing = editingId === b.id
+
+        return (
+          <div key={b.id} style={{
+            background: 'rgba(44,39,47,0.7)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: '14px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 20 }}>{emoji}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: "'Poppins', sans-serif" }}>
+                  {agent?.name ?? b.agent_key}
+                </span>
+                {pct >= 70 && (
+                  <span style={{
+                    background: pct >= 80 ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
+                    border: `1px solid ${pct >= 80 ? '#EF4444' : '#F59E0B'}`,
+                    borderRadius: 4,
+                    padding: '1px 6px',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: pct >= 80 ? '#EF4444' : '#F59E0B',
+                    fontFamily: "'Poppins', sans-serif",
+                  }}>
+                    {pct >= 90 ? '⚠️ Critique' : pct >= 80 ? '🔴 Danger' : '🟡 Alerte'}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: barColor, fontFamily: "'Poppins', sans-serif" }}>{pct}%</span>
+                <button
+                  onClick={() => { setEditingId(isEditing ? null : b.id); setEditLimit(String(b.monthly_token_limit)); setEditUsdLimit(String(b.monthly_usd_limit)) }}
+                  style={{
+                    background: isEditing ? 'rgba(225,31,123,0.2)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${isEditing ? 'rgba(225,31,123,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: 6,
+                    padding: '3px 8px',
+                    fontSize: 11,
+                    color: isEditing ? '#E11F7B' : 'rgba(255,255,255,0.6)',
+                    cursor: 'pointer',
+                    fontFamily: "'Poppins', sans-serif",
+                  }}
+                >{isEditing ? '✕ Annuler' : '✏️ Modifier'}</button>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(255,255,255,0.55)', fontFamily: "'Poppins', sans-serif" }}>
+              <span>🔢 {b.tokens_used_mtd.toLocaleString()} / {(b.monthly_token_limit / 1000000).toFixed(1)}M tokens</span>
+              <span>💵 ${Number(b.usd_used_mtd).toFixed(2)} / ${Number(b.monthly_usd_limit).toFixed(2)}</span>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                style={{ height: '100%', background: barColor, borderRadius: 3 }}
+              />
+            </div>
+
+            {/* Edit limits */}
+            <AnimatePresence>
+              {isEditing && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', paddingTop: 4 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ ...labelStyle }}>Limite tokens/mois</label>
+                      <input
+                        style={{ ...inputStyle, fontSize: 12 }}
+                        type="number"
+                        value={editLimit}
+                        onChange={e => setEditLimit(e.target.value)}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ ...labelStyle }}>Limite USD/mois</label>
+                      <input
+                        style={{ ...inputStyle, fontSize: 12 }}
+                        type="number"
+                        step="0.01"
+                        value={editUsdLimit}
+                        onChange={e => setEditUsdLimit(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleSaveLimits(b)}
+                      style={{
+                        padding: '8px 14px',
+                        background: '#E11F7B',
+                        border: 'none',
+                        borderRadius: 8,
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontFamily: "'Poppins', sans-serif",
+                        whiteSpace: 'nowrap',
+                      }}
+                    >💾 Sauver</button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Hard stop toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: "'Poppins', sans-serif" }}>
+                  🛑 Hard stop
+                </span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 6, fontFamily: "'Poppins', sans-serif" }}>
+                  (bloque l'agent si le budget est dépassé)
+                </span>
+              </div>
+              <button
+                onClick={() => handleToggleHardStop(b)}
+                style={{
+                  width: 40,
+                  height: 22,
+                  borderRadius: 11,
+                  border: 'none',
+                  background: b.hard_stop ? '#E11F7B' : 'rgba(255,255,255,0.12)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <div style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  position: 'absolute',
+                  top: 3,
+                  left: b.hard_stop ? 21 : 3,
+                  transition: 'left 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                }} />
+              </button>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Agents sans budget configuré */}
+      {agentsWithoutBudget.length > 0 && (
+        <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.08)' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif" }}>
+            Agents sans budget configuré : {agentsWithoutBudget.map(a => a.name).join(', ')}
+            <br />
+            <span style={{ fontSize: 11 }}>Les budgets sont créés automatiquement lors des opérations LLM.</span>
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Coming Soon placeholder ────────────────────────────────────────────────────
 function ComingSoonSection({ label }: { label: string }) {
   return (
@@ -949,7 +1219,7 @@ export function AppSettingsTab() {
       case 'integrations': return <IntegrationsSection />
       case 'notifications': return <ComingSoonSection label="Notifications" />
       case 'members': return <ComingSoonSection label="Members" />
-      case 'budgets': return <ComingSoonSection label="Budgets" />
+      case 'budgets': return <BudgetsSection />
       case 'security': return <ComingSoonSection label="Security" />
       case 'danger': return <ComingSoonSection label="Danger Zone" />
     }

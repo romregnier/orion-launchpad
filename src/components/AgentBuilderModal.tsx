@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { ROLE_TEMPLATES } from '../constants/roleTemplates'
 import type { SelectOption } from './Select'
 import { findFreePosition } from '../store'
+import { logAuditEvent } from '../lib/auditLog'
 
 interface AgentBuilderForm {
   name: string
@@ -480,7 +481,13 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
   const [form, setForm] = useState<AgentBuilderForm>({ ...defaultForm })
   const [hiring, setHiring] = useState(false)
   const [error, setError] = useState('')
+  const [toastMsg, setToastMsg] = useState('')
   const { canvasAgents, currentUser, setLastNewAgentId } = useLaunchpadStore()
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(''), 4000)
+  }
 
   const handleClose = () => {
     setStep(1)
@@ -518,7 +525,7 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
     setError('')
     try {
       const pos = getNextPosition()
-      const { error: insertError } = await supabase.from('canvas_agents').insert({
+      const { data: newAgent, error: insertError } = await supabase.from('canvas_agents').insert({
         owner: currentUser?.username ?? 'anon',
         name: form.name,
         agent_key: form.agent_key || form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
@@ -543,23 +550,23 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
         status: 'idle',
         is_system: false,
         tailor_config: null,
-      })
+      }).select('id, position_x, position_y').single()
       if (insertError) throw insertError
-      // Mark the new agent for spawn animation
-      // The Supabase subscription will add it to canvasAgents — we get the id via query
-      const { data: newAgent } = await supabase
-        .from('canvas_agents')
-        .select('id')
-        .eq('owner', currentUser?.username ?? 'anon')
-        .eq('name', form.name)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      // Mark the new agent for spawn animation — use id directly, no separate query
       if (newAgent?.id) {
         setLastNewAgentId(newAgent.id)
         setTimeout(() => setLastNewAgentId(null), 5000)
       }
+      const agentName = form.name
+      // TK-0157 — Audit log: agent hired
+      logAuditEvent({
+        agent_key: form.agent_key || form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        event_type: 'agent_hired',
+        event_data: { name: form.name, role: form.role, model: form.model },
+        severity: 'info',
+      })
       handleClose()
+      showToast(`🎉 ${agentName} has joined the team!`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création')
     } finally {
@@ -607,6 +614,30 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
   )
 
   return (
+    <>
+    {/* Toast notification */}
+    <AnimatePresence>
+      {toastMsg && (
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 24, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          style={{
+            position: 'fixed', bottom: 32, right: 32, zIndex: 99999,
+            background: 'linear-gradient(135deg, #1E1B22 0%, #2A1F2E 100%)',
+            border: '1px solid rgba(225,31,123,0.35)',
+            borderRadius: 14, padding: '14px 20px',
+            color: '#fff', fontSize: 14, fontWeight: 600,
+            fontFamily: "'Poppins', sans-serif",
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(225,31,123,0.15)',
+            maxWidth: 320,
+          }}
+        >
+          {toastMsg}
+        </motion.div>
+      )}
+    </AnimatePresence>
     <ModalShell
       open={open}
       title={step === 1 ? 'Recruter un agent' : `Configurer ${form.name || 'l\'agent'}`}
@@ -638,5 +669,6 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
         </motion.div>
       </AnimatePresence>
     </ModalShell>
+    </>
   )
 }
