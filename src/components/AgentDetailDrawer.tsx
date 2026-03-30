@@ -6,6 +6,9 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { CanvasAgent } from '../types'
+import { AdapterConfigPanel } from './AdapterConfigPanel'
+import type { AdapterConfig } from '../types/adapter'
+import { supabase } from '../lib/supabase'
 
 export interface AgentDetailDrawerProps {
   agent: CanvasAgent | null
@@ -16,13 +19,14 @@ export interface AgentDetailDrawerProps {
   isAdmin?: boolean
 }
 
-type Tab = 'infos' | 'prompt' | 'skills' | 'connexions'
+type Tab = 'infos' | 'prompt' | 'skills' | 'connexions' | 'adapter'
 
 const TAB_LABELS: Record<Tab, string> = {
   infos: '📋 Infos',
   prompt: '💬 Prompt',
   skills: '⚡ Skills',
   connexions: '🔗 Connexions',
+  adapter: '🔌 Adapter',
 }
 
 const inputStyle: React.CSSProperties = {
@@ -79,6 +83,7 @@ export function AgentDetailDrawer({
   const [telegramChatId, setTelegramChatId] = useState('')
   const [canSpawn, setCanSpawn] = useState('')
   const [canBeSpawnedBy, setCanBeSpawnedBy] = useState('')
+  const [adapterConfig, setAdapterConfig] = useState<AdapterConfig>({ type: 'openclaw_gateway' })
 
   // ── Sync form with agent ───────────────────────────────────────────────────
   useEffect(() => {
@@ -94,6 +99,10 @@ export function AgentDetailDrawer({
       setTelegramChatId(agent.telegram_chat_id ?? '')
       setCanSpawn((agent.can_spawn ?? []).join(', '))
       setCanBeSpawnedBy((agent.can_be_spawned_by ?? []).join(', '))
+      setAdapterConfig(
+        ((agent.agent_meta as Record<string, unknown> | undefined)?.adapter as AdapterConfig | undefined)
+        ?? { type: 'openclaw_gateway' }
+      )
       setConfirmDelete(false)
       setActiveTab('infos')
     }
@@ -478,6 +487,27 @@ export function AgentDetailDrawer({
                       onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)')}
                     />
                   </div>
+                </div>
+              )}
+
+              {/* TAB: Adapter */}
+              {activeTab === 'adapter' && agent && (
+                <div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>
+                    Configure le runtime d'exécution de cet agent.
+                  </div>
+                  <AdapterConfigPanel
+                    initialConfig={adapterConfig}
+                    agentKey={agent.agent_key ?? agent.id}
+                    onSave={async (config) => {
+                      setAdapterConfig(config)
+                      const currentMeta = (agent.agent_meta as Record<string, unknown>) ?? {}
+                      await supabase
+                        .from('canvas_agents')
+                        .update({ agent_meta: { ...currentMeta, adapter: config } })
+                        .eq('id', agent.id)
+                    }}
+                  />
                 </div>
               )}
 
