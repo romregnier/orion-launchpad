@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { AGENT_META } from '../types'
 import { formatMessageTime } from '../utils/formatMessageTime'
+import { SkeletonAvatar, SkeletonLine } from '../components/Skeleton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AgentConversation {
@@ -310,9 +311,22 @@ export function AgentsPage() {
       {/* Agent list */}
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '16px 16px 0' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: 'rgba(240,237,245,0.3)' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🌟</div>
-            <p>Chargement…</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '14px 16px',
+                borderRadius: 12,
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-default)',
+              }}>
+                <SkeletonAvatar size={48} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <SkeletonLine width="40%" />
+                  <SkeletonLine width="65%" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

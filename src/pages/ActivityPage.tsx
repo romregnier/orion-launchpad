@@ -4,6 +4,8 @@
  */
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { EmptyState } from '../components/EmptyState'
+import { SkeletonText } from '../components/Skeleton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AuditEvent {
@@ -277,24 +279,19 @@ export function ActivityPage() {
         padding: '16px 24px 24px',
       }}>
         {loading && (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
-            <p style={{ fontSize: 13, fontFamily: 'var(--font-sans)' }}>Chargement…</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonText key={i} lines={2} />
+            ))}
           </div>
         )}
 
         {!loading && (error || filtered.length === 0) && (
-          <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-            <p style={{ fontSize: 14, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-              Aucune activité enregistrée
-            </p>
-            {error && (
-              <p style={{ fontSize: 12, color: 'var(--error)', marginTop: 8, fontFamily: 'var(--font-sans)' }}>
-                Impossible de charger l'audit log
-              </p>
-            )}
-          </div>
+          <EmptyState
+            icon="📭"
+            title="Aucune activité récente"
+            description={error ? "Impossible de charger l'audit log" : "Les événements de l'équipe apparaîtront ici en temps réel"}
+          />
         )}
 
         {!loading && !error && groups.map(group => (

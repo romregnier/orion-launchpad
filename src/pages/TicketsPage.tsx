@@ -6,6 +6,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useLaunchpadStore } from '../store'
+import { EmptyState } from '../components/EmptyState'
+import { SkeletonCard } from '../components/Skeleton'
 import type { Goal } from '../types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -721,11 +723,28 @@ export function TicketsPage() {
 
       {/* ── Kanban board ─────────────────────────────────────────────────────── */}
       {loading ? (
+        <div style={{
+          flex: 1,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 'var(--space-4)',
+          padding: 'var(--space-6)',
+          alignItems: 'start',
+        }}>
+          {Array.from({ length: 3 }).map((_, col) => (
+            <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ))}
+        </div>
+      ) : tickets.length === 0 ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
-            <p style={{ fontSize: 13, fontFamily: 'var(--font-sans)' }}>Chargement des tickets…</p>
-          </div>
+          <EmptyState
+            icon="🎫"
+            title="Aucun ticket"
+            description="Créez votre premier ticket pour suivre le travail de l'équipe"
+            action={{ label: '+ Créer un ticket', onClick: () => { document.getElementById('new-ticket-backlog')?.click() } }}
+          />
         </div>
       ) : (
         <div style={{

@@ -6,6 +6,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { AutomationCard } from '../components/AutomationCard'
+import { EmptyState } from '../components/EmptyState'
+import { SkeletonCard } from '../components/Skeleton'
 import type { Automation } from '../types'
 
 // ── NewAutomationModal ────────────────────────────────────────────────────────
@@ -251,34 +253,16 @@ export function AutomationsPage() {
 
       {/* Content */}
       {loading ? (
-        <div style={{ color: 'var(--text-tertiary, rgba(255,255,255,0.4))', fontSize: 14, textAlign: 'center', paddingTop: 48 }}>
-          Chargement...
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : automations.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          paddingTop: 64,
-          color: 'var(--text-tertiary, rgba(255,255,255,0.4))',
-        }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>⚡</div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary, rgba(255,255,255,0.6))', marginBottom: 8 }}>
-            Aucune automation configurée
-          </div>
-          <div style={{ fontSize: 13, marginBottom: 20 }}>
-            Créez votre première automation pour automatiser des tâches répétitives
-          </div>
-          <button
-            onClick={() => setShowNewModal(true)}
-            style={{
-              padding: '10px 20px', borderRadius: 12,
-              background: 'rgba(225,31,123,0.15)',
-              border: '1px solid rgba(225,31,123,0.35)',
-              color: '#E11F7B', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            + Créer ma première automation
-          </button>
-        </div>
+        <EmptyState
+          icon="⚡"
+          title="Aucune automation"
+          description="Créez votre première automation pour automatiser des tâches répétitives"
+          action={{ label: '+ Créer une automation', onClick: () => setShowNewModal(true) }}
+        />
       ) : (
         <div style={{
           display: 'grid',
