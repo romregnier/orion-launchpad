@@ -56,6 +56,7 @@ const AgentDMThread   = React.lazy(() => import('./pages/AgentDMThread').then(m 
 const AgentsPage      = React.lazy(() => import('./pages/AgentsPage').then(m => ({ default: m.AgentsPage })))
 const KnowledgePage   = React.lazy(() => import('./pages/KnowledgePage').then(m => ({ default: m.KnowledgePage })))
 const WorkflowBuilderPage = React.lazy(() => import('./pages/WorkflowBuilderPage').then(m => ({ default: m.WorkflowBuilderPage })))
+const MarketplacePage     = React.lazy(() => import('./pages/MarketplacePage').then(m => ({ default: m.MarketplacePage })))
 
 // ── AppInner — auth + routing ──────────────────────────────────────────────────
 function AppInner() {
@@ -120,6 +121,7 @@ function AppInner() {
           <Route path="/agents/:agentKey" element={<AgentDMThread />} />
           <Route path="/agents/inbox" element={<AgentInboxPage />} />
           <Route path="/workflows/:id/edit" element={<WorkflowBuilderPage />} />
+          <Route path="/marketplace" element={<MarketplacePage />} />
 
           {/* ── Shell avec nav ──────────────────────────────────────────────── */}
           <Route element={<AppShell />}>

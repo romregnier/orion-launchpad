@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ModalShell } from './ModalShell'
 import { SkillsTagInput } from './SkillsTagInput'
@@ -471,18 +471,51 @@ function Step3({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
 }
 
 // Main modal component
+export interface AgentBuilderPrefill {
+  name?: string
+  emoji?: string
+  role?: string
+  skills?: string[]
+  system_prompt?: string
+  model?: string
+}
+
 interface AgentBuilderModalProps {
   open: boolean
   onClose: () => void
+  prefill?: AgentBuilderPrefill
 }
 
-export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
+export function AgentBuilderModal({ open, onClose, prefill }: AgentBuilderModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [form, setForm] = useState<AgentBuilderForm>({ ...defaultForm })
   const [hiring, setHiring] = useState(false)
   const [error, setError] = useState('')
   const [toastMsg, setToastMsg] = useState('')
   const { canvasAgents, currentUser, setLastNewAgentId } = useLaunchpadStore()
+
+  // Pré-remplissage depuis Marketplace
+  useEffect(() => {
+    if (open && prefill) {
+      setForm(prev => ({
+        ...prev,
+        name: prefill.name ?? prev.name,
+        emoji: prefill.emoji ?? prev.emoji,
+        role: prefill.role ?? prev.role,
+        skills: prefill.skills ?? prev.skills,
+        system_prompt: prefill.system_prompt ?? prev.system_prompt,
+        model: prefill.model ?? prev.model,
+      }))
+    }
+    if (!open) {
+      // Reset form on close
+      setTimeout(() => {
+        setStep(1)
+        setForm({ ...defaultForm })
+        setError('')
+      }, 300)
+    }
+  }, [open, prefill])
 
   const showToast = (msg: string) => {
     setToastMsg(msg)
