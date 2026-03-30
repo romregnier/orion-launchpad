@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 import { CreateCapsuleModal } from './CreateCapsuleModal'
+import { useGalaxyMode } from '../hooks/useGalaxyMode'
 
 interface CapsuleSwitcherProps {
   compact?: boolean
@@ -10,6 +11,7 @@ interface CapsuleSwitcherProps {
 
 export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
   const { activeCapsuleId, capsules, switchCapsule, fetchCapsules } = useLaunchpadStore()
+  const galaxyMode = useGalaxyMode()
   const [open, setOpen] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
@@ -118,7 +120,7 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
         }}
       >
         <span style={{ fontSize: 18 }}>＋</span>
-        <span>Nouvelle capsule</span>
+        <span>{galaxyMode ? 'Nouvelle Nébuleuse' : 'Nouvelle capsule'}</span>
       </motion.button>
     </>
   )
@@ -246,7 +248,7 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
                 color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif",
                 textTransform: 'uppercase' as const,
               }}>
-                Changer de Capsule
+                {galaxyMode ? '🌀 Changer de Nébuleuse' : 'Changer de Capsule'}
               </div>
               {capsuleItems}
             </motion.div>

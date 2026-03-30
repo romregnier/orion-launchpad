@@ -7,6 +7,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useLaunchpadStore } from '../store'
+import { useGalaxyMode } from '../hooks/useGalaxyMode'
+import { GalaxyBadge } from '../components/GalaxyBadge'
 import { HumanApprovalCard } from '../components/HumanApprovalCard'
 import { AutomationCard } from '../components/AutomationCard'
 import type { BoardApproval, Automation } from '../types'
@@ -154,6 +156,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 // ── DashboardPage ─────────────────────────────────────────────────────────────
 export function DashboardPage() {
   const { canvasAgents } = useLaunchpadStore()
+  const galaxyMode = useGalaxyMode()
 
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [tasks, setTasks] = useState<BuildTask[]>([])
@@ -306,11 +309,12 @@ export function DashboardPage() {
         {/* Page header */}
         <div style={{ marginBottom: 24, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
-              Dashboard
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
+              {galaxyMode ? '🌌 Galaxy' : 'Dashboard'}
+              {galaxyMode && <GalaxyBadge termKey="workspace" size="sm" variant="glow" />}
             </h1>
             <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)' }}>
-              Vue d'ensemble du pipeline Orion
+              {galaxyMode ? 'Vue d\'ensemble de votre Galaxy Orion' : 'Vue d\'ensemble du pipeline Orion'}
             </p>
           </div>
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-sans)' }}>

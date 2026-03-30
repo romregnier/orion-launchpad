@@ -14,6 +14,8 @@ const NAV_ITEMS = [
   { emoji: '🌌', label: 'Canvas', to: '/' },
   { emoji: '🃏', label: 'Decks', to: '/decks' },
   { emoji: '🛬', label: 'Landings', to: '/landings' },
+  { emoji: '🌉', label: 'Bridges', to: '/bridges' },
+  { emoji: '🌐', label: 'Orion Hub', to: '/hub' },
 ]
 
 const ADMIN_ITEMS = [

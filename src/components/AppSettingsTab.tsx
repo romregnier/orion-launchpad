@@ -354,6 +354,79 @@ function GeneralSection() {
 
       {/* Existing board settings preserved */}
       <ExistingBoardSettings />
+
+      {/* ── Identité Galaxy (TK-0232) ─────────────────────────────────── */}
+      <GalaxyIdentitySection />
+    </div>
+  )
+}
+
+// ── Galaxy Identity Section (TK-0232) ─────────────────────────────────────────
+function GalaxyIdentitySection() {
+  const [galaxyMode, setGalaxyMode] = useState<boolean>(() => {
+    try { return localStorage.getItem('galaxyMode') === 'true' } catch { return false }
+  })
+
+  const handleToggle = () => {
+    const next = !galaxyMode
+    setGalaxyMode(next)
+    try { localStorage.setItem('galaxyMode', String(next)) } catch { /* noop */ }
+    // Dispatch a storage event for other components to react
+    window.dispatchEvent(new StorageEvent('storage', { key: 'galaxyMode', newValue: String(next) }))
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 20 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14, fontFamily: "'Poppins', sans-serif" }}>
+        🌌 Identité Galaxy
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', fontFamily: "'Poppins', sans-serif", marginBottom: 4 }}>
+            Terminologie Galaxy
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
+            Affiche la terminologie cosmique dans l'interface : Galaxy, Nébuleuses, Étoiles, Ponts Stellaires…
+          </div>
+          {galaxyMode && (
+            <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[
+                { emoji: '🌌', label: 'Workspace → Galaxy' },
+                { emoji: '🌀', label: 'Capsule → Nébuleuse' },
+                { emoji: '⭐', label: 'Projet → Étoile' },
+                { emoji: '🌉', label: 'Lien → Pont Stellaire' },
+                { emoji: '✨', label: 'Workflow → Constellation' },
+              ].map(item => (
+                <span key={item.label} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+                  background: 'rgba(225,31,123,0.10)', border: '1px solid rgba(225,31,123,0.20)',
+                  color: 'var(--accent)', fontFamily: "'Poppins', sans-serif",
+                }}>
+                  {item.emoji} {item.label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={handleToggle}
+          style={{
+            width: 44, height: 24, borderRadius: 999,
+            background: galaxyMode ? 'var(--accent)' : 'rgba(255,255,255,0.10)',
+            border: 'none', cursor: 'pointer', position: 'relative',
+            transition: 'background 0.2s', flexShrink: 0,
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: 3,
+            left: galaxyMode ? 23 : 3,
+            width: 18, height: 18, borderRadius: '50%',
+            background: '#fff', transition: 'left 0.2s',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+          }} />
+        </button>
+      </div>
     </div>
   )
 }

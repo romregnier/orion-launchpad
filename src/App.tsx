@@ -57,6 +57,9 @@ const AgentsPage      = React.lazy(() => import('./pages/AgentsPage').then(m => 
 const KnowledgePage   = React.lazy(() => import('./pages/KnowledgePage').then(m => ({ default: m.KnowledgePage })))
 const WorkflowBuilderPage = React.lazy(() => import('./pages/WorkflowBuilderPage').then(m => ({ default: m.WorkflowBuilderPage })))
 const MarketplacePage     = React.lazy(() => import('./pages/MarketplacePage').then(m => ({ default: m.MarketplacePage })))
+// TK-0229 / TK-0228
+const LightBridgesPage    = React.lazy(() => import('./pages/LightBridgesPage').then(m => ({ default: m.LightBridgesPage })))
+const OrionHubPage        = React.lazy(() => import('./pages/OrionHubPage').then(m => ({ default: m.OrionHubPage })))
 
 // ── AppInner — auth + routing ──────────────────────────────────────────────────
 function AppInner() {
@@ -133,6 +136,8 @@ function AppInner() {
             <Route path="/automations" element={<AutomationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />
+            <Route path="/bridges" element={<LightBridgesPage />} />
+            <Route path="/hub" element={<OrionHubPage />} />
           </Route>
         </Routes>
       </Suspense>
