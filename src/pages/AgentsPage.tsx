@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { AGENT_META } from '../types'
 import { formatMessageTime } from '../utils/formatMessageTime'
 import { SkeletonAvatar, SkeletonLine } from '../components/Skeleton'
+import { EmptyState } from '../components/EmptyState'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AgentConversation {
@@ -328,6 +329,12 @@ export function AgentsPage() {
               </div>
             ))}
           </div>
+        ) : agentInfos.length === 0 ? (
+          <EmptyState
+            icon="🤖"
+            title="Aucun agent disponible"
+            description="Aucun agent n'a été configuré pour le moment."
+          />
         ) : (
           <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {agentInfos.map((agent, i) => (

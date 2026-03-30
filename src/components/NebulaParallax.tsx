@@ -20,9 +20,9 @@ interface OrbeConfig {
 }
 
 const ORBES_PARALLAX: OrbeConfig[] = [
-  { width: 600, height: 600, color: 'var(--accent)33', blur: 120, opacity: 0.20, top: '5%',  left: '10%', floatDuration: 14, depth: 0.1 },
-  { width: 500, height: 500, color: '#7C3AED33',        blur: 100, opacity: 0.15, top: '55%', left: '65%', floatDuration: 18, depth: 0.3 },
-  { width: 450, height: 450, color: '#00d4ff22',        blur: 110, opacity: 0.12, top: '75%', left: '25%', floatDuration: 10, depth: 0.2 },
+  { width: 600, height: 600, color: 'var(--accent-orb)',  blur: 120, opacity: 0.20, top: '5%',  left: '10%', floatDuration: 14, depth: 0.1 },
+  { width: 500, height: 500, color: 'var(--purple-orb)',  blur: 100, opacity: 0.15, top: '55%', left: '65%', floatDuration: 18, depth: 0.3 },
+  { width: 450, height: 450, color: 'var(--cyan-orb)',    blur: 110, opacity: 0.12, top: '75%', left: '25%', floatDuration: 10, depth: 0.2 },
 ]
 
 export function NebulaParallax() {

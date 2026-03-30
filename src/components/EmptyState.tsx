@@ -88,7 +88,7 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
             padding: '10px 20px',
             borderRadius: 'var(--radius-md)',
             background: 'var(--accent)',
-            color: 'var(--text-on-accent, #fff)',
+            color: 'var(--text-on-accent)',
             fontSize: 'var(--font-size-sm)',
             fontWeight: 700,
             border: 'none',
