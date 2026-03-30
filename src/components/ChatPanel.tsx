@@ -5,7 +5,7 @@ import { supabase, fetchMessages, sendMessage as dbSend, type DbMessage } from '
 
 const USERNAME_KEY = 'launchpad_username'
 
-const AVATAR_COLORS = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B']
+const AVATAR_COLORS = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B']
 function avatarColor(str: string): string {
   let hash = 0
   for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff
@@ -94,7 +94,7 @@ export function ChatPanel({ open: externalOpen, onClose }: ChatPanelProps = {}) 
         style={{
           position: 'fixed', bottom: 24, right: 24,
           width: 48, height: 48, borderRadius: '50%',
-          background: '#E11F7B', border: 'none', cursor: 'pointer',
+          background: 'var(--accent)', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: '#fff', boxShadow: '0 4px 20px rgba(225,31,123,0.5)',
           zIndex: 200,
@@ -130,7 +130,7 @@ export function ChatPanel({ open: externalOpen, onClose }: ChatPanelProps = {}) 
               height: isMobile ? '70vh' : 480,
               zIndex: 199,
               background: 'rgba(18,15,24,0.98)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-default)',
               borderRadius: isMobile ? '16px 16px 0 0' : 16,
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
@@ -160,7 +160,7 @@ export function ChatPanel({ open: externalOpen, onClose }: ChatPanelProps = {}) 
                     </div>
                     <div style={{ maxWidth: '75%' }}>
                       {!isMe && <div style={{ fontSize: 10, color, fontWeight: 600, marginBottom: 2 }}>{msg.author}</div>}
-                      <div style={{ fontSize: 12, color: isMe ? '#fff' : 'rgba(255,255,255,0.85)', background: isMe ? 'linear-gradient(135deg,#E11F7B,#c41a6a)' : 'rgba(255,255,255,0.07)', borderRadius: isMe ? '12px 12px 4px 12px' : '12px 12px 12px 4px', padding: '7px 10px', lineHeight: 1.45 }}>
+                      <div style={{ fontSize: 12, color: isMe ? '#fff' : 'rgba(255,255,255,0.85)', background: isMe ? 'linear-gradient(135deg,var(--accent),#c41a6a)' : 'rgba(255,255,255,0.07)', borderRadius: isMe ? '12px 12px 4px 12px' : '12px 12px 12px 4px', padding: '7px 10px', lineHeight: 1.45 }}>
                         {msg.text}
                       </div>
                       <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 2, textAlign: isMe ? 'right' : 'left' }}>
@@ -184,7 +184,7 @@ export function ChatPanel({ open: externalOpen, onClose }: ChatPanelProps = {}) 
                 onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(225,31,123,0.5)'}
                 onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'}
               />
-              <button onClick={sendMessage} style={{ background: text.trim() ? 'linear-gradient(135deg,#E11F7B,#c41a6a)' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, padding: '0 12px', cursor: text.trim() ? 'pointer' : 'default', color: '#fff', display: 'flex', alignItems: 'center', transition: 'background 0.15s' }}>
+              <button onClick={sendMessage} style={{ background: text.trim() ? 'linear-gradient(135deg,var(--accent),#c41a6a)' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, padding: '0 12px', cursor: text.trim() ? 'pointer' : 'default', color: '#fff', display: 'flex', alignItems: 'center', transition: 'background 0.15s' }}>
                 <Send size={14} />
               </button>
             </div>

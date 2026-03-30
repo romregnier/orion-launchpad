@@ -224,9 +224,9 @@ function MetricCard({ icon, name, metric, colSpan = false, index }: MetricCardPr
       {isLoading ? (
         /* Skeleton */
         <div style={{ animation: 'pulse 1.5s infinite' }}>
-          <div style={{ height: 24, width: 60, background: '#3E3742', borderRadius: 4, marginBottom: 6 }} />
-          <div style={{ height: 10, width: 80, background: '#3E3742', borderRadius: 4, marginBottom: 6 }} />
-          <div style={{ height: 24, width: 60, background: '#3E3742', borderRadius: 4 }} />
+          <div style={{ height: 24, width: 60, background: 'var(--bg-elevated)', borderRadius: 4, marginBottom: 6 }} />
+          <div style={{ height: 10, width: 80, background: 'var(--bg-elevated)', borderRadius: 4, marginBottom: 6 }} />
+          <div style={{ height: 24, width: 60, background: 'var(--bg-elevated)', borderRadius: 4 }} />
         </div>
       ) : metric.value === null ? (
         /* No data */
@@ -575,7 +575,7 @@ export const DoraWidget: React.FC = () => {
       )}
 
       {data.lastUpdated && (
-        <div style={{ fontSize: 9, color: '#3E3742', marginTop: 6, textAlign: 'right' }}>
+        <div style={{ fontSize: 9, color: 'var(--bg-elevated)', marginTop: 6, textAlign: 'right' }}>
           Mis à jour {data.lastUpdated.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </div>
       )}

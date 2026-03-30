@@ -134,13 +134,13 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
           borderRadius: 16,
           background: 'rgba(26,22,30,0.97)',
           border: isSwapTarget
-            ? '1px solid #E11F7B'
+            ? '1px solid var(--accent)'
             : `1px solid ${isDragging ? 'rgba(255,193,7,0.35)' : 'rgba(255,215,0,0.15)'}`,
           backdropFilter: 'blur(24px)',
           boxShadow: isDragging
             ? '0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,193,7,0.2)'
             : isSwapTarget
-            ? '0 0 0 2px #E11F7B, 0 0 16px rgba(225,31,123,0.30)'
+            ? '0 0 0 2px var(--accent), 0 0 16px rgba(225,31,123,0.30)'
             : '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.08)',
           overflow: 'hidden',
           userSelect: 'none',
@@ -246,8 +246,8 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
                           transition: 'all 0.15s', flexShrink: 0,
                         }}
                       >
-                        <ThumbsUp size={10} style={{ color: hasVoted ? '#E11F7B' : 'rgba(255,255,255,0.3)' }} />
-                        <span style={{ fontSize: 9, fontWeight: 700, color: hasVoted ? '#E11F7B' : 'rgba(255,255,255,0.35)' }}>
+                        <ThumbsUp size={10} style={{ color: hasVoted ? 'var(--accent)' : 'rgba(255,255,255,0.3)' }} />
+                        <span style={{ fontSize: 9, fontWeight: 700, color: hasVoted ? 'var(--accent)' : 'var(--text-tertiary)' }}>
                           {idea.votes}
                         </span>
                       </button>
@@ -271,7 +271,7 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
                         onChange={(e) => setAuthor(e.target.value)}
                         placeholder="Ton nom…"
                         style={{
-                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-default)',
                           borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 11,
                           outline: 'none', fontFamily: 'inherit',
                         }}
@@ -283,7 +283,7 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
                         placeholder="Décris ton idée de projet…"
                         rows={2}
                         style={{
-                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-default)',
                           borderRadius: 8, padding: '7px 10px', color: '#fff', fontSize: 11,
                           outline: 'none', resize: 'none', lineHeight: 1.4, fontFamily: 'inherit',
                         }}
@@ -291,7 +291,7 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
                       />
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         <button data-no-drag="" onClick={() => setShowForm(false)} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>Annuler</button>
-                        <button data-no-drag="" onClick={submit} disabled={!newIdea.trim()} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: newIdea.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: newIdea.trim() ? 'pointer' : 'default' }}>Proposer</button>
+                        <button data-no-drag="" onClick={submit} disabled={!newIdea.trim()} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: newIdea.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: newIdea.trim() ? 'pointer' : 'default' }}>Proposer</button>
                       </div>
                     </div>
                   </motion.div>
@@ -305,12 +305,12 @@ export function IdeaWidget({ canvasScale, index = 0 }: Props) {
                     onClick={(e) => { e.stopPropagation(); setShowForm(true) }}
                     style={{
                       width: '100%', padding: '7px', borderRadius: 8, border: '1px dashed rgba(255,255,255,0.12)',
-                      background: 'transparent', color: 'rgba(255,255,255,0.35)', fontSize: 11,
+                      background: 'transparent', color: 'var(--text-tertiary)', fontSize: 11,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                       transition: 'all 0.15s',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(225,31,123,0.4)'; e.currentTarget.style.color = '#E11F7B' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(225,31,123,0.4)'; e.currentTarget.style.color = 'var(--accent)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
                   >
                     <Plus size={11} /> Proposer une idée
                   </button>

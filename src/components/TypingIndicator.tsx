@@ -2,11 +2,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 interface TypingIndicatorProps {
   agentName: string
-  color?: string           // couleur accent de l'agent, défaut '#E11F7B'
+  color?: string           // couleur accent de l'agent, défaut 'var(--accent)'
   visible: boolean         // contrôle mount/unmount animé
 }
 
-export function TypingIndicator({ agentName, color = '#E11F7B', visible }: TypingIndicatorProps) {
+export function TypingIndicator({ agentName, color = 'var(--accent)', visible }: TypingIndicatorProps) {
   return (
     <AnimatePresence>
       {visible && (
@@ -52,7 +52,7 @@ export function TypingIndicator({ agentName, color = '#E11F7B', visible }: Typin
           {/* Label */}
           <span style={{
             fontSize: 10,
-            color: 'rgba(255,255,255,0.35)',
+            color: 'var(--text-tertiary)',
             fontFamily: 'Poppins, sans-serif',
             fontStyle: 'italic',
           }}>

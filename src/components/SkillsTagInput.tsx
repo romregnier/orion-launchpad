@@ -93,7 +93,7 @@ export function SkillsTagInput({ value, onChange, placeholder = 'Ajouter un skil
                 borderRadius: 6,
                 padding: '3px 8px',
                 fontSize: 12,
-                color: '#E11F7B',
+                color: 'var(--accent)',
                 fontWeight: 600,
                 fontFamily: "'Poppins', sans-serif",
               }}
@@ -179,7 +179,7 @@ export function SkillsTagInput({ value, onChange, placeholder = 'Ajouter un skil
                   fontFamily: "'Poppins', sans-serif",
                   transition: 'background 0.1s ease',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-default)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 {s}

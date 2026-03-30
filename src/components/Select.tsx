@@ -137,7 +137,7 @@ export function Select({ value, onChange, options, placeholder = '— Choisir �
                   style={{
                     padding: '9px 14px',
                     fontSize: 13,
-                    color: isSelected ? '#E11F7B' : 'rgba(255,255,255,0.85)',
+                    color: isSelected ? 'var(--accent)' : 'rgba(255,255,255,0.85)',
                     background: isSelected ? 'rgba(225,31,123,0.1)' : 'transparent',
                     cursor: 'pointer',
                     display: 'flex',
@@ -153,7 +153,7 @@ export function Select({ value, onChange, options, placeholder = '— Choisir �
                   }}
                 >
                   {opt.label}
-                  {isSelected && <span style={{ fontSize: 10, color: '#E11F7B' }}>✓</span>}
+                  {isSelected && <span style={{ fontSize: 10, color: 'var(--accent)' }}>✓</span>}
                 </li>
               )
             })}

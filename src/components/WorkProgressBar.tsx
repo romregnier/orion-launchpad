@@ -107,16 +107,16 @@ export function WorkProgressBar() {
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'rgba(14,12,16,0.92)', backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border-default)',
           borderRadius: collapsed ? 10 : '10px 10px 0 0',
-          padding: '6px 12px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)',
+          padding: '6px 12px', cursor: 'pointer', color: 'var(--text-secondary)',
           fontSize: 11, fontWeight: 700,
           boxShadow: isDragging ? '0 8px 32px rgba(0,0,0,0.6)' : '0 4px 16px rgba(0,0,0,0.4)',
         }}
       >
         {/* Drag handle */}
         <span style={{ opacity: 0.3, fontSize: 10, cursor: 'grab', marginRight: 2 }}>⠿</span>
-        <span style={{ color: current ? '#E11F7B' : 'rgba(255,255,255,0.3)', fontSize: 9 }}>●</span>
+        <span style={{ color: current ? 'var(--accent)' : 'rgba(255,255,255,0.3)', fontSize: 9 }}>●</span>
         {current
           ? `⚡ ${current.agent_key ?? 'Agent'} · en cours`
           : '〇 Agents en veille'}
@@ -136,7 +136,7 @@ export function WorkProgressBar() {
               originY: 0,
               background: 'rgba(14,12,16,0.92)',
               backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-default)',
               borderTop: 'none',
               borderRadius: '0 0 10px 10px',
               width: 280,
@@ -150,7 +150,7 @@ export function WorkProgressBar() {
             {current ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#E11F7B', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', whiteSpace: 'nowrap' }}>
                     {current.agent_key ?? 'Agent'}
                   </span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -158,7 +158,7 @@ export function WorkProgressBar() {
                   </span>
                 </div>
                 {current.step_label && (
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{current.step_label}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{current.step_label}</span>
                 )}
                 {/* Projet associé */}
                 {current.project && (
@@ -182,7 +182,7 @@ export function WorkProgressBar() {
             )}
 
             {activeTasks.length > 1 && (
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)' }}>
                 + {activeTasks.length - 1} en attente
               </span>
             )}
@@ -194,7 +194,7 @@ export function WorkProgressBar() {
                   <div style={{
                     height: '100%',
                     width: `${current.progress}%`,
-                    background: '#E11F7B',
+                    background: 'var(--accent)',
                     borderRadius: 2,
                     transition: 'width 0.4s ease',
                   }} />

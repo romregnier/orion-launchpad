@@ -112,7 +112,7 @@ export function AdminTabBar() {
                 fontWeight: 700,
                 padding: '1px 4px',
                 borderRadius: 4,
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--border-default)',
                 color: 'rgba(255,255,255,0.3)',
                 marginLeft: 2,
                 textTransform: 'uppercase' as const,
@@ -133,7 +133,7 @@ export function AdminTabBar() {
                   left: 0,
                   right: 0,
                   height: 2,
-                  background: '#E11F7B',
+                  background: 'var(--accent)',
                   borderRadius: '2px 2px 0 0',
                   boxShadow: '0 0 8px rgba(225,31,123,0.5)',
                 }}

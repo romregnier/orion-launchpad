@@ -3,7 +3,7 @@ import type { CanvasAgent } from '../types'
 import { AGENT_META } from '../types'
 
 const AGENT_COLORS: Record<string, string> = {
-  orion: '#E11F7B',
+  orion: 'var(--accent)',
   nova: '#8B5CF6',
   aria: '#8B5CF6',
   forge: '#F59E0B',
@@ -52,8 +52,8 @@ export function OrgChartNode({ agent, x, y, level, nodeIndex = 0, highlighted, o
         width={NODE_W}
         height={NODE_H}
         rx={12}
-        fill="#2C272F"
-        stroke={highlighted ? '#E11F7B' : 'rgba(255,255,255,0.1)'}
+        fill="var(--bg-surface)"
+        stroke={highlighted ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}
         strokeWidth={highlighted ? 1.5 : 1}
         style={{ transition: 'stroke 0.2s ease' }}
       />

@@ -93,7 +93,7 @@ export function NavSidebar({ onOpenCommandPalette }: NavSidebarProps) {
             padding: '6px 8px',
             borderRadius: 'var(--radius-md)',
             background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border-default)',
             color: 'var(--text-tertiary)',
             cursor: 'pointer',
             display: 'flex',
@@ -104,7 +104,7 @@ export function NavSidebar({ onOpenCommandPalette }: NavSidebarProps) {
           }}
           onMouseEnter={e => {
             const b = e.currentTarget
-            b.style.background = 'rgba(255,255,255,0.08)'
+            b.style.background = 'var(--border-default)'
             b.style.color = 'var(--text-secondary)'
           }}
           onMouseLeave={e => {

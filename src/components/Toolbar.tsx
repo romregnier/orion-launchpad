@@ -123,8 +123,8 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
           paddingInline: isMobile ? 10 : 14,
           borderRadius: 10,
           background: open
-            ? 'linear-gradient(135deg, #c41a6a, #E11F7B)'
-            : 'linear-gradient(135deg, #E11F7B, #c41a6a)',
+            ? 'linear-gradient(135deg, #c41a6a, var(--accent))'
+            : 'linear-gradient(135deg, var(--accent), #c41a6a)',
           color: '#fff',
           fontSize: isMobile ? 12 : 13,
           fontWeight: 600,
@@ -156,7 +156,7 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
                 right: 0,
                 background: 'rgba(26,23,28,0.98)',
                 backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border-default)',
                 borderRadius: '16px 16px 0 0',
                 padding: 16,
                 zIndex: 60,
@@ -200,7 +200,7 @@ function AddMenu({ onAdd, onAddList, onAddAgent, isAdmin, isMobile }: AddMenuPro
                 transform: 'translateX(-50%)',
                 background: 'rgba(26,23,28,0.92)',
                 backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border-default)',
                 borderRadius: 12,
                 padding: 6,
                 minWidth: 160,
@@ -289,7 +289,7 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onAdd, onAddList,
           fontSize: 10,
           width: 'auto',
           padding: '0 6px',
-          color: Math.abs(scale - 1) > 0.01 ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+          color: Math.abs(scale - 1) > 0.01 ? 'var(--accent)' : 'rgba(255,255,255,0.5)',
         }}
       >
         {Math.round(scale * 100)}%
@@ -309,13 +309,13 @@ export function Toolbar({ scale, onZoomIn, onZoomOut, onReset, onAdd, onAddList,
         title="Paramètres"
         style={{
           ...btnStyle(isMobile),
-          color: showSettings ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+          color: showSettings ? 'var(--accent)' : 'rgba(255,255,255,0.5)',
         }}
       >
         <Settings size={isMobile ? 12 : 14} />
       </button>
 
-      <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.08)', marginInline: isMobile ? 2 : 4 }} />
+      <div style={{ width: 1, height: 24, background: 'var(--border-default)', marginInline: isMobile ? 2 : 4 }} />
 
       {/* Unified Add menu — canEdit only */}
       {canEdit && (

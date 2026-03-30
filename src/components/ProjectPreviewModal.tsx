@@ -102,7 +102,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                 padding: '5px 10px',
                 borderRadius: 8,
                 border: 'none',
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--border-default)',
                 color: 'rgba(255,255,255,0.8)',
                 fontSize: 12, fontWeight: 600,
                 cursor: 'pointer',
@@ -120,7 +120,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
               style={{
                 flex: 1,
                 fontSize: 13,
-                color: 'rgba(255,255,255,0.6)',
+                color: 'var(--text-secondary)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -138,7 +138,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                 width: 32, height: 32, borderRadius: 8,
                 border: 'none',
                 background: showComments ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.07)',
-                color: showComments ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+                color: showComments ? 'var(--accent)' : 'rgba(255,255,255,0.5)',
                 cursor: 'pointer',
                 fontSize: 14,
               }}
@@ -201,11 +201,11 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: 32 }}>
                   <div>
                     <div style={{ fontSize: 40, marginBottom: 16 }}>🚫</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'rgba(255,255,255,0.6)' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
                       Ce site ne peut pas être affiché en iframe
                     </div>
                     <a href={project.url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: '#E11F7B', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: 'var(--accent)', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                       <ExternalLink size={14} /> Ouvrir dans un onglet
                     </a>
                   </div>
@@ -336,7 +336,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                           fontSize: 11,
                           fontWeight: 600,
                           cursor: 'pointer',
-                          background: activeTab === tab ? '#E11F7B' : 'rgba(255,255,255,0.07)',
+                          background: activeTab === tab ? 'var(--accent)' : 'rgba(255,255,255,0.07)',
                           color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.5)',
                           transition: 'background 0.15s',
                         }}
@@ -441,7 +441,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                         color: 'rgba(255,255,255,0.4)',
                       }}>
                         <div style={{ fontSize: 40, marginBottom: 16 }}>🚫</div>
-                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'rgba(255,255,255,0.6)' }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
                           Ce site ne peut pas être affiché en iframe
                         </div>
                         <div style={{ fontSize: 12, marginBottom: 20 }}>
@@ -454,7 +454,7 @@ export function ProjectPreviewModal({ project, open, onClose }: ProjectPreviewMo
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '9px 18px', borderRadius: 10,
-                            background: '#E11F7B', color: '#fff',
+                            background: 'var(--accent)', color: '#fff',
                             fontWeight: 700, fontSize: 13,
                             textDecoration: 'none',
                           }}

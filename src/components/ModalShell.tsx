@@ -77,7 +77,7 @@ export function ModalShell({
               maxHeight: '90vh',
               overflowY: 'auto',
               background: '#1A171C',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-default)',
               borderRadius: 16,
               padding: 24,
               zIndex,

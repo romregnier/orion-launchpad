@@ -65,7 +65,7 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
               {/* Dot */}
               <div style={{
                 width: 10, height: 10, borderRadius: '50%',
-                background: isCompleted ? '#10B981' : isActive ? '#E11F7B' : 'rgba(255,255,255,0.2)',
+                background: isCompleted ? '#10B981' : isActive ? 'var(--accent)' : 'rgba(255,255,255,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.2s ease',
               }}>
@@ -108,7 +108,7 @@ function RoleTemplateCard({ template, selected, onSelect }: {
         padding: 14,
         borderRadius: 12,
         background: selected ? 'rgba(225,31,123,0.10)' : 'rgba(255,255,255,0.04)',
-        border: selected ? '1.5px solid #E11F7B' : '1px solid rgba(255,255,255,0.08)',
+        border: selected ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
         cursor: 'pointer',
         textAlign: 'left',
         width: '100%',
@@ -120,7 +120,7 @@ function RoleTemplateCard({ template, selected, onSelect }: {
       {selected && (
         <div style={{
           position: 'absolute', top: 8, right: 8,
-          width: 8, height: 8, borderRadius: '50%', background: '#E11F7B',
+          width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)',
         }} />
       )}
       <div style={{ fontSize: 28, marginBottom: 8 }}>{template.emoji}</div>
@@ -128,11 +128,11 @@ function RoleTemplateCard({ template, selected, onSelect }: {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         {template.skills.slice(0, 4).map(skill => (
           <span key={skill} style={{
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--border-default)',
             borderRadius: 6,
             padding: '2px 8px',
             fontSize: 10,
-            color: 'rgba(255,255,255,0.6)',
+            color: 'var(--text-secondary)',
           }}>{skill}</span>
         ))}
       </div>
@@ -199,7 +199,7 @@ function Step1({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
             <span style={{
               position: 'absolute', bottom: 0, right: 0,
               width: 20, height: 20, borderRadius: '50%',
-              background: '#E11F7B', color: '#fff',
+              background: 'var(--accent)', color: '#fff',
               fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>+</span>
           </button>
@@ -365,7 +365,7 @@ function Step2({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
             outline: 'none', boxSizing: 'border-box', fontFamily: "'Poppins', sans-serif",
           }}
         />
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif" }}>
+        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif" }}>
           Pas encore de bot ? → <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" style={{ color: '#0EA5E9' }}>Créer via @BotFather ↗</a>
         </p>
       </div>
@@ -409,7 +409,7 @@ function Step3({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
               style={{
                 flex: 1, padding: '10px', borderRadius: 8,
                 background: form.entity_type === type ? 'rgba(225,31,123,0.10)' : 'rgba(255,255,255,0.04)',
-                border: form.entity_type === type ? '1.5px solid #E11F7B' : '1px solid rgba(255,255,255,0.08)',
+                border: form.entity_type === type ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
                 cursor: 'pointer', color: form.entity_type === type ? '#fff' : 'rgba(255,255,255,0.55)',
                 fontSize: 13, fontWeight: 600, fontFamily: "'Poppins', sans-serif",
                 transition: 'all 0.15s ease',
@@ -428,7 +428,7 @@ function Step3({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
         </label>
         <div style={{
           background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border-default)',
           borderRadius: 12, padding: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -441,7 +441,7 @@ function Step3({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
                 {form.role && (
                   <span style={{
                     fontSize: 11, fontWeight: 700,
-                    background: 'rgba(225,31,123,0.15)', color: '#E11F7B',
+                    background: 'rgba(225,31,123,0.15)', color: 'var(--accent)',
                     padding: '2px 8px', borderRadius: 999,
                     fontFamily: "'Poppins', sans-serif",
                   }}>{form.role}</span>
@@ -455,11 +455,11 @@ function Step3({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: "'Poppins', sans-serif" }}>Skills :</span>
                   {form.skills.slice(0, 5).map(s => (
                     <span key={s} style={{
-                      fontSize: 10, background: 'rgba(225,31,123,0.12)', color: '#E11F7B',
+                      fontSize: 10, background: 'rgba(225,31,123,0.12)', color: 'var(--accent)',
                       padding: '2px 6px', borderRadius: 4, fontFamily: "'Poppins', sans-serif",
                     }}>{s}</span>
                   ))}
-                  {form.skills.length > 5 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif" }}>+{form.skills.length - 5}</span>}
+                  {form.skills.length > 5 && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif" }}>+{form.skills.length - 5}</span>}
                 </div>
               )}
             </div>
@@ -598,7 +598,7 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
           disabled={!canNext()}
           style={{
             padding: '10px 24px', borderRadius: 10,
-            background: canNext() ? '#E11F7B' : 'rgba(255,255,255,0.07)',
+            background: canNext() ? 'var(--accent)' : 'rgba(255,255,255,0.07)',
             border: 'none', color: canNext() ? '#fff' : 'rgba(255,255,255,0.4)',
             fontSize: 13, fontWeight: 700, cursor: canNext() ? 'pointer' : 'not-allowed',
             fontFamily: "'Poppins', sans-serif", transition: 'all 0.15s ease',
@@ -610,7 +610,7 @@ export function AgentBuilderModal({ open, onClose }: AgentBuilderModalProps) {
           disabled={hiring}
           style={{
             padding: '10px 24px', borderRadius: 10,
-            background: hiring ? 'rgba(225,31,123,0.5)' : '#E11F7B',
+            background: hiring ? 'rgba(225,31,123,0.5)' : 'var(--accent)',
             border: 'none', color: '#fff', fontSize: 13, fontWeight: 700,
             cursor: hiring ? 'not-allowed' : 'pointer', fontFamily: "'Poppins', sans-serif",
           }}

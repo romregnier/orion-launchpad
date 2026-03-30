@@ -22,7 +22,7 @@ export function MobileBottomNav() {
       position: 'fixed', bottom: 0, left: 0, right: 0,
       zIndex: 50,
       background: 'rgba(11,9,13,0.95)',
-      borderTop: '1px solid rgba(255,255,255,0.08)',
+      borderTop: '1px solid var(--border-default)',
       backdropFilter: 'blur(16px)',
       display: 'flex', alignItems: 'stretch',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -43,7 +43,7 @@ export function MobileBottomNav() {
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 2,
                 textDecoration: 'none', minHeight: 52, height: '100%',
-                color: isActive ? '#E11F7B' : 'rgba(255,255,255,0.4)',
+                color: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.4)',
                 transition: 'color 0.15s',
                 fontFamily: 'Poppins, sans-serif',
               }}

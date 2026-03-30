@@ -17,7 +17,7 @@ export function OrgChartEdge({ x1, y1, x2, y2, index = 0, highlighted = false }:
     <motion.path
       d={d}
       fill="none"
-      stroke={highlighted ? '#E11F7B' : 'rgba(255,255,255,0.15)'}
+      stroke={highlighted ? 'var(--accent)' : 'rgba(255,255,255,0.15)'}
       strokeWidth={highlighted ? 2.5 : 1.5}
       markerEnd="url(#org-arrow)"
       initial={{ pathLength: 0, opacity: 0 }}

@@ -34,7 +34,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 }
 
 const STATUS_CFG: Record<string, { bg: string; color: string; label: string; icon: string }> = {
-  backlog:     { bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)', label: 'backlog',   icon: '○' },
+  backlog:     { bg: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)', label: 'backlog',   icon: '○' },
   queued:      { bg: 'rgba(99,102,241,0.2)',   color: '#818CF8',               label: 'en queue',  icon: '◈' },
   in_progress: { bg: 'rgba(59,130,246,0.2)',   color: '#60A5FA',               label: 'en cours',  icon: '⚡' },
   in_review:   { bg: 'rgba(139,92,246,0.2)',   color: '#A78BFA',               label: 'review',    icon: '👁' },
@@ -44,7 +44,7 @@ const STATUS_CFG: Record<string, { bg: string; color: string; label: string; ico
 
 const PRIORITY_ORDER: Record<string, number> = { p0: 0, P0: 0, p1: 1, P1: 1, p2: 2, P2: 2, p3: 3, P3: 3 }
 const AGENT_COLORS: Record<string, string> = {
-  nova: '#E11F7B', aria: '#8B5CF6', forge: '#F59E0B', rex: '#10B981', orion: '#60A5FA',
+  nova: 'var(--accent)', aria: '#8B5CF6', forge: '#F59E0B', rex: '#10B981', orion: '#60A5FA',
 }
 
 export function TicketsWidget() {
@@ -108,7 +108,7 @@ export function TicketsWidget() {
           <button key={f} onClick={() => setFilter(f)} style={{
             fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 999, cursor: 'pointer',
             background: filter === f ? 'rgba(225,31,123,0.2)' : 'rgba(255,255,255,0.06)',
-            color: filter === f ? '#E11F7B' : 'rgba(255,255,255,0.35)',
+            color: filter === f ? 'var(--accent)' : 'var(--text-tertiary)',
             border: filter === f ? '1px solid rgba(225,31,123,0.3)' : '1px solid transparent',
           }}>
             {f === 'active' ? `⚡ Actifs (${activeCount})` : f === 'queue' ? `◈ Queue (${queueCount})` : '○ Tous'}
@@ -168,16 +168,16 @@ export function TicketsWidget() {
               {activeTask && (
                 <div style={{ marginLeft: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
+                    <span style={{ fontSize: 9, color: 'var(--text-tertiary)' }}>
                       {activeTask.agent} — {activeTask.step_label ?? activeTask.label?.slice(0, 40) ?? '…'}
                     </span>
                     {activeTask.progress !== undefined && (
-                      <span style={{ fontSize: 9, color: '#E11F7B', fontWeight: 700 }}>{Math.round(activeTask.progress)}%</span>
+                      <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 700 }}>{Math.round(activeTask.progress)}%</span>
                     )}
                   </div>
                   {activeTask.progress !== undefined && (
-                    <div style={{ width: '100%', height: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 1 }}>
-                      <div style={{ width: `${Math.min(100, activeTask.progress)}%`, height: '100%', background: '#E11F7B', borderRadius: 1, transition: 'width 0.5s' }} />
+                    <div style={{ width: '100%', height: 2, background: 'var(--border-default)', borderRadius: 1 }}>
+                      <div style={{ width: `${Math.min(100, activeTask.progress)}%`, height: '100%', background: 'var(--accent)', borderRadius: 1, transition: 'width 0.5s' }} />
                     </div>
                   )}
                 </div>

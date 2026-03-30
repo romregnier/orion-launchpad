@@ -34,7 +34,7 @@ export function HumanMemberCard({ member, currentUserEmail }: HumanMemberCardPro
     }`,
     color:
       role === 'admin'
-        ? '#E11F7B'
+        ? 'var(--accent)'
         : role === 'member'
         ? '#A78BFA'
         : 'rgba(255,255,255,0.45)',
@@ -54,7 +54,7 @@ export function HumanMemberCard({ member, currentUserEmail }: HumanMemberCardPro
         borderRadius: 12,
         border: '1px solid rgba(245,158,11,0.20)',
         borderLeft: '2px solid #F59E0B',
-        background: hovering ? '#3E3742' : '#2C272F',
+        background: hovering ? 'var(--bg-elevated)' : 'var(--bg-surface)',
         display: 'flex',
         alignItems: 'center',
         gap: 14,

@@ -121,13 +121,13 @@ export function ListWidgetCard({ list, canvasScale, sessionId, isAdmin = false }
           borderRadius: 16,
           background: 'rgba(26,22,30,0.97)',
           border: isSwapTarget
-            ? '1px solid #E11F7B'
+            ? '1px solid var(--accent)'
             : `1px solid ${isDragging ? config.color + '55' : config.color + '22'}`,
           backdropFilter: 'blur(24px)',
           boxShadow: isDragging
             ? `0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px ${config.color}33`
             : isSwapTarget
-            ? '0 0 0 2px #E11F7B, 0 0 16px rgba(225,31,123,0.30)'
+            ? '0 0 0 2px var(--accent), 0 0 16px rgba(225,31,123,0.30)'
             : `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${config.color}11`,
           overflow: 'hidden',
           userSelect: 'none',
@@ -264,7 +264,7 @@ export function ListWidgetCard({ list, canvasScale, sessionId, isAdmin = false }
                           }}
                         >
                           <span style={{ fontSize: 9 }}>👍</span>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: hasVoted ? config.color : 'rgba(255,255,255,0.35)' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: hasVoted ? config.color : 'var(--text-tertiary)' }}>
                             {item.votes ?? 0}
                           </span>
                         </button>
@@ -303,7 +303,7 @@ export function ListWidgetCard({ list, canvasScale, sessionId, isAdmin = false }
                     placeholder="Ajouter un élément…"
                     style={{
                       flex: 1, background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8,
+                      border: '1px solid var(--border-default)', borderRadius: 8,
                       padding: '6px 10px', color: '#fff', fontSize: 11,
                       outline: 'none', fontFamily: 'inherit',
                     }}

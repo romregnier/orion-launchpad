@@ -41,7 +41,7 @@ export function GroupContextMenu({ projectId, currentGroupId, x, y, onClose }: P
           position: 'fixed',
           top: clampedY,
           left: clampedX,
-          background: '#3E3742',
+          background: 'var(--bg-elevated)',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 12,
           padding: 6,

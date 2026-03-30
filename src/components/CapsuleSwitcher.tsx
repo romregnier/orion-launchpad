@@ -76,14 +76,14 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isMobile && c.id === activeCapsuleId && (
-              <span style={{ color: '#E11F7B' }}>●</span>
+              <span style={{ color: 'var(--accent)' }}>●</span>
             )}
             <span style={{ fontSize: 16 }}>{c.emoji}</span>
             <span>{c.name}</span>
           </span>
           {!isMobile && c.id === activeCapsuleId && (
             <span style={{
-              background: '#E11F7B',
+              background: 'var(--accent)',
               color: '#fff',
               fontSize: 10,
               fontWeight: 700,
@@ -95,7 +95,7 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
         </motion.button>
       ))}
 
-      {!isMobile && <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px 4px' }} />}
+      {!isMobile && <div style={{ height: 1, background: 'var(--border-default)', margin: '6px 4px' }} />}
 
       <motion.button
         onClick={handleCreate}
@@ -108,7 +108,7 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
           padding: isMobile ? '12px 20px' : '8px 10px',
           borderRadius: isMobile ? 0 : 8,
           cursor: 'pointer',
-          color: isMobile ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+          color: isMobile ? 'var(--accent)' : 'rgba(255,255,255,0.5)',
           fontSize: isMobile ? 14 : 13,
           fontFamily: "'Poppins', sans-serif",
           background: 'transparent',
@@ -186,7 +186,7 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
                 top: 'calc(100% + 6px)',
                 right: 0,
                 minWidth: 220,
-                background: '#2C272F',
+                background: 'var(--bg-surface)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 12,
                 zIndex: 200,
@@ -226,7 +226,7 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
               style={{
                 position: 'fixed', bottom: 0, left: 0, right: 0,
                 zIndex: 9991,
-                background: '#2C272F',
+                background: 'var(--bg-surface)',
                 borderRadius: '16px 16px 0 0',
                 paddingBottom: 32,
                 maxHeight: '70vh',
@@ -243,7 +243,7 @@ export function CapsuleSwitcher({ compact }: CapsuleSwitcherProps = {}) {
               <div style={{
                 padding: '0 20px 12px',
                 fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif",
+                color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif",
                 textTransform: 'uppercase' as const,
               }}>
                 Changer de Capsule

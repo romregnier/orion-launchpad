@@ -60,7 +60,7 @@ export function AddListModal({ open, onClose }: Props) {
             disabled={!title.trim()}
             style={{
               padding: '10px 20px', borderRadius: 10, border: 'none',
-              background: title.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)',
+              background: title.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
               color: '#fff', fontSize: 13, fontWeight: 600,
               cursor: title.trim() ? 'pointer' : 'default',
               boxShadow: title.trim() ? '0 2px 12px rgba(225,31,123,0.4)' : 'none',
@@ -107,7 +107,7 @@ export function AddListModal({ open, onClose }: Props) {
               style={{
                 padding: '10px 12px',
                 borderRadius: 10,
-                border: `1px solid ${type === opt.type ? opt.color + '88' : 'rgba(255,255,255,0.08)'}`,
+                border: `1px solid ${type === opt.type ? opt.color + '88' : 'var(--border-default)'}`,
                 background: type === opt.type ? opt.color + '18' : 'rgba(255,255,255,0.03)',
                 color: type === opt.type ? opt.color : 'rgba(255,255,255,0.5)',
                 cursor: 'pointer',

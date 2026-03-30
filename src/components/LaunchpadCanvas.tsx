@@ -393,7 +393,7 @@ export function LaunchpadCanvas() {
               border: `1px solid ${showTagBar ? 'rgba(225,31,123,0.6)' : 'rgba(255,255,255,0.15)'}`,
               cursor: 'pointer', flexShrink: 0, marginLeft: 4,
               background: showTagBar ? 'rgba(225,31,123,0.15)' : 'transparent',
-              color: showTagBar ? '#E11F7B' : 'rgba(255,255,255,0.5)',
+              color: showTagBar ? 'var(--accent)' : 'rgba(255,255,255,0.5)',
             }}
           >
             🏷 Tags
@@ -429,7 +429,7 @@ export function LaunchpadCanvas() {
             style={{
               padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
               border: 'none', cursor: 'pointer', flexShrink: 0,
-              background: !activeFilter ? '#E11F7B' : 'rgba(255,255,255,0.07)',
+              background: !activeFilter ? 'var(--accent)' : 'rgba(255,255,255,0.07)',
               color: !activeFilter ? '#fff' : 'rgba(255,255,255,0.4)',
             }}
           >
@@ -439,7 +439,7 @@ export function LaunchpadCanvas() {
             const active = activeFilter === tag
             let hash = 0
             for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) & 0xffffffff
-            const colors = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
+            const colors = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
             const c = colors[Math.abs(hash) % colors.length]
             return (
               <button

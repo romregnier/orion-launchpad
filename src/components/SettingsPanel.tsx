@@ -7,7 +7,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications'
 import { Select } from './Select'
 import type { SelectOption } from './Select'
 
-const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
+const COLOR_PALETTE = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
 export function SettingsPanel() {
   const {
@@ -159,7 +159,7 @@ export function SettingsPanel() {
                       onClick={() => setPrivate(!isPrivate)}
                       style={{
                         width: 44, height: 24, borderRadius: 999,
-                        background: isPrivate ? '#E11F7B' : 'rgba(255,255,255,0.1)',
+                        background: isPrivate ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
                         border: 'none', cursor: 'pointer', position: 'relative',
                         transition: 'background 0.2s',
                         flexShrink: 0,
@@ -182,7 +182,7 @@ export function SettingsPanel() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {/* Member list */}
                     {boardMembers.map(member => {
-                      const roleColor = member.role === 'admin' ? '#E11F7B' : member.role === 'member' ? '#7C3AED' : 'rgba(255,255,255,0.3)'
+                      const roleColor = member.role === 'admin' ? 'var(--accent)' : member.role === 'member' ? '#7C3AED' : 'rgba(255,255,255,0.3)'
                       const isCurrentUser = member.email === currentUser?.username
                       return (
                         <div key={member.id} style={{
@@ -226,7 +226,7 @@ export function SettingsPanel() {
                     <div style={{
                       padding: 12, borderRadius: 10,
                       background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: '1px solid var(--border-default)',
                       display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4,
                     }}>
                       <input
@@ -248,7 +248,7 @@ export function SettingsPanel() {
                           disabled={inviting || !inviteEmail.trim()}
                           style={{
                             padding: '10px 16px', borderRadius: 10,
-                            background: inviting ? 'rgba(225,31,123,0.5)' : '#E11F7B',
+                            background: inviting ? 'rgba(225,31,123,0.5)' : 'var(--accent)',
                             border: 'none', color: '#fff', fontSize: 12, fontWeight: 700,
                             cursor: inviting ? 'not-allowed' : 'pointer', flexShrink: 0,
                           }}
@@ -308,7 +308,7 @@ export function SettingsPanel() {
                     <div style={{
                       padding: 12, borderRadius: 10,
                       background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: '1px solid var(--border-default)',
                       display: 'flex', flexDirection: 'column', gap: 8,
                     }}>
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -344,7 +344,7 @@ export function SettingsPanel() {
                           onClick={handleAddGroup}
                           style={{
                             flex: 1, padding: '8px', borderRadius: 8,
-                            background: '#E11F7B', color: '#fff',
+                            background: 'var(--accent)', color: '#fff',
                             border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                           }}
                         >
@@ -379,7 +379,7 @@ export function SettingsPanel() {
                     </p>
                   </div>
                   {permission !== 'granted' && permission !== 'denied' && (
-                    <button onClick={subscribe} style={{ padding: '8px 14px', borderRadius: 8, background: '#E11F7B', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    <button onClick={subscribe} style={{ padding: '8px 14px', borderRadius: 8, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       Activer
                     </button>
                   )}
@@ -417,7 +417,7 @@ function Section({ title, children, danger }: { title: string; children: React.R
     <div style={{ paddingTop: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <h3 style={{
         fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-        color: danger ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.35)',
+        color: danger ? 'rgba(239,68,68,0.7)' : 'var(--text-tertiary)',
         marginBottom: 14,
       }}>
         {title}

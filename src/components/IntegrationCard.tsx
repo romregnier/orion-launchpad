@@ -135,7 +135,7 @@ export function IntegrationCard({ icon, name, description, section, fields, onTe
   const statusColor = isConnected ? '#10B981' : 'rgba(255,255,255,0.25)'
   const statusText = isConnected ? 'Connecté' : 'Non configuré'
   const cardBg = isConnected ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.04)'
-  const cardBorder = isConnected ? '1px solid rgba(16,185,129,0.20)' : '1px solid rgba(255,255,255,0.08)'
+  const cardBorder = isConnected ? '1px solid rgba(16,185,129,0.20)' : '1px solid var(--border-default)'
 
   return (
     <div style={{
@@ -289,7 +289,7 @@ export function IntegrationCard({ icon, name, description, section, fields, onTe
                             ? '#10B981'
                             : testState === 'error'
                             ? '#EF4444'
-                            : 'rgba(255,255,255,0.6)',
+                            : 'var(--text-secondary)',
                           fontSize: 12,
                           fontWeight: 600,
                           cursor: testState === 'loading' ? 'not-allowed' : 'pointer',
@@ -309,7 +309,7 @@ export function IntegrationCard({ icon, name, description, section, fields, onTe
                     </p>
                   )}
                   {field.hint && (
-                    <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif" }}>
+                    <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif" }}>
                       {field.hint}
                     </p>
                   )}
@@ -350,7 +350,7 @@ export function IntegrationCard({ icon, name, description, section, fields, onTe
                   style={{
                     padding: '8px 16px',
                     borderRadius: 8,
-                    background: saving ? 'rgba(225,31,123,0.5)' : '#E11F7B',
+                    background: saving ? 'rgba(225,31,123,0.5)' : 'var(--accent)',
                     border: 'none',
                     color: '#fff',
                     fontSize: 12,

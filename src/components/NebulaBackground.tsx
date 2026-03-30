@@ -20,10 +20,10 @@ interface OrbeConfig {
 }
 
 const ORBES: OrbeConfig[] = [
-  { width: 500, height: 500, color: '#E11F7B55', blur: 80,  opacity: 0.50, top: '10%', left: '15%', duration: 10 },
+  { width: 500, height: 500, color: 'var(--accent)55', blur: 80,  opacity: 0.50, top: '10%', left: '15%', duration: 10 },
   { width: 400, height: 400, color: '#8B5CF655', blur: 100, opacity: 0.40, top: '50%', left: '60%', duration: 13 },
   { width: 600, height: 600, color: '#4FC3F733', blur: 120, opacity: 0.35, top: '70%', left: '30%', duration: 8  },
-  { width: 350, height: 350, color: '#E11F7B33', blur: 90,  opacity: 0.30, top: '25%', left: '75%', duration: 15 },
+  { width: 350, height: 350, color: 'var(--accent)33', blur: 90,  opacity: 0.30, top: '25%', left: '75%', duration: 15 },
   { width: 450, height: 450, color: '#8B5CF633', blur: 110, opacity: 0.25, top: '80%', left: '80%', duration: 11 },
 ]
 
@@ -32,7 +32,7 @@ const ORBES: OrbeConfig[] = [
  * 3 orbes max, opacity × 0.4, toujours visible.
  */
 const ORBES_OVERLAY: OrbeConfig[] = [
-  { width: 600, height: 600, color: '#E11F7B33', blur: 120, opacity: 0.20, top: '5%',  left: '10%', duration: 14 },
+  { width: 600, height: 600, color: 'var(--accent)33', blur: 120, opacity: 0.20, top: '5%',  left: '10%', duration: 14 },
   { width: 500, height: 500, color: '#7C3AED33', blur: 100, opacity: 0.15, top: '55%', left: '65%', duration: 18 },
   { width: 450, height: 450, color: '#00d4ff22', blur: 110, opacity: 0.12, top: '75%', left: '25%', duration: 10 },
 ]
@@ -88,7 +88,7 @@ export function NebulaBackground() {
         zIndex: 0,
         pointerEvents: 'none',
         overflow: 'hidden',
-        background: '#0B090D',
+        background: 'var(--bg-base)',
       }}
     >
       {activeOrbes.map((orbe, i) => {

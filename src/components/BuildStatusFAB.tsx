@@ -39,7 +39,7 @@ interface BacklogTicket {
 }
 
 const AGENT_COLORS: Record<string, string> = {
-  Nova:  '#E11F7B',
+  Nova:  'var(--accent)',
   Aria:  '#8B5CF6',
   Forge: '#F59E0B',
   Rex:   '#10B981',
@@ -65,7 +65,7 @@ function statusIcon(status: string) {
 }
 
 function statusBadgeStyle(status: string): React.CSSProperties {
-  if (status === 'running') return { background: 'rgba(225,31,123,0.15)', color: '#E11F7B', border: '1px solid rgba(225,31,123,0.25)' }
+  if (status === 'running') return { background: 'rgba(225,31,123,0.15)', color: 'var(--accent)', border: '1px solid rgba(225,31,123,0.25)' }
   if (status === 'done')    return { background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)' }
   if (status === 'failed')  return { background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)' }
   return { background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)' }
@@ -200,7 +200,7 @@ export function BuildStatusFAB({ currentUser }: Props) {
           <circle
             cx={30} cy={30} r={RADIUS}
             fill="none"
-            stroke="#E11F7B"
+            stroke="var(--accent)"
             strokeWidth={3}
             strokeDasharray={CIRC}
             strokeDashoffset={runningTask ? dashOffset : CIRC}
@@ -235,7 +235,7 @@ export function BuildStatusFAB({ currentUser }: Props) {
           <Zap
             size={20}
             style={{
-              color: hasActive ? '#E11F7B' : 'rgba(255,255,255,0.4)',
+              color: hasActive ? 'var(--accent)' : 'rgba(255,255,255,0.4)',
               transition: 'color 0.3s ease',
               fill: hasActive ? 'rgba(225,31,123,0.2)' : 'none',
             }}
@@ -322,8 +322,8 @@ export function BuildStatusFAB({ currentUser }: Props) {
                     padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.2s',
                     background: showDora ? 'rgba(225,31,123,0.2)' : 'rgba(62,55,66,0.8)',
-                    color: showDora ? '#E11F7B' : '#6b7280',
-                    border: showDora ? '1px solid rgba(225,31,123,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                    color: showDora ? 'var(--accent)' : '#6b7280',
+                    border: showDora ? '1px solid rgba(225,31,123,0.3)' : '1px solid var(--border-default)',
                   }}
                 >
                   📊 Stats
@@ -337,7 +337,7 @@ export function BuildStatusFAB({ currentUser }: Props) {
                       cursor: 'pointer', transition: 'all 0.2s',
                       background: showTickets ? 'rgba(139,92,246,0.2)' : 'rgba(62,55,66,0.8)',
                       color: showTickets ? '#A78BFA' : '#6b7280',
-                      border: showTickets ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                      border: showTickets ? '1px solid rgba(139,92,246,0.3)' : '1px solid var(--border-default)',
                     }}
                   >
                     🎫 Tickets
@@ -410,10 +410,10 @@ export function BuildStatusFAB({ currentUser }: Props) {
                             <div style={{ marginTop: 5 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                                 <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{task.step_label ?? '…'}</span>
-                                <span style={{ fontSize: 9, color: '#E11F7B', fontWeight: 700 }}>{Math.round(task.progress)}%</span>
+                                <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 700 }}>{Math.round(task.progress)}%</span>
                               </div>
-                              <div style={{ width: '100%', height: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 1, overflow: 'hidden' }}>
-                                <div style={{ width: `${Math.min(100, task.progress)}%`, height: '100%', background: '#E11F7B', borderRadius: 1, transition: 'width 0.5s ease' }} />
+                              <div style={{ width: '100%', height: 2, background: 'var(--border-default)', borderRadius: 1, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.min(100, task.progress)}%`, height: '100%', background: 'var(--accent)', borderRadius: 1, transition: 'width 0.5s ease' }} />
                               </div>
                             </div>
                           )}
@@ -458,7 +458,7 @@ export function BuildStatusFAB({ currentUser }: Props) {
                       <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {ticket.title}
                       </span>
-                      <span style={{ fontSize: 8, color: ticket.status === 'in_review' ? '#F59E0B' : ticket.status === 'in_progress' ? '#E11F7B' : 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                      <span style={{ fontSize: 8, color: ticket.status === 'in_review' ? '#F59E0B' : ticket.status === 'in_progress' ? 'var(--accent)' : 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
                         {ticket.status === 'in_review' ? '👁' : ticket.status === 'in_progress' ? '🔄' : ''}
                       </span>
                       {ticket.assigned_to && (

@@ -6,7 +6,7 @@ import { useLaunchpadStore } from '../store'
 import { Select } from './Select'
 import type { Project } from '../types'
 
-const COLOR_OPTIONS = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
+const COLOR_OPTIONS = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
 interface Props {
   project: Project
@@ -24,7 +24,7 @@ export function EditProjectModal({ project, open, onClose }: Props) {
   const [tags, setTags] = useState<string[]>(project.tags ?? [])
   const [tagInput, setTagInput] = useState('')
   const [groupId, setGroupId] = useState<string | undefined>(project.groupId)
-  const [color, setColor] = useState(project.color ?? '#E11F7B')
+  const [color, setColor] = useState(project.color ?? 'var(--accent)')
 
   // Reset when project changes
   useEffect(() => {
@@ -34,7 +34,7 @@ export function EditProjectModal({ project, open, onClose }: Props) {
     setGithub(project.github ?? '')
     setTags(project.tags ?? [])
     setGroupId(project.groupId)
-    setColor(project.color ?? '#E11F7B')
+    setColor(project.color ?? 'var(--accent)')
   }, [project])
 
   const handleSave = useCallback(() => {
@@ -96,7 +96,7 @@ export function EditProjectModal({ project, open, onClose }: Props) {
             width: 'calc(100vw - 32px)',
             borderRadius: 20,
             background: '#1A171C',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border-default)',
             padding: 28,
             boxShadow: '0 24px 60px rgba(0,0,0,0.7)',
           }}
@@ -161,12 +161,12 @@ export function EditProjectModal({ project, open, onClose }: Props) {
                   <span key={tag} style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '3px 10px', borderRadius: 999,
-                    background: 'rgba(225,31,123,0.15)', color: '#E11F7B',
+                    background: 'rgba(225,31,123,0.15)', color: 'var(--accent)',
                     border: '1px solid rgba(225,31,123,0.3)',
                     fontSize: 11, fontWeight: 600,
                   }}>
                     {tag}
-                    <button onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', color: '#E11F7B', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                    <button onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
                   </span>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export function EditProjectModal({ project, open, onClose }: Props) {
               style={{
                 marginTop: 8,
                 width: '100%', height: 44, borderRadius: 12,
-                background: '#E11F7B', color: '#fff',
+                background: 'var(--accent)', color: '#fff',
                 border: 'none', cursor: 'pointer',
                 fontSize: 14, fontWeight: 700,
                 boxShadow: '0 4px 16px rgba(225,31,123,0.4)',

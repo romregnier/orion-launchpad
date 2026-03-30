@@ -3,7 +3,7 @@ import type { CanvasAgent } from '../types'
 
 // Agent color palette by agent_key
 const AGENT_COLORS: Record<string, string> = {
-  orion: '#E11F7B',
+  orion: 'var(--accent)',
   nova: '#7C3AED',
   aria: '#0EA5E9',
   forge: '#F59E0B',
@@ -30,9 +30,9 @@ function getModelStyle(model?: string | null, entityType?: string | null): { bg:
   }
   if (model.includes('sonnet')) return { bg: 'rgba(124,58,237,0.18)', border: 'rgba(124,58,237,0.35)', color: '#A78BFA', emoji: '🧠' }
   if (model.includes('haiku')) return { bg: 'rgba(14,165,233,0.18)', border: 'rgba(14,165,233,0.35)', color: '#38BDF8', emoji: '⚡' }
-  if (model.includes('opus')) return { bg: 'rgba(225,31,123,0.18)', border: 'rgba(225,31,123,0.35)', color: '#E11F7B', emoji: '💎' }
+  if (model.includes('opus')) return { bg: 'rgba(225,31,123,0.18)', border: 'rgba(225,31,123,0.35)', color: 'var(--accent)', emoji: '💎' }
   if (model.includes('gpt-4o')) return { bg: 'rgba(16,185,129,0.18)', border: 'rgba(16,185,129,0.35)', color: '#34D399', emoji: '🤖' }
-  return { bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', emoji: '🔮' }
+  return { bg: 'var(--border-default)', border: 'rgba(255,255,255,0.15)', color: 'var(--text-secondary)', emoji: '🔮' }
 }
 
 function StatusDot({ status }: { status?: 'online' | 'idle' | 'offline' | null }) {
@@ -54,7 +54,7 @@ function StatusDot({ status }: { status?: 'online' | 'idle' | 'offline' | null }
         height: 10,
         borderRadius: '50%',
         background: color,
-        border: '2px solid #2C272F',
+        border: '2px solid var(--bg-surface)',
         flexShrink: 0,
       }}
     />
@@ -85,7 +85,7 @@ export function AgentDirectoryCard({ agent }: Props) {
         padding: '18px 20px',
         borderRadius: 12,
         border: '1px solid rgba(255,255,255,0.07)',
-        background: '#2C272F',
+        background: 'var(--bg-surface)',
         position: 'relative',
         overflow: 'hidden',
         cursor: 'pointer',

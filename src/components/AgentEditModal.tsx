@@ -138,7 +138,7 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
                 </div>
                 <div style={{
                   fontSize: 11,
-                  color: 'rgba(255,255,255,0.35)',
+                  color: 'var(--text-tertiary)',
                   fontFamily: 'monospace',
                   marginTop: 2,
                 }}>
@@ -152,7 +152,7 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
                   height: 32,
                   borderRadius: 8,
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border-default)',
                   color: 'rgba(255,255,255,0.5)',
                   cursor: 'pointer',
                   display: 'flex',
@@ -256,7 +256,7 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
                   flex: 1,
                   padding: '10px 0',
                   borderRadius: 8,
-                  background: saving ? 'rgba(225,31,123,0.5)' : '#E11F7B',
+                  background: saving ? 'rgba(225,31,123,0.5)' : 'var(--accent)',
                   border: 'none',
                   color: '#fff',
                   fontSize: 13,
@@ -266,7 +266,7 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
                   fontFamily: "'Poppins', sans-serif",
                 }}
                 onMouseEnter={e => { if (!saving) (e.currentTarget as HTMLElement).style.background = '#C8166A' }}
-                onMouseLeave={e => { if (!saving) (e.currentTarget as HTMLElement).style.background = '#E11F7B' }}
+                onMouseLeave={e => { if (!saving) (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
               >
                 {saving ? '⏳ Sauvegarde...' : '✓ Sauvegarder'}
               </button>
@@ -276,7 +276,7 @@ export function AgentEditModal({ agent, onClose }: AgentEditModalProps) {
                   padding: '10px 16px',
                   borderRadius: 8,
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border-default)',
                   color: 'rgba(255,255,255,0.5)',
                   fontSize: 13,
                   cursor: 'pointer',

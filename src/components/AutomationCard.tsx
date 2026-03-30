@@ -1,6 +1,7 @@
 /**
- * AutomationCard — TK-0165 Automations UI
+ * AutomationCard — TK-0165 Automations UI / TK-0179 Enrichissement
  * Card d'automation avec toggle, status dot, schedule lisible
+ * v2: + next_run_at, onRun, onDelete, description sous-titre
  */
 import { useState } from 'react'
 
@@ -14,8 +15,11 @@ interface AutomationCardProps {
     last_run_at?: string
     last_run_status?: string
     adapter_type: string
+    next_run_at?: string
   }
   onToggle: (id: string, enabled: boolean) => Promise<void>
+  onRun?: (id: string) => Promise<void>
+  onDelete?: (id: string) => void
 }
 
 function parseSchedule(cron: string): string {
@@ -23,16 +27,16 @@ function parseSchedule(cron: string): string {
   const parts = cron.trim().split(/\s+/)
   if (parts.length < 5) return cron
 
-  const [min, hour, dom, month, dow] = parts
+  const [min, hour, , , dow] = parts
 
   // Common patterns
-  if (dom === '*' && month === '*' && dow === '*') {
+  if (dow === '*') {
     if (min === '0') {
       return `Chaque jour à ${hour}h`
     }
     return `Chaque jour à ${hour}h${min.padStart(2,'0')}`
   }
-  if (dom === '*' && month === '*' && dow !== '*') {
+  if (dow !== '*') {
     const days: Record<string, string> = { '0':'dim', '1':'lun', '2':'mar', '3':'mer', '4':'jeu', '5':'ven', '6':'sam', 'MON':'lun', 'TUE':'mar', 'WED':'mer', 'THU':'jeu', 'FRI':'ven', 'SAT':'sam', 'SUN':'dim' }
     const dayLabel = days[dow] ?? dow
     return `Chaque ${dayLabel} à ${hour}h`
@@ -48,6 +52,16 @@ function relativeTime(dateStr: string): string {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `il y a ${hrs}h`
   return `il y a ${Math.floor(hrs / 24)}j`
+}
+
+function timeUntil(dateStr: string): string {
+  const diff = new Date(dateStr).getTime() - Date.now()
+  if (diff <= 0) return 'maintenant'
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `dans ${mins} min`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `dans ${hrs}h`
+  return `dans ${Math.floor(hrs / 24)}j`
 }
 
 function StatusDot({ status }: { status?: string }) {
@@ -107,8 +121,10 @@ function ToggleSwitch({ enabled, onChange, loading }: { enabled: boolean; onChan
   )
 }
 
-export function AutomationCard({ automation, onToggle }: AutomationCardProps) {
+export function AutomationCard({ automation, onToggle, onRun, onDelete }: AutomationCardProps) {
   const [loading, setLoading] = useState(false)
+  const [runLoading, setRunLoading] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
   const handleToggle = async () => {
     setLoading(true)
@@ -119,6 +135,16 @@ export function AutomationCard({ automation, onToggle }: AutomationCardProps) {
     }
   }
 
+  const handleRun = async () => {
+    if (!onRun) return
+    setRunLoading(true)
+    try {
+      await onRun(automation.id)
+    } finally {
+      setRunLoading(false)
+    }
+  }
+
   return (
     <>
       <style>{`
@@ -126,18 +152,26 @@ export function AutomationCard({ automation, onToggle }: AutomationCardProps) {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.5; transform: scale(1.3); }
         }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
       `}</style>
-      <div style={{
-        background: 'var(--bg-surface)',
-        border: 'var(--glass-border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '12px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        opacity: automation.enabled ? 1 : 0.6,
-        transition: 'opacity 0.2s',
-      }}>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          background: 'var(--bg-surface)',
+          border: 'var(--glass-border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '12px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          opacity: automation.enabled ? 1 : 0.6,
+          transition: 'opacity 0.2s',
+          position: 'relative',
+        }}
+      >
         {/* Status dot */}
         <StatusDot status={automation.last_run_status ?? undefined} />
 
@@ -154,6 +188,20 @@ export function AutomationCard({ automation, onToggle }: AutomationCardProps) {
           }}>
             {automation.name}
           </div>
+          {/* Description sous-titre */}
+          {automation.description && (
+            <div style={{
+              fontSize: 10,
+              color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-sans)',
+              marginTop: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {automation.description}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, marginTop: 3, alignItems: 'center', flexWrap: 'wrap' }}>
             {automation.schedule && (
               <span style={{
@@ -173,6 +221,15 @@ export function AutomationCard({ automation, onToggle }: AutomationCardProps) {
                 · {relativeTime(automation.last_run_at)}
               </span>
             )}
+            {automation.next_run_at && (
+              <span style={{
+                fontSize: 10,
+                color: 'var(--text-tertiary)',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                · Prochain: {timeUntil(automation.next_run_at)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -188,6 +245,61 @@ export function AutomationCard({ automation, onToggle }: AutomationCardProps) {
         }}>
           {automation.adapter_type}
         </span>
+
+        {/* Run button */}
+        {onRun && (
+          <button
+            onClick={() => void handleRun()}
+            disabled={runLoading}
+            title="Lancer maintenant"
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 'var(--radius-sm)',
+              background: runLoading ? 'rgba(255,255,255,0.06)' : 'rgba(225,31,123,0.15)',
+              border: '1px solid rgba(225,31,123,0.3)',
+              color: 'var(--accent)',
+              cursor: runLoading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 10,
+              flexShrink: 0,
+              opacity: runLoading ? 0.6 : 1,
+              transition: 'background 0.2s, opacity 0.2s',
+            }}
+          >
+            {runLoading ? (
+              <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
+            ) : '▶'}
+          </button>
+        )}
+
+        {/* Delete button — hover-reveal */}
+        {onDelete && (
+          <button
+            onClick={() => onDelete(automation.id)}
+            title="Supprimer"
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              color: '#EF4444',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 11,
+              flexShrink: 0,
+              opacity: hovered ? 1 : 0,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            🗑
+          </button>
+        )}
 
         {/* Toggle */}
         <ToggleSwitch enabled={automation.enabled} onChange={() => void handleToggle()} loading={loading} />

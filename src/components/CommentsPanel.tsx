@@ -39,7 +39,7 @@ function timeAgo(iso: string): string {
   return `il y a ${Math.floor(h / 24)}j`
 }
 
-const AVATAR_COLORS = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444']
+const AVATAR_COLORS = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444']
 function avatarColor(str: string): string {
   let hash = 0
   for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff
@@ -133,7 +133,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, currentU
         }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>💬 Commentaires</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{projectTitle}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{projectTitle}</div>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, currentU
             onClick={() => void publish()}
             disabled={!text.trim()}
             style={{
-              background: text.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)',
+              background: text.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
               border: 'none', borderRadius: 10, padding: '0 14px',
               cursor: text.trim() ? 'pointer' : 'default',
               color: '#fff', display: 'flex', alignItems: 'center', transition: 'background 0.15s',
@@ -235,8 +235,8 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, currentU
               height: isMobile ? '80vh' : '100vh',
               zIndex: 401,
               background: '#13111A',
-              borderLeft: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
-              borderTop: isMobile ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              borderLeft: isMobile ? 'none' : '1px solid var(--border-default)',
+              borderTop: isMobile ? '1px solid var(--border-default)' : 'none',
               borderRadius: isMobile ? '16px 16px 0 0' : 0,
               display: 'flex',
               flexDirection: 'column',
@@ -254,7 +254,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, currentU
             }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Commentaires</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{projectTitle}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{projectTitle}</div>
               </div>
               <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: 6, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'flex' }}>
                 <X size={14} />
@@ -318,7 +318,7 @@ export function CommentsPanel({ projectId, projectTitle, open, onClose, currentU
                 onClick={() => void publish()}
                 disabled={!text.trim()}
                 style={{
-                  background: text.trim() ? '#E11F7B' : 'rgba(255,255,255,0.06)',
+                  background: text.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
                   border: 'none', borderRadius: 10, padding: '0 14px',
                   cursor: text.trim() ? 'pointer' : 'default',
                   color: '#fff', display: 'flex', alignItems: 'center', transition: 'background 0.15s',

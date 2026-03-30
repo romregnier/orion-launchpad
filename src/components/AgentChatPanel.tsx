@@ -8,7 +8,7 @@ import { TypingIndicator } from './TypingIndicator'
 import { formatMessageTime } from '../utils/formatMessageTime'
 
 // ── @mention helpers ──────────────────────────────────────────────────────────
-const MENTION_COLOR = '#E11F7B'
+const MENTION_COLOR = 'var(--accent)'
 
 function renderMessageWithMentions(text: string): React.ReactNode {
   const parts = text.split(/(@\w+)/g)
@@ -60,7 +60,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
   const bottomRef = useRef<HTMLDivElement>(null)
   const { activeBuildTasks, canvasAgents } = useLaunchpadStore()
   const agentKey = (agent as CanvasAgent & { agent_key?: string }).agent_key ?? agent.name.toLowerCase()
-  const color = AGENT_META[agentKey]?.color ?? '#E11F7B'
+  const color = AGENT_META[agentKey]?.color ?? 'var(--accent)'
   const emoji = AGENT_META[agentKey]?.emoji ?? '🤖'
   const isActive = activeBuildTasks.some(t => t.agent_key === agentKey && t.status === 'running')
 
@@ -244,7 +244,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
                 padding: '8px 12px',
                 borderRadius: isUser ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
                 background: isUser ? `${color}22` : 'rgba(255,255,255,0.07)',
-                border: `1px solid ${isUser ? `${color}40` : 'rgba(255,255,255,0.08)'}`,
+                border: `1px solid ${isUser ? `${color}40` : 'var(--border-default)'}`,
                 fontSize: 13,
                 color: '#fff',
                 lineHeight: 1.5,
@@ -278,7 +278,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
             bottom: '100%',
             left: 14,
             right: 14,
-            background: 'var(--bg-elevated, #3E3742)',
+            background: 'var(--bg-elevated, var(--bg-elevated))',
             borderRadius: 10,
             border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
             zIndex: 400,
@@ -303,7 +303,7 @@ export function AgentChatPanel({ agent, currentUser, onClose, isTyping }: Props)
                   fontFamily: 'var(--font-sans)',
                   textAlign: 'left',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover, rgba(255,255,255,0.08))' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover, var(--border-default))' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
               >
                 <span style={{ fontSize: 16 }}>{s.emoji}</span>

@@ -27,7 +27,7 @@ function hashUsername(username: string): number {
 }
 
 const AVATAR_COLORS = [
-  '#E11F7B', '#8B5CF6', '#F59E0B', '#10B981',
+  'var(--accent)', '#8B5CF6', '#F59E0B', '#10B981',
   '#3B82F6', '#EF4444', '#06B6D4', '#EC4899',
 ]
 
@@ -153,7 +153,7 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
                 color: color,
                 cursor: 'default',
                 marginLeft: i > 0 ? -8 : 0,
-                boxShadow: `0 0 0 2px #0B090D`,
+                boxShadow: `0 0 0 2px var(--bg-base)`,
                 transition: 'transform 0.15s',
               }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.15) translateY(-2px)' }}
@@ -172,7 +172,7 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
             width: 32,
             height: 32,
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--border-default)',
             border: '2px solid rgba(255,255,255,0.15)',
             display: 'flex',
             alignItems: 'center',
@@ -182,7 +182,7 @@ export function PresenceBar({ currentUser }: PresenceBarProps) {
             color: 'rgba(255,255,255,0.55)',
             fontFamily: "'Poppins', sans-serif",
             marginLeft: -8,
-            boxShadow: '0 0 0 2px #0B090D',
+            boxShadow: '0 0 0 2px var(--bg-base)',
             cursor: 'default',
             flexShrink: 0,
           }}

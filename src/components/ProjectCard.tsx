@@ -46,7 +46,7 @@ interface Props {
 }
 
 const TAG_COLORS = [
-  '#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B',
+  'var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B',
   '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316',
 ]
 function tagColor(tag: string): string {
@@ -190,7 +190,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
     window.open(project.url, '_blank', 'noopener,noreferrer')
   }, [project.url])
 
-  const accent = project.color ?? '#E11F7B'
+  const accent = project.color ?? 'var(--accent)'
 
   return (
     <>
@@ -260,10 +260,10 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 style={actionBtn}>
                 <ExternalLink size={13} />
               </a>
-              <button onClick={handleCopy} title="Copier le lien" style={{ ...actionBtn, color: copied ? '#10B981' : 'rgba(255,255,255,0.6)' }}>
+              <button onClick={handleCopy} title="Copier le lien" style={{ ...actionBtn, color: copied ? '#10B981' : 'var(--text-secondary)' }}>
                 {copied ? <Check size={13} /> : <Copy size={13} />}
               </button>
-              <button onClick={handleRefreshPreview} title="Rafraîchir la preview" style={{ ...actionBtn, color: refreshing ? '#7C3AED' : 'rgba(255,255,255,0.6)' }}>
+              <button onClick={handleRefreshPreview} title="Rafraîchir la preview" style={{ ...actionBtn, color: refreshing ? '#7C3AED' : 'var(--text-secondary)' }}>
                 <RefreshCw size={13} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : {}} />
               </button>
               <button
@@ -311,7 +311,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 {commentCount > 0 && (
                   <span style={{
                     position: 'absolute', top: -5, right: -5,
-                    background: '#E11F7B', borderRadius: '50%',
+                    background: 'var(--accent)', borderRadius: '50%',
                     width: 13, height: 13, fontSize: 7, fontWeight: 800,
                     color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     border: '1.5px solid rgba(15,12,20,0.96)',
@@ -365,13 +365,13 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
             borderRadius: 16,
             background: 'rgba(26,22,30,0.97)',
             border: isSwapTarget
-              ? '1px solid #E11F7B'
+              ? '1px solid var(--accent)'
               : `1px solid ${showActions ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
             backdropFilter: 'blur(24px)',
             boxShadow: isDragging
               ? `0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(225,31,123,0.20)`
               : isSwapTarget
-              ? '0 0 0 2px #E11F7B, 0 0 16px rgba(225,31,123,0.30)'
+              ? '0 0 0 2px var(--accent), 0 0 16px rgba(225,31,123,0.30)'
               : showActions
               ? `0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px ${accent}22`
               : '0 4px 20px rgba(0,0,0,0.4)',
@@ -401,7 +401,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                   padding: '3px 10px',
                   fontSize: 10,
                   fontWeight: 700,
-                  color: '#E11F7B',
+                  color: 'var(--accent)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
@@ -530,7 +530,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 </div>
                 {meta.ai_meta.suggestions.slice(0, 3).map((s, i) => (
                   <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, marginBottom: 2, display: 'flex', gap: 5 }}>
-                    <span style={{ color: '#E11F7B', flexShrink: 0 }}>→</span>
+                    <span style={{ color: 'var(--accent)', flexShrink: 0 }}>→</span>
                     <span>{s}</span>
                   </div>
                 ))}
@@ -579,7 +579,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
 const actionBtn: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   width: 28, height: 28, borderRadius: 8,
-  color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+  color: 'var(--text-secondary)', cursor: 'pointer',
   border: 'none', background: 'transparent',
   transition: 'background 0.12s, color 0.12s',
   flexShrink: 0,

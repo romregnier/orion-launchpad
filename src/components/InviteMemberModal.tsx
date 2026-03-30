@@ -11,7 +11,7 @@ const overlayStyle: React.CSSProperties = {
 }
 
 const modalStyle: React.CSSProperties = {
-  background: '#2C272F',
+  background: 'var(--bg-surface)',
   border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 20,
   padding: 28,
@@ -172,7 +172,7 @@ export function InviteMemberModal({ open, onClose }: Props) {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     style={inputStyle}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#E11F7B' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
                     autoFocus
                     required
@@ -232,7 +232,7 @@ export function InviteMemberModal({ open, onClose }: Props) {
                     whileTap={{ scale: 0.97 }}
                     style={{
                       flex: 2, padding: '10px 16px', borderRadius: 10,
-                      background: loading ? 'rgba(225,31,123,0.4)' : '#E11F7B',
+                      background: loading ? 'rgba(225,31,123,0.4)' : 'var(--accent)',
                       border: 'none',
                       color: '#fff',
                       fontSize: 14, fontWeight: 700,

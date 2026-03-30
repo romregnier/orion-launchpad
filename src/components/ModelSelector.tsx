@@ -70,7 +70,7 @@ const PROVIDERS: Provider[] = [
 
 // ── Tier badge colors ─────────────────────────────────────────────────────────
 const TIER_COLORS: Record<Tier, { bg: string; text: string; border: string; label: string }> = {
-  flagship: { bg: 'rgba(225,31,123,0.15)',  text: '#E11F7B',  border: 'rgba(225,31,123,0.35)', label: 'flagship' },
+  flagship: { bg: 'rgba(225,31,123,0.15)',  text: 'var(--accent)',  border: 'rgba(225,31,123,0.35)', label: 'flagship' },
   smart:    { bg: 'rgba(139,92,246,0.15)', text: '#8B5CF6',  border: 'rgba(139,92,246,0.35)', label: 'smart' },
   fast:     { bg: 'rgba(16,185,129,0.15)', text: '#10B981',  border: 'rgba(16,185,129,0.35)', label: 'fast' },
 }
@@ -130,8 +130,8 @@ export function ModelSelector({ value, onChange, className }: ModelSelectorProps
       className={className}
       style={{
         fontFamily: "'Poppins', sans-serif",
-        background: '#2C272F',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-default)',
         borderRadius: 14,
         overflow: 'hidden',
       }}
@@ -140,7 +140,7 @@ export function ModelSelector({ value, onChange, className }: ModelSelectorProps
       <div style={{
         position: 'relative',
         display: 'flex',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        borderBottom: '1px solid var(--border-default)',
         padding: '0 8px',
         gap: 0,
         overflowX: 'auto',
@@ -156,7 +156,7 @@ export function ModelSelector({ value, onChange, className }: ModelSelectorProps
               position: 'absolute',
               bottom: 0,
               height: 2,
-              background: '#E11F7B',
+              background: 'var(--accent)',
               borderRadius: 999,
             }}
           />
@@ -233,8 +233,8 @@ export function ModelSelector({ value, onChange, className }: ModelSelectorProps
                     <div style={{
                       width: 18, height: 18,
                       borderRadius: '50%',
-                      border: `2px solid ${isSelected ? '#E11F7B' : 'rgba(255,255,255,0.2)'}`,
-                      background: isSelected ? '#E11F7B' : 'transparent',
+                      border: `2px solid ${isSelected ? 'var(--accent)' : 'rgba(255,255,255,0.2)'}`,
+                      background: isSelected ? 'var(--accent)' : 'transparent',
                       flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',

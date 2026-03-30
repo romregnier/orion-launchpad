@@ -104,10 +104,10 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
             {/* Header */}
             <div style={{ padding: '18px 22px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={15} style={{ color: '#E11F7B' }} />
+                <Sparkles size={15} style={{ color: 'var(--accent)' }} />
                 <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>Projets</span>
               </div>
-              <button onClick={handleClose} style={{ color: 'rgba(255,255,255,0.35)', padding: 6, borderRadius: 8, cursor: 'pointer', border: 'none', background: 'rgba(255,255,255,0.06)', display: 'flex' }}>
+              <button onClick={handleClose} style={{ color: 'var(--text-tertiary)', padding: 6, borderRadius: 8, cursor: 'pointer', border: 'none', background: 'rgba(255,255,255,0.06)', display: 'flex' }}>
                 <X size={15} />
               </button>
             </div>
@@ -122,7 +122,7 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
                     padding: '7px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600,
                     border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                     background: tab === t ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.05)',
-                    color: tab === t ? '#E11F7B' : 'rgba(255,255,255,0.4)',
+                    color: tab === t ? 'var(--accent)' : 'rgba(255,255,255,0.4)',
                   }}
                 >
                   {t === 'add' ? '✨ Ajouter' : `📦 Archivés${deletedProjects.length ? ` (${deletedProjects.length})` : ''}`}
@@ -149,7 +149,7 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
                     />
                   </div>
                   <button onClick={handleFetch} disabled={loading || !url.trim()}
-                    style={{ height: 40, paddingInline: 14, borderRadius: 10, fontSize: 12, fontWeight: 600, background: fetched ? 'rgba(16,185,129,0.15)' : 'linear-gradient(135deg,#E11F7B,#c41a6a)', color: fetched ? '#10B981' : '#fff', cursor: loading || !url.trim() ? 'not-allowed' : 'pointer', opacity: !url.trim() ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0, border: 'none' }}>
+                    style={{ height: 40, paddingInline: 14, borderRadius: 10, fontSize: 12, fontWeight: 600, background: fetched ? 'rgba(16,185,129,0.15)' : 'linear-gradient(135deg,var(--accent),#c41a6a)', color: fetched ? '#10B981' : '#fff', cursor: loading || !url.trim() ? 'not-allowed' : 'pointer', opacity: !url.trim() ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0, border: 'none' }}>
                     {loading ? <Loader2 size={13} className="animate-spin" /> : null}
                     {loading ? 'Chargement…' : fetched ? '✓ OK' : 'Récupérer'}
                   </button>
@@ -181,7 +181,7 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button onClick={handleClose} style={{ height: 38, paddingInline: 14, borderRadius: 10, fontSize: 12, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.06)', cursor: 'pointer', border: 'none' }}>Annuler</button>
                   <button onClick={handleAdd} disabled={!title.trim() || !url.trim()}
-                    style={{ height: 38, paddingInline: 18, borderRadius: 10, fontSize: 12, fontWeight: 700, background: 'linear-gradient(135deg,#E11F7B,#c41a6a)', color: '#fff', cursor: !title.trim() || !url.trim() ? 'not-allowed' : 'pointer', opacity: !title.trim() || !url.trim() ? 0.4 : 1, border: 'none' }}>
+                    style={{ height: 38, paddingInline: 18, borderRadius: 10, fontSize: 12, fontWeight: 700, background: 'linear-gradient(135deg,var(--accent),#c41a6a)', color: '#fff', cursor: !title.trim() || !url.trim() ? 'not-allowed' : 'pointer', opacity: !title.trim() || !url.trim() ? 0.4 : 1, border: 'none' }}>
                     Ajouter au Launchpad ✨
                   </button>
                 </div>
@@ -215,7 +215,7 @@ export function AddProjectModal({ open, onClose, defaultPosition }: Props) {
                             </a>
                           )}
                           <button onClick={() => handleRestore(p.id)}
-                            style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(225,31,123,0.15)', color: '#E11F7B', border: 'none', cursor: 'pointer' }}
+                            style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(225,31,123,0.15)', color: 'var(--accent)', border: 'none', cursor: 'pointer' }}
                             title="Remettre sur le canvas">
                             <RotateCcw size={12} />
                           </button>

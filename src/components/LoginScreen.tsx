@@ -42,7 +42,7 @@ export function LoginScreen() {
           borderRadius: 20,
           padding: 40,
           width: 'min(380px, calc(100vw - 32px))',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border-default)',
           boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0,
         }}
@@ -102,7 +102,7 @@ export function LoginScreen() {
             disabled={loading}
             style={{
               width: '100%', height: 48, borderRadius: 12,
-              background: loading ? 'rgba(225,31,123,0.5)' : '#E11F7B',
+              background: loading ? 'rgba(225,31,123,0.5)' : 'var(--accent)',
               color: '#fff', border: 'none', fontSize: 14, fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 16px rgba(225,31,123,0.4)',

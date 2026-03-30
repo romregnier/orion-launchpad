@@ -67,12 +67,12 @@ const STATUS_OPTIONS: Array<{ value: TicketStatus; label: string }> = [
 // ─── Design tokens ──────────────────────────────────────────────────────────
 
 const T = {
-  accent:    '#E11F7B',
-  bg:        '#0B090D',
-  surface:   '#2C272F',
-  elevated:  '#3E3742',
+  accent:    'var(--accent)',
+  bg:        'var(--bg-base)',
+  surface:   'var(--bg-surface)',
+  elevated:  'var(--bg-elevated)',
   text:      '#fff',
-  muted:     'rgba(255,255,255,0.35)',
+  muted:     'var(--text-tertiary)',
   border:    '1px solid rgba(255,255,255,0.07)',
   cardBg:    'rgba(255,255,255,0.03)',
   font:      "'Poppins', sans-serif",

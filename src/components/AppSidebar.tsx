@@ -59,7 +59,7 @@ function AgentStatusRow() {
                     justifyContent: 'center',
                     fontSize: 9,
                     fontWeight: 700,
-                    color: '#E11F7B',
+                    color: 'var(--accent)',
                   }}>
                     {initials}
                   </div>

@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase'
 import type { SelectOption } from './Select'
 import { logAuditEvent } from '../lib/auditLog'
 
-const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
+const COLOR_PALETTE = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
 const EMOJI_LIST = [
   '🚀', '⚡', '🌟', '🎯', '🔧', '🎨', '🛡️', '📊', '📣', '🤝', '🔍', '💡',
@@ -131,7 +131,7 @@ function GeneralSection() {
   const [name, setName] = useState(currentCapsule?.name || '')
   const [description, setDescription] = useState(currentCapsule?.description || '')
   const [emoji, setEmoji] = useState(currentCapsule?.emoji || '🚀')
-  const [color, setColor] = useState(currentCapsule?.color || '#E11F7B')
+  const [color, setColor] = useState(currentCapsule?.color || 'var(--accent)')
   const [baseUrl, setBaseUrl] = useState('')
   const [timezone, setTimezone] = useState('Europe/Paris')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -334,7 +334,7 @@ function GeneralSection() {
           />
           <SaveIndicator saving={baseUrlSave.saving} saved={baseUrlSave.saved} />
         </div>
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif" }}>
+        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif" }}>
           Pour les redirects OAuth et emails
         </p>
       </div>
@@ -403,7 +403,7 @@ function ExistingBoardSettings() {
   return (
     <>
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14, fontFamily: "'Poppins', sans-serif" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14, fontFamily: "'Poppins', sans-serif" }}>
           Configuration board
         </div>
         {/* Mode privé */}
@@ -414,7 +414,7 @@ function ExistingBoardSettings() {
           </div>
           <button
             onClick={() => setPrivate(!isPrivate)}
-            style={{ width: 44, height: 24, borderRadius: 999, background: isPrivate ? '#E11F7B' : 'rgba(255,255,255,0.10)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+            style={{ width: 44, height: 24, borderRadius: 999, background: isPrivate ? 'var(--accent)' : 'rgba(255,255,255,0.10)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
           >
             <div style={{ position: 'absolute', top: 3, left: isPrivate ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
           </button>
@@ -423,7 +423,7 @@ function ExistingBoardSettings() {
 
       {/* Groupes */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, fontFamily: "'Poppins', sans-serif" }}>📁 Groupes</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, fontFamily: "'Poppins', sans-serif" }}>📁 Groupes</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {groups.map(group => (
             <div key={group.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
@@ -441,7 +441,7 @@ function ExistingBoardSettings() {
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 0', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.30)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}
             >+ Ajouter un groupe</button>
           ) : (
-            <div style={{ padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input value={newGroupEmoji} onChange={e => setNewGroupEmoji(e.target.value)} style={{ ...inputStyle, width: 48, textAlign: 'center', flexShrink: 0 }} />
                 <input value={newGroupName} onChange={e => setNewGroupName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddGroup() }} placeholder="Nom du groupe" style={{ ...inputStyle, flex: 1 }} autoFocus />
@@ -450,7 +450,7 @@ function ExistingBoardSettings() {
                 {COLOR_PALETTE.map(c => <button key={c} onClick={() => setNewGroupColor(c)} style={{ width: 24, height: 24, borderRadius: '50%', background: c, border: newGroupColor === c ? '2px solid white' : '2px solid transparent', cursor: 'pointer' }} />)}
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={handleAddGroup} style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#E11F7B', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Créer</button>
+                <button onClick={handleAddGroup} style={{ flex: 1, padding: '8px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Créer</button>
                 <button onClick={() => { setShowGroupForm(false); setNewGroupName('') }} style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Annuler</button>
               </div>
             </div>
@@ -461,10 +461,10 @@ function ExistingBoardSettings() {
       {/* Membres */}
       {currentUser?.role === 'admin' && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, fontFamily: "'Poppins', sans-serif" }}>👥 Membres</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, fontFamily: "'Poppins', sans-serif" }}>👥 Membres</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {boardMembers.map(member => {
-              const roleColor = member.role === 'admin' ? '#E11F7B' : member.role === 'member' ? '#7C3AED' : 'rgba(255,255,255,0.3)'
+              const roleColor = member.role === 'admin' ? 'var(--accent)' : member.role === 'member' ? '#7C3AED' : 'rgba(255,255,255,0.3)'
               const isCurrentUser = member.email === currentUser?.username
               return (
                 <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', gap: 8 }}>
@@ -478,11 +478,11 @@ function ExistingBoardSettings() {
                 </div>
               )
             })}
-            <div style={{ padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+            <div style={{ padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
               <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleInvite() }} placeholder="Email de l'invité..." type="email" style={inputStyle} />
               <div style={{ display: 'flex', gap: 8 }}>
                 <Select value={inviteRole} onChange={v => setInviteRole(v as 'member' | 'viewer')} options={roleOptions} style={{ flex: 1 }} />
-                <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} style={{ padding: '8px 14px', borderRadius: 8, background: inviting ? 'rgba(225,31,123,0.5)' : '#E11F7B', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: inviting ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: "'Poppins', sans-serif" }}>
+                <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} style={{ padding: '8px 14px', borderRadius: 8, background: inviting ? 'rgba(225,31,123,0.5)' : 'var(--accent)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: inviting ? 'not-allowed' : 'pointer', flexShrink: 0, fontFamily: "'Poppins', sans-serif" }}>
                   {inviting ? '⏳' : 'Inviter →'}
                 </button>
               </div>
@@ -494,7 +494,7 @@ function ExistingBoardSettings() {
 
       {/* Notifications */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, fontFamily: "'Poppins', sans-serif" }}>🔔 Notifications</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, fontFamily: "'Poppins', sans-serif" }}>🔔 Notifications</div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: "'Poppins', sans-serif" }}>Alertes quand un agent termine une tâche</div>
@@ -503,7 +503,7 @@ function ExistingBoardSettings() {
             </div>
           </div>
           {permission !== 'granted' && permission !== 'denied' && (
-            <button onClick={subscribe} style={{ padding: '8px 14px', borderRadius: 8, background: '#E11F7B', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Activer</button>
+            <button onClick={subscribe} style={{ padding: '8px 14px', borderRadius: 8, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Activer</button>
           )}
           {subscribed && <span style={{ fontSize: 11, color: '#22C55E', fontFamily: "'Poppins', sans-serif" }}>✓ Abonné</span>}
         </div>
@@ -650,7 +650,7 @@ function LLMSection() {
                 padding: '12px 8px',
                 borderRadius: 10,
                 background: provider === p.key ? 'rgba(225,31,123,0.10)' : 'rgba(255,255,255,0.04)',
-                border: provider === p.key ? '1px solid rgba(225,31,123,0.40)' : '1px solid rgba(255,255,255,0.08)',
+                border: provider === p.key ? '1px solid rgba(225,31,123,0.40)' : '1px solid var(--border-default)',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
@@ -714,7 +714,7 @@ function LLMSection() {
               cursor: testState === 'loading' ? 'not-allowed' : 'pointer',
               fontSize: 12,
               fontWeight: 600,
-              color: testState === 'success' ? '#10B981' : testState === 'error' ? '#EF4444' : 'rgba(255,255,255,0.6)',
+              color: testState === 'success' ? '#10B981' : testState === 'error' ? '#EF4444' : 'var(--text-secondary)',
               whiteSpace: 'nowrap',
               fontFamily: "'Poppins', sans-serif",
               transition: 'all 0.2s ease',
@@ -766,7 +766,7 @@ function LLMSection() {
       {/* Fallback model */}
       <div>
         <label style={labelStyle}>MODÈLE DE SECOURS</label>
-        <p style={{ margin: '0 0 6px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif" }}>Utilisé si quota dépassé</p>
+        <p style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif" }}>Utilisé si quota dépassé</p>
         {provider !== 'custom' ? (
           <Select
             value={fallbackModel}
@@ -790,7 +790,7 @@ function LLMSection() {
           ⚠️ Cette clé n'a pas été testée. Sauvegarder quand même ?
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button onClick={doSave} style={{ padding: '6px 12px', borderRadius: 6, background: '#F59E0B', border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Sauvegarder</button>
-            <button onClick={() => setSaveWarning(false)} style={{ padding: '6px 12px', borderRadius: 6, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer' }}>Annuler</button>
+            <button onClick={() => setSaveWarning(false)} style={{ padding: '6px 12px', borderRadius: 6, background: 'var(--border-default)', border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer' }}>Annuler</button>
           </div>
         </div>
       )}
@@ -802,7 +802,7 @@ function LLMSection() {
         style={{
           padding: '10px',
           borderRadius: 10,
-          background: dirty && !saving ? '#E11F7B' : 'rgba(255,255,255,0.07)',
+          background: dirty && !saving ? 'var(--accent)' : 'rgba(255,255,255,0.07)',
           border: 'none',
           color: dirty ? '#fff' : 'rgba(255,255,255,0.4)',
           fontSize: 13,
@@ -1010,7 +1010,7 @@ function BudgetsSection() {
         return (
           <div key={b.id} style={{
             background: 'rgba(44,39,47,0.7)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border-default)',
             borderRadius: 12,
             padding: '14px 16px',
             display: 'flex',
@@ -1049,7 +1049,7 @@ function BudgetsSection() {
                     borderRadius: 6,
                     padding: '3px 8px',
                     fontSize: 11,
-                    color: isEditing ? '#E11F7B' : 'rgba(255,255,255,0.6)',
+                    color: isEditing ? 'var(--accent)' : 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontFamily: "'Poppins', sans-serif",
                   }}
@@ -1064,7 +1064,7 @@ function BudgetsSection() {
             </div>
 
             {/* Progress bar */}
-            <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: 6, background: 'var(--border-default)', borderRadius: 3, overflow: 'hidden' }}>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
@@ -1106,7 +1106,7 @@ function BudgetsSection() {
                       onClick={() => handleSaveLimits(b)}
                       style={{
                         padding: '8px 14px',
-                        background: '#E11F7B',
+                        background: 'var(--accent)',
                         border: 'none',
                         borderRadius: 8,
                         color: '#fff',
@@ -1125,7 +1125,7 @@ function BudgetsSection() {
             {/* Hard stop toggle */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: "'Poppins', sans-serif" }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: "'Poppins', sans-serif" }}>
                   🛑 Hard stop
                 </span>
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 6, fontFamily: "'Poppins', sans-serif" }}>
@@ -1139,7 +1139,7 @@ function BudgetsSection() {
                   height: 22,
                   borderRadius: 11,
                   border: 'none',
-                  background: b.hard_stop ? '#E11F7B' : 'rgba(255,255,255,0.12)',
+                  background: b.hard_stop ? 'var(--accent)' : 'rgba(255,255,255,0.12)',
                   cursor: 'pointer',
                   position: 'relative',
                   transition: 'background 0.2s',
@@ -1164,8 +1164,8 @@ function BudgetsSection() {
 
       {/* Agents sans budget configuré */}
       {agentsWithoutBudget.length > 0 && (
-        <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.08)' }}>
-          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: "'Poppins', sans-serif" }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px dashed var(--border-default)' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-tertiary)', fontFamily: "'Poppins', sans-serif" }}>
             Agents sans budget configuré : {agentsWithoutBudget.map(a => a.name).join(', ')}
             <br />
             <span style={{ fontSize: 11 }}>Les budgets sont créés automatiquement lors des opérations LLM.</span>
@@ -1181,7 +1181,7 @@ function ComingSoonSection({ label }: { label: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center', minHeight: 240 }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.6)', marginBottom: 8, fontFamily: "'Poppins', sans-serif" }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, fontFamily: "'Poppins', sans-serif" }}>{label}</div>
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: "'Poppins', sans-serif" }}>Coming soon</div>
     </div>
   )
@@ -1252,7 +1252,7 @@ export function AppSettingsTab() {
                 minWidth: 70,
                 minHeight: 44,
                 background: section === item.key ? 'rgba(225,31,123,0.12)' : 'transparent',
-                borderBottom: section === item.key ? `2px solid ${item.danger ? '#EF4444' : '#E11F7B'}` : '2px solid transparent',
+                borderBottom: section === item.key ? `2px solid ${item.danger ? '#EF4444' : 'var(--accent)'}` : '2px solid transparent',
                 border: 'none',
                 borderTop: 'none',
                 borderLeft: 'none',
@@ -1317,7 +1317,7 @@ export function AppSettingsTab() {
                 ? (item.danger ? 'rgba(239,68,68,0.10)' : 'rgba(225,31,123,0.12)')
                 : 'transparent',
               borderLeft: section === item.key
-                ? `2px solid ${item.danger ? '#EF4444' : '#E11F7B'}`
+                ? `2px solid ${item.danger ? '#EF4444' : 'var(--accent)'}`
                 : '2px solid transparent',
               border: 'none',
               cursor: 'pointer',

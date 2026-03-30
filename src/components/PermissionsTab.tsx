@@ -27,7 +27,7 @@ const PERM_COLS: Array<{ key: keyof Permission; label: string; icon: string }> =
 ]
 
 const AGENT_COLORS: Record<string, string> = {
-  orion: '#E11F7B',
+  orion: 'var(--accent)',
   nova: '#7C3AED',
   aria: '#0EA5E9',
   forge: '#F59E0B',
@@ -175,7 +175,7 @@ export function PermissionsTab() {
                 textAlign: 'left' as const,
                 fontSize: 10,
                 fontWeight: 700,
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--text-tertiary)',
                 textTransform: 'uppercase' as const,
                 letterSpacing: '0.06em',
                 fontFamily: "'Poppins', sans-serif",
@@ -192,7 +192,7 @@ export function PermissionsTab() {
                   textAlign: 'center' as const,
                   fontSize: 10,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.35)',
+                  color: 'var(--text-tertiary)',
                   textTransform: 'uppercase' as const,
                   letterSpacing: '0.04em',
                   fontFamily: "'Poppins', sans-serif",
@@ -293,7 +293,7 @@ export function PermissionsTab() {
                           fontWeight: 700,
                           padding: '1px 5px',
                           borderRadius: 4,
-                          background: 'rgba(255,255,255,0.08)',
+                          background: 'var(--border-default)',
                           border: '1px solid rgba(255,255,255,0.12)',
                           color: 'rgba(255,255,255,0.30)',
                           textTransform: 'uppercase' as const,

@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase'
 import { useLaunchpadStore } from '../store'
 
 const PRESET_EMOJIS = ['🌟', '🚀', '🎯', '💡', '🔥', '⚡', '🎨', '🏗️', '🧠', '💎', '🌈', '🦁', '🐉', '🌊', '🎭']
-const PRESET_COLORS = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
+const PRESET_COLORS = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
 
 interface Props {
   open: boolean
@@ -21,7 +21,7 @@ export function CreateCapsuleModal({ open, onClose }: Props) {
   const { fetchCapsules, switchCapsule } = useLaunchpadStore()
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('🌟')
-  const [color, setColor] = useState('#E11F7B')
+  const [color, setColor] = useState('var(--accent)')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +47,7 @@ export function CreateCapsuleModal({ open, onClose }: Props) {
     // Reset form
     setName('')
     setEmoji('🌟')
-    setColor('#E11F7B')
+    setColor('var(--accent)')
     onClose()
   }
 
@@ -60,7 +60,7 @@ export function CreateCapsuleModal({ open, onClose }: Props) {
           borderRadius: 8,
           background: 'transparent',
           border: '1px solid rgba(255,255,255,0.12)',
-          color: 'rgba(255,255,255,0.6)',
+          color: 'var(--text-secondary)',
           fontSize: 13,
           fontWeight: 500,
           cursor: 'pointer',
@@ -75,7 +75,7 @@ export function CreateCapsuleModal({ open, onClose }: Props) {
         style={{
           padding: '8px 20px',
           borderRadius: 8,
-          background: loading || !name.trim() ? 'rgba(225,31,123,0.35)' : '#E11F7B',
+          background: loading || !name.trim() ? 'rgba(225,31,123,0.35)' : 'var(--accent)',
           border: 'none',
           color: '#fff',
           fontSize: 13,
@@ -126,7 +126,7 @@ export function CreateCapsuleModal({ open, onClose }: Props) {
             boxSizing: 'border-box',
             transition: 'border-color 0.15s',
           }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#E11F7B' }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
           onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
         />
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4, textAlign: 'right' }}>
@@ -151,7 +151,7 @@ export function CreateCapsuleModal({ open, onClose }: Props) {
                 fontSize: 22,
                 padding: '8px',
                 borderRadius: 8,
-                border: emoji === e ? '2px solid #E11F7B' : '2px solid transparent',
+                border: emoji === e ? '2px solid var(--accent)' : '2px solid transparent',
                 background: emoji === e ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.05)',
                 cursor: 'pointer',
                 transition: 'all 0.12s',

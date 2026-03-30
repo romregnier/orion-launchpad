@@ -69,6 +69,38 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
     can_spawn: [], can_be_spawned_by: ['product', 'marketing']
   },
   {
+    id: 'content-manager', emoji: '🗺️', name: 'Content Manager',
+    role: 'content',
+    skills: ['catalogage', 'metadata', 'search', 'content-curation'],
+    system_prompt: 'Tu es un agent de gestion de contenu. Tu enrichis les fiches produits, vérifies les métadonnées, et améliores la découvrabilité du catalogue.',
+    model: 'claude-sonnet-4-6', model_fallback: 'claude-haiku-4-5',
+    can_spawn: [], can_be_spawned_by: ['product']
+  },
+  {
+    id: 'community-manager', emoji: '🌙', name: 'Community Manager',
+    role: 'community',
+    skills: ['community', 'moderation', 'social', 'sentiment'],
+    system_prompt: 'Tu es un community manager. Tu es chaleureux, empathique, et passionné par ta communauté. Tu réponds aux utilisateurs et modères les contenus.',
+    model: 'claude-sonnet-4-6', model_fallback: 'claude-haiku-4-5',
+    can_spawn: [], can_be_spawned_by: ['product']
+  },
+  {
+    id: 'data-analyst', emoji: '📊', name: 'Data Analyst',
+    role: 'analytics',
+    skills: ['analytics', 'reporting', 'data', 'insights', 'sql'],
+    system_prompt: 'Tu es un data analyst. Tu analyses les métriques, identifies les tendances, et fournis des insights actionnables.',
+    model: 'claude-sonnet-4-6', model_fallback: 'claude-haiku-4-5',
+    can_spawn: [], can_be_spawned_by: ['product']
+  },
+  {
+    id: 'editor', emoji: '✍️', name: 'Editor',
+    role: 'editorial',
+    skills: ['writing', 'editorial', 'reviews', 'curation', 'seo-content'],
+    system_prompt: 'Tu es un éditeur de contenu. Tu rédiges des critiques, des sélections thématiques, et des articles engageants.',
+    model: 'claude-sonnet-4-6', model_fallback: 'claude-haiku-4-5',
+    can_spawn: [], can_be_spawned_by: ['product']
+  },
+  {
     id: 'custom', emoji: '⚡', name: 'Custom',
     role: '', skills: [], system_prompt: '',
     model: 'claude-sonnet-4-6', model_fallback: 'claude-haiku-4-5',

@@ -119,7 +119,7 @@ export function AdminPanel({ onClose }: Props) {
             <div style={{
               fontSize: 11,
               fontWeight: 400,
-              color: 'rgba(255,255,255,0.35)',
+              color: 'var(--text-tertiary)',
               marginTop: 2,
               fontFamily: "'Poppins', sans-serif",
             }}>
@@ -135,7 +135,7 @@ export function AdminPanel({ onClose }: Props) {
               height: 32,
               borderRadius: 8,
               background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-default)',
               color: 'rgba(255,255,255,0.5)',
               cursor: 'pointer',
               display: 'flex',

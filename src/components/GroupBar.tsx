@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLaunchpadStore } from '../store'
 
-const COLOR_PALETTE = ['#E11F7B', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
+const COLOR_PALETTE = ['var(--accent)', '#7C3AED', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#FF6B35', '#A78BFA']
 
 export function GroupBar() {
   const { groups, activeGroup, setGroupFilter, addGroup } = useLaunchpadStore()
@@ -103,7 +103,7 @@ export function GroupBar() {
               <button
                 onClick={handleConfirm}
                 style={{
-                  background: '#E11F7B', color: '#fff', border: 'none', borderRadius: '50%',
+                  background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '50%',
                   width: 18, height: 18, cursor: 'pointer', fontSize: 11, fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}
@@ -113,13 +113,13 @@ export function GroupBar() {
             <motion.button
               key="plus"
               onClick={() => setShowCreateForm(true)}
-              whileHover={{ borderColor: '#E11F7B' }}
+              whileHover={{ borderColor: 'var(--accent)' }}
               whileTap={{ scale: 0.9 }}
               style={{
                 width: 28, height: 28, borderRadius: '50%',
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.12)',
-                color: 'rgba(255,255,255,0.6)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer', fontSize: 16, fontWeight: 400,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,

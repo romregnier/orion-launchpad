@@ -28,7 +28,7 @@ export interface AgentMemberCardProps {
 
 const STATUS_CONFIG = {
   online: { color: '#22C55E', label: 'En ligne', dot: '●' },
-  busy:   { color: '#E11F7B', label: 'Occupé',   dot: '●' },
+  busy:   { color: 'var(--accent)', label: 'Occupé',   dot: '●' },
   idle:   { color: '#6B7280', label: 'Inactif',  dot: '○' },
 }
 
@@ -45,8 +45,8 @@ export function AgentMemberCard({ agentKey, name, role, emoji, lastTask, status 
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.97 }}
       style={{
-        background: '#2C272F',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-default)',
         borderRadius: 16,
         padding: '18px 20px',
         display: 'flex',
@@ -86,7 +86,7 @@ export function AgentMemberCard({ agentKey, name, role, emoji, lastTask, status 
           width: 44,
           height: 44,
           borderRadius: 12,
-          background: '#3E3742',
+          background: 'var(--bg-elevated)',
           border: '1px solid rgba(255,255,255,0.09)',
           display: 'flex',
           alignItems: 'center',
@@ -149,7 +149,7 @@ export function AgentMemberCard({ agentKey, name, role, emoji, lastTask, status 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
             <div style={{ fontSize: 12, color: 'rgba(240,237,245,0.6)', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Dernière tâche : </span>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>Dernière tâche : </span>
               <span style={{ fontWeight: 600 }}>{lastTask.step_label || lastTask.label}</span>
             </div>
             {timeAgo && (
@@ -165,7 +165,7 @@ export function AgentMemberCard({ agentKey, name, role, emoji, lastTask, status 
               flex: 1,
               height: 6,
               borderRadius: 999,
-              background: 'rgba(255,255,255,0.08)',
+              background: 'var(--border-default)',
               overflow: 'hidden',
             }}>
               <motion.div
@@ -175,7 +175,7 @@ export function AgentMemberCard({ agentKey, name, role, emoji, lastTask, status 
                 style={{
                   height: '100%',
                   borderRadius: 999,
-                  background: 'linear-gradient(90deg, #E11F7B, #FF6BAE)',
+                  background: 'linear-gradient(90deg, var(--accent), #FF6BAE)',
                   boxShadow: '0 0 8px rgba(225,31,123,0.5)',
                 }}
               />
@@ -183,7 +183,7 @@ export function AgentMemberCard({ agentKey, name, role, emoji, lastTask, status 
             <span style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#E11F7B',
+              color: 'var(--accent)',
               minWidth: 32,
               textAlign: 'right',
               fontVariantNumeric: 'tabular-nums',

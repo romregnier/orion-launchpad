@@ -202,7 +202,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                 onClick={() => setShowTailor(false)}
                 style={{
                   padding: '6px 14px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.08)',
+                  background: 'var(--border-default)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: 'rgba(255,255,255,0.7)',
                   fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -277,9 +277,9 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    border: isActive ? '1px solid rgba(225,31,123,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                    border: isActive ? '1px solid rgba(225,31,123,0.4)' : '1px solid var(--border-default)',
                     background: isActive ? 'rgba(225,31,123,0.15)' : 'rgba(255,255,255,0.04)',
-                    color: isActive ? '#E11F7B' : 'rgba(255,255,255,0.45)',
+                    color: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.45)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -337,17 +337,17 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '9px 12px', borderRadius: 8, cursor: 'pointer',
-                      border: model === opt.value ? '1px solid rgba(225,31,123,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                      border: model === opt.value ? '1px solid rgba(225,31,123,0.5)' : '1px solid var(--border-default)',
                       background: model === opt.value ? 'rgba(225,31,123,0.1)' : 'rgba(255,255,255,0.04)',
                       textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.15s',
                     }}
                   >
                     <span style={{ fontSize: 16 }}>{opt.badge}</span>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: model === opt.value ? '#E11F7B' : 'rgba(255,255,255,0.8)' }}>{opt.label}</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{opt.desc}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: model === opt.value ? 'var(--accent)' : 'rgba(255,255,255,0.8)' }}>{opt.label}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{opt.desc}</div>
                     </div>
-                    {model === opt.value && <span style={{ marginLeft: 'auto', color: '#E11F7B', fontSize: 14 }}>✓</span>}
+                    {model === opt.value && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 14 }}>✓</span>}
                   </button>
                 ))}
               </div>
@@ -369,7 +369,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                   width: '100%', padding: '10px 14px', borderRadius: 10,
                   background: 'rgba(255,255,255,0.06)',
                   border: '1px solid rgba(255,255,255,0.1)',
-                  color: 'rgba(255,255,255,0.6)',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer', fontSize: 13, fontWeight: 600,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   marginBottom: 8,
@@ -379,7 +379,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
               </button>
 
               {(tailorConfigCapture || configSaved) && (
-                <p style={{ fontSize: 10, color: configSaved ? '#E11F7B' : '#10B981', textAlign: 'center', marginBottom: 8, transition: 'color 0.3s' }}>
+                <p style={{ fontSize: 10, color: configSaved ? 'var(--accent)' : '#10B981', textAlign: 'center', marginBottom: 8, transition: 'color 0.3s' }}>
                   {configSaved ? '✓ Config capturée ! Clique "Enregistrer" pour sauvegarder' : '✓ Avatar configuré'}
                 </p>
               )}
@@ -398,7 +398,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '8px 12px', borderRadius: 8,
                       background: permissions.includes(opt.key) ? 'rgba(225,31,123,0.1)' : 'rgba(255,255,255,0.04)',
-                      border: permissions.includes(opt.key) ? '1px solid rgba(225,31,123,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                      border: permissions.includes(opt.key) ? '1px solid rgba(225,31,123,0.3)' : '1px solid var(--border-default)',
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}
                   >
@@ -406,9 +406,9 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                       type="checkbox"
                       checked={permissions.includes(opt.key)}
                       onChange={() => togglePermission(opt.key)}
-                      style={{ accentColor: '#E11F7B', width: 14, height: 14 }}
+                      style={{ accentColor: 'var(--accent)', width: 14, height: 14 }}
                     />
-                    <span style={{ fontSize: 12, color: permissions.includes(opt.key) ? '#E11F7B' : 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, color: permissions.includes(opt.key) ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 600 }}>
                       {opt.label}
                     </span>
                   </label>
@@ -461,7 +461,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                           display: 'flex', alignItems: 'center', gap: 10,
                           padding: '8px 12px', borderRadius: 8,
                           background: isChecked ? 'rgba(225,31,123,0.1)' : 'rgba(255,255,255,0.04)',
-                          border: isChecked ? '1px solid rgba(225,31,123,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                          border: isChecked ? '1px solid rgba(225,31,123,0.3)' : '1px solid var(--border-default)',
                           cursor: 'pointer', transition: 'all 0.15s',
                         }}
                       >
@@ -469,9 +469,9 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleProject(proj.id)}
-                          style={{ accentColor: '#E11F7B', width: 14, height: 14 }}
+                          style={{ accentColor: 'var(--accent)', width: 14, height: 14 }}
                         />
-                        <span style={{ fontSize: 12, color: isChecked ? '#E11F7B' : 'rgba(255,255,255,0.6)', fontWeight: 600, flex: 1 }}>
+                        <span style={{ fontSize: 12, color: isChecked ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 600, flex: 1 }}>
                           {proj.title}
                         </span>
                         {proj.color && (
@@ -483,7 +483,7 @@ export function BotModal({ open, onClose, editAgent }: Props) {
                 </div>
               )}
               {authorizedProjects.length > 0 && (
-                <p style={{ fontSize: 10, color: '#E11F7B', marginTop: 12 }}>
+                <p style={{ fontSize: 10, color: 'var(--accent)', marginTop: 12 }}>
                   ✓ {authorizedProjects.length} projet{authorizedProjects.length > 1 ? 's' : ''} autorisé{authorizedProjects.length > 1 ? 's' : ''}
                 </p>
               )}
@@ -509,7 +509,7 @@ const inputStyle: React.CSSProperties = {
 
 const btnPrimary: React.CSSProperties = {
   padding: '10px 0', borderRadius: 8,
-  background: 'linear-gradient(135deg, #E11F7B, #c01569)',
+  background: 'linear-gradient(135deg, var(--accent), #c01569)',
   border: 'none', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700,
 }
 

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 
 // ── Agent meta ────────────────────────────────────────────────────────────────
 const AGENTS: Record<string, { name: string; emoji: string; color: string }> = {
-  orion: { name: 'Orion', emoji: '🌟', color: '#E11F7B' },
+  orion: { name: 'Orion', emoji: '🌟', color: 'var(--accent)' },
   nova:  { name: 'Nova',  emoji: '💡', color: '#6366F1' },
   aria:  { name: 'Aria',  emoji: '🎨', color: '#EC4899' },
   forge: { name: 'Forge', emoji: '🔨', color: '#F59E0B' },
@@ -20,7 +20,7 @@ const overlayStyle: React.CSSProperties = {
 }
 
 const modalStyle: React.CSSProperties = {
-  background: '#2C272F',
+  background: 'var(--bg-surface)',
   border: '1px solid rgba(255,255,255,0.09)',
   borderRadius: 20,
   padding: 28,
@@ -205,7 +205,7 @@ export function BroadcastModal({ open, onClose }: Props) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <label style={{ ...labelStyle, marginBottom: 0 }}>Agents cibles</label>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button type="button" onClick={selectAll} style={{ background: 'none', border: 'none', color: '#E11F7B', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>
+                      <button type="button" onClick={selectAll} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>
                         Tous
                       </button>
                       <button type="button" onClick={clearAll} style={{ background: 'none', border: 'none', color: 'rgba(240,237,245,0.4)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>
@@ -266,7 +266,7 @@ export function BroadcastModal({ open, onClose }: Props) {
                       boxSizing: 'border-box',
                       transition: 'border-color 0.15s ease',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#E11F7B' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
                     required
                   />
@@ -310,7 +310,7 @@ export function BroadcastModal({ open, onClose }: Props) {
                     whileTap={(!loading && selectedAgents.size > 0) ? { scale: 0.97 } : {}}
                     style={{
                       flex: 2, padding: '10px 16px', borderRadius: 10,
-                      background: (loading || selectedAgents.size === 0) ? 'rgba(225,31,123,0.35)' : '#E11F7B',
+                      background: (loading || selectedAgents.size === 0) ? 'rgba(225,31,123,0.35)' : 'var(--accent)',
                       border: 'none',
                       color: '#fff',
                       fontSize: 14, fontWeight: 700,

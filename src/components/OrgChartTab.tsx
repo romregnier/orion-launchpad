@@ -72,7 +72,7 @@ export function OrgChartTab() {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '10px 20px', borderRadius: 10,
-              background: '#E11F7B', border: 'none',
+              background: 'var(--accent)', border: 'none',
               color: '#fff', fontSize: 13, fontWeight: 700,
               cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
             }}
@@ -108,13 +108,13 @@ export function OrgChartTab() {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '9px 16px', borderRadius: 10,
-              background: '#E11F7B', border: 'none',
+              background: 'var(--accent)', border: 'none',
               color: '#fff', fontSize: 13, fontWeight: 700,
               cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = '#C8166A'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(225,31,123,0.35)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#E11F7B'; e.currentTarget.style.boxShadow = 'none' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.boxShadow = 'none' }}
           >
             <span>👤</span>
             + Hire Agent
@@ -133,7 +133,7 @@ export function OrgChartTab() {
             <polygon points="0 0, 8 3, 0 6" fill="rgba(255,255,255,0.3)" />
           </marker>
           <marker id="org-arrow-accent" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#E11F7B" />
+            <polygon points="0 0, 8 3, 0 6" fill="var(--accent)" />
           </marker>
         </defs>
 
@@ -183,7 +183,7 @@ export function OrgChartTab() {
           <span>Hiérarchie</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 20, height: 1.5, background: '#E11F7B', borderRadius: 2 }} />
+          <div style={{ width: 20, height: 1.5, background: 'var(--accent)', borderRadius: 2 }} />
           <span>Sélectionné</span>
         </div>
       </div>

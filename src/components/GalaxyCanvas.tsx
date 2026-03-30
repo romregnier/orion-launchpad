@@ -32,7 +32,7 @@ interface ShootingStar {
   active: boolean
 }
 
-const STAR_COLORS = ['#ffffff', '#E11F7B', '#7C3AED', '#00d4ff']
+const STAR_COLORS = ['#ffffff', 'var(--accent)', '#7C3AED', '#00d4ff']
 const STAR_COLOR_WEIGHTS = [0.60, 0.15, 0.15, 0.10]
 const STAR_COUNT = 120
 const CONNECTION_DIST = 120
@@ -98,7 +98,7 @@ export function GalaxyCanvas({ opacity = 0.6 }: { opacity?: number }) {
         vy: Math.sin(angle) * speed,
         trail: [],
         trailLength,
-        color: Math.random() < 0.6 ? '#ffffff' : '#E11F7B',
+        color: Math.random() < 0.6 ? '#ffffff' : 'var(--accent)',
         thickness: 1 + Math.random() * 0.5,
         active: true,
       }
