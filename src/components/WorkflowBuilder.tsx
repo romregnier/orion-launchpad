@@ -1,9 +1,11 @@
 /**
  * WorkflowBuilder — TK-0231
+ * TK-0240: [ARCH-012] Swarm Topologies support added
  * Éditeur visuel de workflow node-based.
  * Canvas custom sans librairie externe (SVG bezier + drag natif).
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
+import type { SwarmTopology, TopologyConfig } from '../types/workflow'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -14,6 +16,8 @@ export interface WorkflowNode {
   x: number
   y: number
   config: Record<string, unknown>
+  topology?: SwarmTopology    // TK-0240: optional topology badge
+  topologyConfig?: TopologyConfig  // TK-0240: topology configuration
 }
 
 export interface WorkflowEdge {
@@ -38,6 +42,17 @@ const NODE_TYPE_CONFIG: Record<WorkflowNode['type'], { color: string; bg: string
   action:    { color: 'var(--success, #22c55e)',  bg: 'rgba(34,197,94,0.15)',  icon: '🔧', label: 'Action' },
   condition: { color: 'var(--warning, #f59e0b)',  bg: 'rgba(245,158,11,0.15)', icon: '❓', label: 'Condition' },
   agent:     { color: 'var(--purple, #8b5cf6)',   bg: 'rgba(139,92,246,0.15)', icon: '🤖', label: 'Agent' },
+}
+
+// ── TK-0240: Topology definitions ─────────────────────────────────────────────
+
+const TOPOLOGY_CONFIG: Record<SwarmTopology, { icon: string; label: string; color: string }> = {
+  sequential:  { icon: '→',  label: 'Séquentiel',  color: 'var(--info, #3b82f6)'    },
+  parallel:    { icon: '⇉',  label: 'Parallèle',   color: 'var(--success, #22c55e)' },
+  conditional: { icon: '⋔',  label: 'Conditionnel',color: 'var(--warning, #f59e0b)' },
+  fan_out:     { icon: '⊳',  label: 'Fan-out',     color: 'var(--purple, #8b5cf6)'  },
+  fan_in:      { icon: '⊲',  label: 'Fan-in',      color: 'var(--purple, #8b5cf6)'  },
+  recurrent:   { icon: '↺',  label: 'Récurrent',   color: 'var(--warning, #f59e0b)' },
 }
 
 // ── Bezier path between two nodes ─────────────────────────────────────────────
@@ -66,6 +81,77 @@ export function WorkflowBuilder({ nodes, edges, onChange }: WorkflowBuilderProps
   const dragging = useRef<{ id: string; offX: number; offY: number } | null>(null)
 
   const selectedNode = nodes.find(n => n.id === selectedId) ?? null
+
+  // ── TK-0240: Insert topology template ────────────────────────────────────
+
+  const insertTopology = useCallback((topology: SwarmTopology) => {
+    const baseX = 80 + Math.random() * 200
+    const baseY = 80 + Math.random() * 150
+    const newNodes: WorkflowNode[] = []
+    const newEdges: WorkflowEdge[] = []
+
+    const mk = (type: WorkflowNode['type'], label: string, x: number, y: number, topo?: SwarmTopology): WorkflowNode => ({
+      id: crypto.randomUUID(), type, label, x, y, config: {},
+      topology: topo,
+    })
+
+    if (topology === 'sequential') {
+      const a = mk('trigger', 'Étape A', baseX, baseY)
+      const b = mk('action',  'Étape B', baseX + 200, baseY)
+      const c = mk('action',  'Étape C', baseX + 400, baseY)
+      newNodes.push(a, b, c)
+      newEdges.push(
+        { id: crypto.randomUUID(), source: a.id, target: b.id },
+        { id: crypto.randomUUID(), source: b.id, target: c.id },
+      )
+    } else if (topology === 'parallel') {
+      const fan = mk('trigger', 'Fan-out', baseX, baseY + 80, 'fan_out')
+      const b1  = mk('agent',   'Branch 1', baseX + 200, baseY)
+      const b2  = mk('agent',   'Branch 2', baseX + 200, baseY + 80)
+      const b3  = mk('agent',   'Branch 3', baseX + 200, baseY + 160)
+      const fin = mk('action',  'Fan-in',   baseX + 400, baseY + 80, 'fan_in')
+      newNodes.push(fan, b1, b2, b3, fin)
+      ;[b1, b2, b3].forEach(b => {
+        newEdges.push({ id: crypto.randomUUID(), source: fan.id, target: b.id })
+        newEdges.push({ id: crypto.randomUUID(), source: b.id, target: fin.id })
+      })
+    } else if (topology === 'conditional') {
+      const cond = mk('condition', 'Condition', baseX, baseY + 40, 'conditional')
+      const yes  = mk('action',   'Branche Oui', baseX + 200, baseY)
+      const no   = mk('action',   'Branche Non', baseX + 200, baseY + 100)
+      newNodes.push(cond, yes, no)
+      newEdges.push(
+        { id: crypto.randomUUID(), source: cond.id, target: yes.id },
+        { id: crypto.randomUUID(), source: cond.id, target: no.id },
+      )
+    } else if (topology === 'fan_out') {
+      const src = mk('trigger', 'Source', baseX, baseY + 80, 'fan_out')
+      const t1  = mk('agent', 'Target 1', baseX + 200, baseY)
+      const t2  = mk('agent', 'Target 2', baseX + 200, baseY + 80)
+      const t3  = mk('agent', 'Target 3', baseX + 200, baseY + 160)
+      newNodes.push(src, t1, t2, t3)
+      ;[t1, t2, t3].forEach(t => newEdges.push({ id: crypto.randomUUID(), source: src.id, target: t.id }))
+    } else if (topology === 'fan_in') {
+      const s1  = mk('agent',  'Source 1', baseX, baseY)
+      const s2  = mk('agent',  'Source 2', baseX, baseY + 80)
+      const s3  = mk('agent',  'Source 3', baseX, baseY + 160)
+      const agg = mk('action', 'Agrégateur', baseX + 200, baseY + 80, 'fan_in')
+      newNodes.push(s1, s2, s3, agg)
+      ;[s1, s2, s3].forEach(s => newEdges.push({ id: crypto.randomUUID(), source: s.id, target: agg.id }))
+    } else if (topology === 'recurrent') {
+      const entry = mk('trigger', 'Entrée Loop', baseX, baseY, 'recurrent')
+      const body  = mk('action',  'Corps Loop',  baseX + 200, baseY)
+      const check = mk('condition', 'Condition sortie', baseX + 400, baseY)
+      newNodes.push(entry, body, check)
+      newEdges.push(
+        { id: crypto.randomUUID(), source: entry.id, target: body.id },
+        { id: crypto.randomUUID(), source: body.id, target: check.id },
+        { id: crypto.randomUUID(), source: check.id, target: body.id }, // loop back
+      )
+    }
+
+    onChange([...nodes, ...newNodes], [...edges, ...newEdges])
+  }, [nodes, edges, onChange])
 
   // ── Add node ──────────────────────────────────────────────────────────────
 
@@ -217,6 +303,37 @@ export function WorkflowBuilder({ nodes, edges, onChange }: WorkflowBuilderProps
               </button>
             )
           })}
+          {/* TK-0240: Topology toolbar separator */}
+          <div style={{
+            width: 1, height: 24,
+            background: 'rgba(255,255,255,0.1)',
+            margin: '0 4px', flexShrink: 0,
+          }} />
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>Topologies :</span>
+          {(Object.keys(TOPOLOGY_CONFIG) as SwarmTopology[]).map(topo => {
+            const tc = TOPOLOGY_CONFIG[topo]
+            return (
+              <button
+                key={topo}
+                onClick={() => insertTopology(topo)}
+                title={`Insérer topologie ${tc.label}`}
+                style={{
+                  padding: '6px 12px',
+                  background: 'rgba(255,255,255,0.04)',
+                  color: tc.color,
+                  border: `1px solid ${tc.color}33`,
+                  borderRadius: 8, cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ fontSize: 14 }}>{tc.icon}</span>
+                {tc.label}
+              </button>
+            )
+          })}
+
           {connecting && (
             <span style={{
               marginLeft: 'auto', fontSize: 12,
@@ -342,13 +459,28 @@ export function WorkflowBuilder({ nodes, edges, onChange }: WorkflowBuilderProps
                 />
 
                 <span style={{ fontSize: 16 }}>{cfg.icon}</span>
-                <span style={{
-                  flex: 1, marginLeft: 6, fontSize: 12, fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {node.label}
-                </span>
+                <div style={{ flex: 1, marginLeft: 6, overflow: 'hidden' }}>
+                  <span style={{
+                    fontSize: 12, fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    display: 'block',
+                  }}>
+                    {node.label}
+                  </span>
+                  {/* TK-0240: Topology badge */}
+                  {node.topology && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
+                      color: TOPOLOGY_CONFIG[node.topology].color,
+                      opacity: 0.8,
+                      display: 'block',
+                      marginTop: 1,
+                    }}>
+                      {TOPOLOGY_CONFIG[node.topology].icon} {TOPOLOGY_CONFIG[node.topology].label}
+                    </span>
+                  )}
+                </div>
 
                 {/* Connect + Delete buttons on selected */}
                 {isSelected && (
