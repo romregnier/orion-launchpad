@@ -54,6 +54,8 @@ const CapsuleHomePage = React.lazy(() => import('./pages/CapsuleHomePage').then(
 const AgentInboxPage  = React.lazy(() => import('./pages/AgentInboxPage').then(m => ({ default: m.AgentInboxPage })))
 const AgentDMThread   = React.lazy(() => import('./pages/AgentDMThread').then(m => ({ default: m.AgentDMThread })))
 const AgentsPage      = React.lazy(() => import('./pages/AgentsPage').then(m => ({ default: m.AgentsPage })))
+const KnowledgePage   = React.lazy(() => import('./pages/KnowledgePage').then(m => ({ default: m.KnowledgePage })))
+const WorkflowBuilderPage = React.lazy(() => import('./pages/WorkflowBuilderPage').then(m => ({ default: m.WorkflowBuilderPage })))
 
 // ── AppInner — auth + routing ──────────────────────────────────────────────────
 function AppInner() {
@@ -117,6 +119,7 @@ function AppInner() {
           <Route path="/agents/inbox-v1" element={<AgentsPage />} />
           <Route path="/agents/:agentKey" element={<AgentDMThread />} />
           <Route path="/agents/inbox" element={<AgentInboxPage />} />
+          <Route path="/workflows/:id/edit" element={<WorkflowBuilderPage />} />
 
           {/* ── Shell avec nav ──────────────────────────────────────────────── */}
           <Route element={<AppShell />}>
@@ -127,6 +130,7 @@ function AppInner() {
             <Route path="/activity" element={<ActivityPage />} />
             <Route path="/automations" element={<AutomationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/knowledge" element={<KnowledgePage />} />
           </Route>
         </Routes>
       </Suspense>
