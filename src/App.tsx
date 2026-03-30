@@ -60,6 +60,8 @@ const MarketplacePage     = React.lazy(() => import('./pages/MarketplacePage').t
 // TK-0229 / TK-0228
 const LightBridgesPage    = React.lazy(() => import('./pages/LightBridgesPage').then(m => ({ default: m.LightBridgesPage })))
 const OrionHubPage        = React.lazy(() => import('./pages/OrionHubPage').then(m => ({ default: m.OrionHubPage })))
+// TK-0243
+const SandboxConfigPage   = React.lazy(() => import('./pages/SandboxConfigPage').then(m => ({ default: m.SandboxConfigPage })))
 
 // ── AppInner — auth + routing ──────────────────────────────────────────────────
 function AppInner() {
@@ -125,6 +127,7 @@ function AppInner() {
           <Route path="/agents/inbox" element={<AgentInboxPage />} />
           <Route path="/workflows/:id/edit" element={<WorkflowBuilderPage />} />
           <Route path="/marketplace" element={<MarketplacePage />} />
+          <Route path="/sandbox" element={<SandboxConfigPage />} />
 
           {/* ── Shell avec nav ──────────────────────────────────────────────── */}
           <Route element={<AppShell />}>

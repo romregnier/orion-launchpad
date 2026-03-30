@@ -6,6 +6,7 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MARKETPLACE_AGENTS } from '../data/marketplaceAgents'
 import { AgentBuilderModal, type AgentBuilderPrefill } from '../components/AgentBuilderModal'
+import { BlueprintVerifier } from '../components/BlueprintVerifier'
 import type { MarketplaceAgent } from '../types/marketplace'
 
 // ─── Star Rating ─────────────────────────────────────────────────────────────
@@ -246,6 +247,7 @@ export function MarketplacePage() {
   const [tierFilter, setTierFilter] = useState<TierFilter>('all')
   const [builderOpen, setBuilderOpen] = useState(false)
   const [prefill, setPrefill] = useState<AgentBuilderPrefill | undefined>()
+  const [verifierOpen, setVerifierOpen] = useState(false)
 
   const filteredAgents = useMemo(() => {
     return MARKETPLACE_AGENTS.filter(agent => {
@@ -411,6 +413,25 @@ export function MarketplacePage() {
         }}>
           {filteredAgents.length} résultat{filteredAgents.length !== 1 ? 's' : ''}
         </span>
+
+        {/* Blueprint Verifier button */}
+        <button
+          onClick={() => setVerifierOpen(true)}
+          style={{
+            padding: '9px 16px',
+            borderRadius: 8,
+            border: '1px solid rgba(124,58,237,0.4)',
+            background: 'rgba(124,58,237,0.1)',
+            color: '#A78BFA',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: "'Poppins', sans-serif",
+            flexShrink: 0,
+          }}
+        >
+          🔍 Vérifier blueprint
+        </button>
       </div>
 
       {/* Grid */}
@@ -446,6 +467,69 @@ export function MarketplacePage() {
         }}
         prefill={prefill}
       />
+
+      {/* Blueprint Verifier Modal */}
+      <AnimatePresence>
+        {verifierOpen && (
+          <>
+            <motion.div
+              key="bp-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setVerifierOpen(false)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.7)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 800,
+              }}
+            />
+            <motion.div
+              key="bp-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 560,
+                maxWidth: 'calc(100vw - 32px)',
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                background: '#0F0D12',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 16,
+                padding: '20px',
+                zIndex: 801,
+                boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: "'Poppins', sans-serif" }}>
+                  🔍 Blueprint Verifier
+                </h2>
+                <button
+                  onClick={() => setVerifierOpen(false)}
+                  style={{
+                    width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer', fontSize: 14,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <BlueprintVerifier />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

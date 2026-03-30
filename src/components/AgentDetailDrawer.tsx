@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { CanvasAgent } from '../types'
 import { AdapterConfigPanel } from './AdapterConfigPanel'
+import { InferenceProxyPanel } from './InferenceProxyPanel'
 import type { AdapterConfig } from '../types/adapter'
 import { supabase } from '../lib/supabase'
 
@@ -19,7 +20,7 @@ export interface AgentDetailDrawerProps {
   isAdmin?: boolean
 }
 
-type Tab = 'infos' | 'prompt' | 'skills' | 'connexions' | 'adapter'
+type Tab = 'infos' | 'prompt' | 'skills' | 'connexions' | 'adapter' | 'proxy'
 
 const TAB_LABELS: Record<Tab, string> = {
   infos: '📋 Infos',
@@ -27,6 +28,7 @@ const TAB_LABELS: Record<Tab, string> = {
   skills: '⚡ Skills',
   connexions: '🔗 Connexions',
   adapter: '🔌 Adapter',
+  proxy: '🛡️ Proxy',
 }
 
 const inputStyle: React.CSSProperties = {
@@ -508,6 +510,16 @@ export function AgentDetailDrawer({
                         .eq('id', agent.id)
                     }}
                   />
+                </div>
+              )}
+
+              {/* TAB: Proxy */}
+              {activeTab === 'proxy' && (
+                <div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>
+                    Proxy d'inférence avec redaction automatique des PII avant envoi au LLM.
+                  </div>
+                  <InferenceProxyPanel />
                 </div>
               )}
 
