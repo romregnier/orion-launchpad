@@ -1,8 +1,11 @@
 /**
  * AgentStatusBadge — Indicateur visuel du statut d'un agent.
  * Affiche un badge coloré selon le statut (online/idle/offline) et des dots animés si build_task running.
+ * TK-0235: Intègre PulseIndicator pour les heartbeats (alive/idle/error).
  */
 import { motion } from 'framer-motion'
+import { PulseIndicator } from './PulseIndicator'
+import type { PulseStatus } from './PulseIndicator'
 
 // ── Couleurs par agent ────────────────────────────────────────────────────────
 const AGENT_META: Record<string, { color: string }> = {
@@ -19,17 +22,32 @@ interface AgentStatusBadgeProps {
   hasRunningBuildTask: boolean
   isWorking: boolean
   isMoving: boolean
+  /** TK-0235: heartbeat pulse status */
+  pulseStatus?: PulseStatus
 }
 
 /**
  * Bulle de pensée animée (3 dots pulsants) quand l'agent a une build_task running.
  */
-export function AgentStatusBadge({ agentName, hasRunningBuildTask, isWorking, isMoving }: AgentStatusBadgeProps) {
+export function AgentStatusBadge({ agentName, hasRunningBuildTask, isWorking, isMoving, pulseStatus }: AgentStatusBadgeProps) {
   const key = agentName.toLowerCase()
   const meta = AGENT_META[key] ?? { color: '#fff' }
 
   return (
     <>
+      {/* TK-0235 — Pulse Indicator (heartbeat status) */}
+      {pulseStatus && (
+        <div style={{
+          position: 'absolute',
+          bottom: -4,
+          right: -4,
+          pointerEvents: 'none',
+          zIndex: 2,
+        }}>
+          <PulseIndicator status={pulseStatus} size={10} />
+        </div>
+      )}
+
       {/* TK-0019 — Bulle de pensée animée quand l'agent a une build_task running */}
       {hasRunningBuildTask && (
         <div style={{
