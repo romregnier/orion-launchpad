@@ -20,7 +20,7 @@ import { CanvasAgentAvatar } from './CanvasAgentAvatar'
 import { AgentChatPanel } from './AgentChatPanel'
 import { BotModal } from './BotModal'
 import { GalaxyCanvas } from './GalaxyCanvas'
-import { NebulaOverlay } from './NebulaBackground'
+import { NebulaParallax } from './NebulaParallax'
 import { CapsuleSwitcher } from './CapsuleSwitcher'
 import { MobileBottomNav } from './MobileBottomNav'
 import type { CanvasAgent } from '../types'
@@ -105,7 +105,7 @@ export function LaunchpadCanvas() {
       onTouchEnd={onTouchEnd}
     >
       <GalaxyCanvas opacity={0.5} />
-      <NebulaOverlay />
+      <NebulaParallax />
       <div
         className="canvas-bg"
         style={{

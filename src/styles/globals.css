@@ -97,3 +97,16 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
 }
+
+/* ── Glassmorphism fallback — Firefox @supports ─────────────────────────────
+   Firefox ne supporte pas backdrop-filter sans flag.
+   On utilise un fond opaque légèrement plus sombre comme fallback.
+   ─────────────────────────────────────────────────────────────────────────── */
+@supports not (backdrop-filter: blur(1px)) {
+  .project-card {
+    background: rgba(26, 22, 30, 0.99) !important;
+  }
+  .build-status-widget {
+    background: rgba(22, 18, 26, 0.99) !important;
+  }
+}

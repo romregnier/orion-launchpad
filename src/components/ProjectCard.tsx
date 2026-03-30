@@ -241,7 +241,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                 borderRadius: 12,
                 background: 'rgba(15,12,20,0.96)',
                 border: '1px solid rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(16px)',
+                backdropFilter: 'var(--glass-blur)',
                 boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
                 whiteSpace: 'nowrap',
                 pointerEvents: 'auto',
@@ -367,7 +367,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
             border: isSwapTarget
               ? '1px solid var(--accent)'
               : `1px solid ${showActions ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
-            backdropFilter: 'blur(24px)',
+            backdropFilter: 'var(--glass-blur)',
             boxShadow: isDragging
               ? `0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(225,31,123,0.20)`
               : isSwapTarget
@@ -406,7 +406,7 @@ export function ProjectCard({ project, canvasScale, index = 0 }: Props) {
                   alignItems: 'center',
                   gap: 4,
                   zIndex: 5,
-                  backdropFilter: 'blur(4px)',
+                  backdropFilter: 'var(--glass-blur)',
                 }}
               >
                 <span style={{ animation: 'pulse 1.5s infinite' }}>⚡</span>
