@@ -30,6 +30,7 @@ interface WorkflowBuilderProps {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   onChange: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void
+  workflowId?: string
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -73,7 +74,7 @@ function nodeInputPos(node: WorkflowNode) {
 
 // ── WorkflowBuilder component ─────────────────────────────────────────────────
 
-export function WorkflowBuilder({ nodes, edges, onChange }: WorkflowBuilderProps) {
+export function WorkflowBuilder({ nodes, edges, onChange, workflowId: _workflowId }: WorkflowBuilderProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [connecting, setConnecting] = useState<string | null>(null) // source node id
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })

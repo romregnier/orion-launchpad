@@ -10,6 +10,9 @@ import { supabase } from '../lib/supabase'
 import { useLaunchpadStore } from '../store'
 import type { WorkflowRule } from '../types'
 import { Select } from './Select'
+import { HelpTooltip } from './HelpTooltip'
+import { WorkflowBuilder } from './WorkflowBuilder'
+import type { WorkflowNode, WorkflowEdge } from './WorkflowBuilder'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -427,9 +430,10 @@ interface CardProps {
   onEdit: (rule: WorkflowRule) => void
   onToggle: (id: string, enabled: boolean) => void
   onDelete: (id: string) => void
+  onVisualEdit?: (rule: WorkflowRule) => void
 }
 
-function WorkflowRuleCard({ rule, onEdit, onToggle, onDelete }: CardProps) {
+function WorkflowRuleCard({ rule, onEdit, onToggle, onDelete, onVisualEdit }: CardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const triggerLabel = TRIGGER_OPTIONS.find(t => t.value === rule.trigger_event)?.label ?? rule.trigger_event
@@ -528,6 +532,15 @@ function WorkflowRuleCard({ rule, onEdit, onToggle, onDelete }: CardProps) {
                 >
                   ✎
                 </button>
+                {onVisualEdit && (
+                  <button
+                    onClick={() => onVisualEdit(rule)}
+                    title="Éditer visuellement"
+                    style={{ padding: '4px 8px', borderRadius: 6, border: T.border, background: 'transparent', color: T.accent, fontSize: 12, cursor: 'pointer' }}
+                  >
+                    🎨
+                  </button>
+                )}
                 <button
                   onClick={() => onToggle(rule.id, !rule.enabled)}
                   title={rule.enabled ? 'Désactiver' : 'Activer'}
@@ -559,6 +572,11 @@ export function WorkflowTab() {
   const [showEditor, setShowEditor] = useState(false)
   const [editingRule, setEditingRule] = useState<WorkflowRule | null>(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+  // Visual builder state
+  const [showVisualBuilder, setShowVisualBuilder] = useState(false)
+  const [visualBuilderWorkflowId, setVisualBuilderWorkflowId] = useState<string | undefined>(undefined)
+  const [builderNodes, setBuilderNodes] = useState<WorkflowNode[]>([])
+  const [builderEdges, setBuilderEdges] = useState<WorkflowEdge[]>([])
 
   // Responsive
   useEffect(() => {
@@ -653,6 +671,13 @@ export function WorkflowTab() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const handleVisualEdit = (rule: WorkflowRule) => {
+    setBuilderNodes([])
+    setBuilderEdges([])
+    setVisualBuilderWorkflowId(rule.id)
+    setShowVisualBuilder(true)
+  }
+
   const handleCancel = () => {
     setShowEditor(false)
     setEditingRule(null)
@@ -665,30 +690,100 @@ export function WorkflowTab() {
 
   return (
     <div style={{ padding: isMobile ? '16px 12px' : '24px 28px', fontFamily: T.font, minHeight: 400 }}>
+      {/* Visual Builder Modal (fullscreen overlay) */}
+      <AnimatePresence>
+        {showVisualBuilder && (
+          <motion.div
+            key="visual-builder-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: T.bg,
+              display: 'flex', flexDirection: 'column',
+            }}
+          >
+            {/* Builder header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 20px', borderBottom: T.border, background: T.surface, flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: T.text, fontFamily: T.font }}>
+                  🎨 Éditeur visuel de workflow
+                </span>
+                {visualBuilderWorkflowId && (
+                  <span style={{ fontSize: 11, color: T.muted, fontFamily: T.font }}>
+                    ID: {visualBuilderWorkflowId.slice(0, 8)}…
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => { setShowVisualBuilder(false); setVisualBuilderWorkflowId(undefined) }}
+                style={{
+                  padding: '6px 14px', borderRadius: 7, border: T.border,
+                  background: 'transparent', color: T.muted, fontSize: 13,
+                  fontFamily: T.font, cursor: 'pointer',
+                }}
+              >
+                ✕ Fermer
+              </button>
+            </div>
+            {/* Builder canvas */}
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <WorkflowBuilder
+                nodes={builderNodes}
+                edges={builderEdges}
+                onChange={(n, e) => { setBuilderNodes(n); setBuilderEdges(e) }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: T.font }}>
-            🔀 Workflow Editor
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: T.font }}>
+              🔀 Workflow Editor
+            </div>
+            <HelpTooltip tip="Les workflows déclenchent automatiquement des actions quand certains événements se produisent." />
           </div>
           <div style={{ fontSize: 12, color: T.muted, marginTop: 2, fontFamily: T.font }}>
             {rules.length} règle{rules.length !== 1 ? 's' : ''} configurée{rules.length !== 1 ? 's' : ''}
           </div>
         </div>
         {!showEditor && (
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleNewRule}
-            style={{
-              padding: '8px 16px', borderRadius: 8, border: 'none',
-              background: T.accent, color: '#fff',
-              fontSize: 13, fontWeight: 600, fontFamily: T.font,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            <span style={{ fontSize: 16 }}>+</span> Nouvelle règle
-          </motion.button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setBuilderNodes([]); setBuilderEdges([]); setVisualBuilderWorkflowId(undefined); setShowVisualBuilder(true) }}
+              style={{
+                padding: '8px 14px', borderRadius: 8, border: `1px solid ${T.accent}`,
+                background: 'transparent', color: T.accent,
+                fontSize: 13, fontWeight: 600, fontFamily: T.font,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              🎨 Éditeur visuel
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleNewRule}
+              style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none',
+                background: T.accent, color: '#fff',
+                fontSize: 13, fontWeight: 600, fontFamily: T.font,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <span style={{ fontSize: 16 }}>+</span> Nouvelle règle
+            </motion.button>
+          </div>
         )}
       </div>
 
@@ -753,6 +848,7 @@ export function WorkflowTab() {
                 onEdit={handleEdit}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
+                onVisualEdit={handleVisualEdit}
               />
             ))}
           </AnimatePresence>

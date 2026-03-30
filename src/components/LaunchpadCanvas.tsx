@@ -23,6 +23,7 @@ import { GalaxyCanvas } from './GalaxyCanvas'
 import { NebulaParallax } from './NebulaParallax'
 import { CapsuleSwitcher } from './CapsuleSwitcher'
 import { MobileBottomNav } from './MobileBottomNav'
+import { CanvasElementStats } from './CanvasElementStats'
 import type { CanvasAgent } from '../types'
 
 // ── LoadingTimeout ────────────────────────────────────────────────────────────
@@ -98,6 +99,7 @@ export function LaunchpadCanvas() {
       style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', touchAction: 'none' }}
       data-projects={projects.length}
       data-agents={canvasAgents.length}
+      // CanvasElementStats is rendered as absolute inside this div
       onMouseDown={handleMouseDown}
       onWheel={handleWheel}
       onTouchStart={onTouchStart}
@@ -106,6 +108,7 @@ export function LaunchpadCanvas() {
     >
       <GalaxyCanvas opacity={0.5} />
       <NebulaParallax />
+      <CanvasElementStats />
       <div
         className="canvas-bg"
         style={{

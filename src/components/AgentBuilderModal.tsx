@@ -4,6 +4,7 @@ import { ModalShell } from './ModalShell'
 import { SkillsTagInput } from './SkillsTagInput'
 import { ModelSelector } from './ModelSelector'
 import { Select } from './Select'
+import { HelpTooltip } from './HelpTooltip'
 import { useLaunchpadStore } from '../store'
 import { supabase } from '../lib/supabase'
 import { ROLE_TEMPLATES } from '../constants/roleTemplates'
@@ -300,9 +301,12 @@ function Step2({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* System prompt */}
       <div>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '0.04em', fontFamily: "'Poppins', sans-serif" }}>
-          SYSTEM PROMPT
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em', fontFamily: "'Poppins', sans-serif" }}>
+            SYSTEM PROMPT
+          </label>
+          <HelpTooltip tip="Instructions de comportement de l'agent. Définit sa personnalité et ses capacités." />
+        </div>
         <div style={{ position: 'relative' }}>
           <textarea
             value={form.system_prompt}
@@ -329,9 +333,12 @@ function Step2({ form, setForm }: { form: AgentBuilderForm; setForm: (f: AgentBu
 
       {/* Model selector */}
       <div>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '0.04em', fontFamily: "'Poppins', sans-serif" }}>
-          MODÈLE LLM
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.04em', fontFamily: "'Poppins', sans-serif" }}>
+            MODÈLE LLM
+          </label>
+          <HelpTooltip tip="Le modèle LLM utilisé. claude-sonnet-4-6 est recommandé pour la plupart des agents." />
+        </div>
         <ModelSelector value={form.model} onChange={v => setForm({ ...form, model: v })} />
       </div>
 
