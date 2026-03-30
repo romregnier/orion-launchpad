@@ -2,11 +2,13 @@
  * App.tsx v2 — Architecture AppShell + React Router Outlet
  * TK-0160 / TK-0161 / TK-0167 / TK-0168
  * TK-0159 — Code splitting par route (React.lazy + Suspense)
+ * TK-0223 — Onboarding flow for first capsule
  */
-import React, { useEffect, Suspense } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { useLaunchpadStore } from './store'
+import { OnboardingModal } from './components/OnboardingModal'
 
 // ── Shell & Layout (statiques — critiques au premier rendu) ───────────────────
 import { AppShell } from './components/AppShell'
@@ -55,7 +57,9 @@ const AgentsPage      = React.lazy(() => import('./pages/AgentsPage').then(m => 
 
 // ── AppInner — auth + routing ──────────────────────────────────────────────────
 function AppInner() {
-  const { isPrivate, currentUser } = useLaunchpadStore()
+  const { isPrivate, currentUser, capsules, fetchCapsules } = useLaunchpadStore()
+  const [onboarded, setOnboarded] = useState(false)
+  const [capsulesLoaded, setCapsulesLoaded] = useState(false)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -68,15 +72,36 @@ function AppInner() {
         if (event === 'SIGNED_IN') {
           useLaunchpadStore.getState().fetchBoardMembers()
         }
+        // Fetch capsules to check if onboarding needed
+        await fetchCapsules()
+        setCapsulesLoaded(true)
+      } else if (event === 'SIGNED_OUT') {
+        setOnboarded(false)
+        setCapsulesLoaded(false)
       }
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchCapsules])
 
   const showLoginOverlay = isPrivate && !currentUser
+  const showOnboarding = !showLoginOverlay && currentUser && capsulesLoaded && !onboarded && capsules.length === 0
 
   return (
     <>
+      {/* Onboarding overlay — shown when authenticated but no capsule yet */}
+      {showOnboarding && (
+        <OnboardingModal
+          onComplete={async (data) => {
+            await supabase.from('capsules').insert({
+              name: data.name,
+              emoji: data.emoji,
+              color: data.color,
+            })
+            await fetchCapsules()
+            setOnboarded(true)
+          }}
+        />
+      )}
       <Suspense fallback={<PageFallback />}>
         <Routes>
           {/* ── Pages sans nav ──────────────────────────────────────────────── */}

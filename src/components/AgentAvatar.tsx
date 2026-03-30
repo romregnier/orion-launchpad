@@ -461,55 +461,118 @@ function TailorCanvas({ tailorConfig, fallbackColor }: { tailorConfig: AvatarCon
 
 /**
  * AgentAvatar — Avatar visuel d'un agent (sans drag).
- * Props : agent, isWorking, onClick
+ * Props : agent, isWorking, onClick, size
+ *
+ * TK-0222 v2:
+ *  - Colored ring border (agent color)
+ *  - Pulsing glow halo via Framer Motion
+ *  - Default size 80px (was 112px for TailorCanvas, now configurable)
+ *  - Emoji badge for unknown agents without tailor_url
  */
 export interface AgentAvatarProps {
   agent: CanvasAgent
   isWorking: boolean
   onClick?: () => void
+  /** Avatar diameter in px. Defaults to 80. */
+  size?: number
 }
 
-export function AgentAvatar({ agent, isWorking, onClick }: AgentAvatarProps) {
+export function AgentAvatar({ agent, isWorking, onClick, size = 80 }: AgentAvatarProps) {
   const key = agent.name.toLowerCase()
-  const meta = AGENT_META[key] ?? { emoji: '🤖', color: '#fff', glow: 'rgba(255,255,255,0.2)' }
+  const knownAgent = AGENT_META[key]
+  const meta = knownAgent ?? { emoji: '🤖', color: 'var(--accent)', glow: 'rgba(225,31,123,0.4)' }
 
   const isMobile = typeof navigator !== 'undefined'
     && (navigator.maxTouchPoints > 0 || window.innerWidth < 768)
 
   const showTailor = !isMobile && !!agent.tailor_config
   const showPng = !showTailor && !!agent.tailorUrl
+  // Show emoji badge for unknown agents (not in AGENT_META) without tailor_url
+  const showBadge = !knownAgent && !agent.tailorUrl
+
+  // Pulsing glow: always on (subtle), stronger when working
+  const glowBase = `0 0 16px ${meta.glow}`
+  const glowWorking = `0 0 28px ${meta.glow}`
+
+  const fontSize = Math.round(size * 0.4)
+  const badgeSize = Math.round(size * 0.28)
 
   return (
     <motion.div
-      animate={isWorking ? { boxShadow: [`0 0 0 0 ${meta.glow}`, `0 0 0 12px transparent`] } : {}}
-      transition={isWorking ? { repeat: Infinity, duration: 1.2, ease: 'easeOut' } : {}}
+      animate={{
+        boxShadow: isWorking
+          ? [glowBase, glowWorking, glowBase]
+          : [glowBase, `0 0 24px ${meta.glow}`, glowBase],
+      }}
+      transition={{ repeat: Infinity, duration: isWorking ? 1.0 : 2.8, ease: 'easeInOut' }}
       onClick={onClick}
       style={{
-        width: 112, height: 112,
+        width: size,
+        height: size,
         borderRadius: '50%',
-        overflow: 'hidden',
+        overflow: 'visible',
         position: 'relative',
-        background: (showTailor || showPng)
-          ? 'transparent'
-          : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
-        border: `2px solid ${meta.color}88`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 36,
-        boxShadow: isWorking ? `0 0 16px ${meta.glow}` : `0 2px 8px rgba(0,0,0,0.4)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         cursor: onClick ? 'pointer' : 'inherit',
+        flexShrink: 0,
       }}
     >
-      {showTailor ? (
-        <TailorCanvas tailorConfig={agent.tailor_config!} fallbackColor={meta.color} />
-      ) : showPng ? (
-        <img
-          src={agent.tailorUrl}
-          alt={agent.name}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-        />
-      ) : (
-        meta.emoji
+      {/* Inner circle */}
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          position: 'relative',
+          background: (showTailor || showPng)
+            ? 'transparent'
+            : `radial-gradient(circle at 35% 35%, ${meta.color}55, ${meta.color}22)`,
+          border: `2px solid ${meta.color}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize,
+          boxShadow: `inset 0 1px 4px rgba(0,0,0,0.3)`,
+        }}
+      >
+        {showTailor ? (
+          <TailorCanvas tailorConfig={agent.tailor_config!} fallbackColor={meta.color} />
+        ) : showPng ? (
+          <img
+            src={agent.tailorUrl}
+            alt={agent.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+          />
+        ) : (
+          meta.emoji
+        )}
+      </div>
+
+      {/* Badge — emoji for unknown agents without tailor_url */}
+      {showBadge && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: -2,
+            right: -2,
+            width: badgeSize,
+            height: badgeSize,
+            borderRadius: '50%',
+            background: 'var(--bg-card, #1a1a2e)',
+            border: `1.5px solid ${meta.color}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: Math.round(badgeSize * 0.55),
+            zIndex: 1,
+          }}
+        >
+          {meta.emoji}
+        </div>
       )}
     </motion.div>
   )
